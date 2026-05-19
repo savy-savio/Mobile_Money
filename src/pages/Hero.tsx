@@ -338,7 +338,7 @@ const Hero = () => {
         style={{
           position: 'relative',
           width: '100%',
-          minHeight: '80vh',
+          minHeight: '70vh',
           overflow: 'hidden',
           fontFamily: '"DM Sans", sans-serif',
           display: 'flex',
