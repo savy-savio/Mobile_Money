@@ -36,10 +36,12 @@ import {
 } from '@mui/icons-material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 
+// ─── Brand color ─────────────────────────────────────────────────────────────
 const BRAND = '#FA510F';
 const BRAND_DARK = '#D94309';
 const BRAND_LIGHT = 'rgba(250,81,15,0.08)';
 
+// ─── Theme ────────────────────────────────────────────────────────────────────
 const headerTheme = createTheme({
   palette: {
     primary: { main: BRAND },
@@ -71,6 +73,7 @@ const headerTheme = createTheme({
   },
 });
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface ServiceItem {
   label: string;
   description: string;
@@ -113,7 +116,7 @@ const SERVICES: ServiceItem[] = [
   },
 ];
 
-
+// ─── Logo ─────────────────────────────────────────────────────────────────────
 function Logo() {
   return (
     <Box
@@ -178,6 +181,7 @@ function Logo() {
   );
 }
 
+// ─── Services Dropdown ────────────────────────────────────────────────────────
 interface ServicesDropdownProps {
   open: boolean;
   anchorEl: HTMLElement | null;
@@ -334,6 +338,7 @@ function ServicesDropdown({ open, anchorEl, onClose }: ServicesDropdownProps) {
   );
 }
 
+// ─── Desktop Nav ──────────────────────────────────────────────────────────────
 interface DesktopNavProps {
   activeNav: NavLink | null;
   onNavClick: (nav: NavLink, e: React.MouseEvent<HTMLElement>) => void;
@@ -393,6 +398,7 @@ function DesktopNav({ activeNav, onNavClick, servicesOpen }: DesktopNavProps) {
   );
 }
 
+// ─── Mobile Drawer ────────────────────────────────────────────────────────────
 interface MobileDrawerProps {
   open: boolean;
   onClose: () => void;
@@ -413,17 +419,17 @@ function MobileDrawer({ open, onClose }: MobileDrawerProps) {
       anchor="right"
       open={open}
       onClose={handleClose}
-      PaperProps={{
-        sx: {
-          width: 280,
-          maxWidth: '85vw',     
-          overflowX: 'hidden',    
-          display: 'flex',
-          flexDirection: 'column',
+      slotProps={{
+        paper: {
+          sx: {
+            width: 280,
+            maxWidth: '85vw',
+            overflowX: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+          },
         },
       }}
-      // backdrop closes drawer
-      ModalProps={{ keepMounted: false }}
     >
       {/* Drawer header */}
       <Box
@@ -479,12 +485,11 @@ function MobileDrawer({ open, onClose }: MobileDrawerProps) {
                 >
                   <ListItemText
                     primary={link}
-                    primaryTypographyProps={{
-                      className: 'nav-label',
-                      fontSize: 15,
-                      fontWeight: 500,
-                      color: '#0F172A',
-                      sx: { transition: 'color 0.15s ease' },
+                    slotProps={{
+                      primary: {
+                        className: 'nav-label',
+                        style: { fontSize: 15, fontWeight: 500, color: '#0F172A', transition: 'color 0.15s ease' },
+                      },
                     }}
                   />
                   {link === 'Services' && (
@@ -533,18 +538,17 @@ function MobileDrawer({ open, onClose }: MobileDrawerProps) {
                               flexShrink: 0,
                             }}
                           >
-                            {React.cloneElement(
-                              service.icon as React.ReactElement,
-                              { sx: { fontSize: 15 } }
-                            )}
+                            <Box sx={{ fontSize: 15, color: service.color, display: 'flex' }}>
+                              {service.icon}
+                            </Box>
                           </Box>
                         </ListItemIcon>
                         <ListItemText
                           primary={service.label}
-                          primaryTypographyProps={{
-                            fontSize: 13.5,
-                            fontWeight: 500,
-                            color: '#1E293B',
+                          slotProps={{
+                            primary: {
+                              style: { fontSize: 13.5, fontWeight: 500, color: '#1E293B' },
+                            },
                           }}
                         />
                       </ListItemButton>
@@ -606,7 +610,7 @@ function MobileDrawer({ open, onClose }: MobileDrawerProps) {
   );
 }
 
-
+// ─── Animated hamburger icon ──────────────────────────────────────────────────
 function HamburgerIcon({ open }: { open: boolean }) {
   return (
     <Box
@@ -638,6 +642,7 @@ function HamburgerIcon({ open }: { open: boolean }) {
   );
 }
 
+// ─── Main Header ─────────────────────────────────────────────────────────────
 const Header = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -668,6 +673,12 @@ const Header = () => {
 
   return (
     <ThemeProvider theme={headerTheme}>
+      {/*
+        ── overflow fix ─────────────────────────────────────────────────────
+        This Box wraps the AppBar and acts as the containing block.
+        overflow: hidden on it prevents the drawer animation from ever
+        causing horizontal scroll on the page.
+      */}
       <Box sx={{ width: '100%', overflowX: 'hidden' }}>
         <AppBar
           position="sticky"
@@ -683,7 +694,7 @@ const Header = () => {
           <Toolbar
             disableGutters
             sx={{
-            //   maxWidth: 1200,
+              maxWidth: 1200,
               width: '100%',
               mx: 'auto',
               px: { xs: 2, sm: 3, md: 4 },
@@ -756,7 +767,6 @@ const Header = () => {
                 onClick={() => setMobileOpen((p) => !p)}
                 disableRipple
                 sx={{
-                    marginRight: {xs: "30px"},
                   p: 1,
                   borderRadius: 1.5,
                   border: '1px solid rgba(0,0,0,0.09)',
@@ -764,6 +774,7 @@ const Header = () => {
                   transition: 'background 0.15s ease',
                   '&:hover': { bgcolor: BRAND_LIGHT },
                   flexShrink: 0,
+                  marginRight: "25px"
                 }}
               >
                 <HamburgerIcon open={mobileOpen} />
