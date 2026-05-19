@@ -1,8 +1,11 @@
+import Hero from "./Hero"
 
 
 const Homepage = () => {
   return (
-    <div>Homepage</div>
+    <div>
+      <Hero />
+    </div>
   )
 }
 

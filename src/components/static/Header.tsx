@@ -22,7 +22,6 @@ import {
   Grow,
 } from '@mui/material';
 import {
-//   Menu as MenuIcon,
   Close as CloseIcon,
   KeyboardArrowDown as ArrowDownIcon,
   KeyboardArrowUp as ArrowUpIcon,
@@ -30,11 +29,14 @@ import {
   BusinessCenter as BusinessBankingIcon,
   TrendingUp as InvestmentsIcon,
   CreditCard as CardIcon,
-//   ExpandLess,
   ExpandMore,
   ArrowForward as ArrowForwardIcon,
 } from '@mui/icons-material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
+// import { useI18n, Language } from './i18n';
+import { useI18n } from '../../context/l18n';
+import type { Language } from '../../context/l18n';
+import img from "../../assets/crown.png"
 
 // ─── Brand color ─────────────────────────────────────────────────────────────
 const BRAND = '#FA510F';
@@ -43,12 +45,8 @@ const BRAND_LIGHT = 'rgba(250,81,15,0.08)';
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
 const headerTheme = createTheme({
-  palette: {
-    primary: { main: BRAND },
-  },
-  typography: {
-    fontFamily: '"Inter", "Helvetica Neue", Arial, sans-serif',
-  },
+  palette: { primary: { main: BRAND } },
+  typography: { fontFamily: '"Inter", "Helvetica Neue", Arial, sans-serif' },
   components: {
     MuiButton: {
       styleOverrides: {
@@ -62,119 +60,146 @@ const headerTheme = createTheme({
       },
     },
     MuiDrawer: {
-      styleOverrides: {
-        paper: {
-          // prevent any horizontal overflow inside drawer
-          overflowX: 'hidden',
-          maxWidth: '100vw',
-        },
-      },
+      styleOverrides: { paper: { overflowX: 'hidden', maxWidth: '100vw' } },
     },
   },
 });
 
+// ─── Language Toggle ──────────────────────────────────────────────────────────
+function LanguageToggle() {
+  const { language, setLanguage } = useI18n();
+  const other: Language = language === 'en' ? 'es' : 'en';
+
+  return (
+    <Button
+      onClick={() => setLanguage(other)}
+      variant="text"
+      size="small"
+      sx={{
+        minWidth: 0,
+        px: 1.25,
+        py: 0.625,
+        borderRadius: 1.5,
+        border: '1px solid',
+        borderColor: 'rgba(0,0,0,0.12)',
+        color: '#475569',
+        fontWeight: 600,
+        fontSize: 12,
+        letterSpacing: '0.4px',
+        lineHeight: 1,
+        transition: 'all 0.15s ease',
+        '&:hover': {
+          borderColor: BRAND,
+          color: BRAND,
+          bgcolor: BRAND_LIGHT,
+        },
+      }}
+    >
+      {other.toUpperCase()}
+    </Button>
+  );
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ServiceItem {
-  label: string;
-  description: string;
+  labelKey: 'service_personal_label' | 'service_business_label' | 'service_investments_label' | 'service_card_label';
+  descKey: 'service_personal_desc' | 'service_business_desc' | 'service_investments_desc' | 'service_card_desc';
   icon: React.ReactNode;
   color: string;
   bgColor: string;
 }
 
-const NAV_LINKS = ['Home', 'About', 'Services', 'Contact'] as const;
-type NavLink = (typeof NAV_LINKS)[number];
-
-const SERVICES: ServiceItem[] = [
+const SERVICE_DEFS: ServiceItem[] = [
   {
-    label: 'Personal Banking',
-    description: 'Accounts, savings & everyday banking',
+    labelKey: 'service_personal_label',
+    descKey: 'service_personal_desc',
     icon: <PersonalBankingIcon sx={{ fontSize: 20 }} />,
     color: '#1D4ED8',
     bgColor: '#EFF6FF',
   },
   {
-    label: 'Business Banking',
-    description: 'Solutions for growing businesses',
+    labelKey: 'service_business_label',
+    descKey: 'service_business_desc',
     icon: <BusinessBankingIcon sx={{ fontSize: 20 }} />,
     color: '#065F46',
     bgColor: '#ECFDF5',
   },
   {
-    label: 'Investments',
-    description: 'Grow your wealth intelligently',
+    labelKey: 'service_investments_label',
+    descKey: 'service_investments_desc',
     icon: <InvestmentsIcon sx={{ fontSize: 20 }} />,
     color: '#92400E',
     bgColor: '#FFFBEB',
   },
   {
-    label: 'Card',
-    description: 'Debit, credit & prepaid cards',
+    labelKey: 'service_card_label',
+    descKey: 'service_card_desc',
     icon: <CardIcon sx={{ fontSize: 20 }} />,
     color: '#6B21A8',
     bgColor: '#FAF5FF',
   },
 ];
 
+// NAV_LINKS are now derived from translation keys
+const NAV_LINK_KEYS = ['nav_home', 'nav_about', 'nav_services', 'nav_contact'] as const;
+type NavLinkKey = (typeof NAV_LINK_KEYS)[number];
+
 // ─── Logo ─────────────────────────────────────────────────────────────────────
 function Logo() {
+  const { t } = useI18n();
   return (
     <Box
       sx={{
         display: 'flex',
         alignItems: 'center',
-        gap: 1.25,
+        gap: 1.5,
         cursor: 'pointer',
         flexShrink: 0,
         textDecoration: 'none',
-        // subtle scale on hover
         transition: 'transform 0.2s ease',
         '&:hover': { transform: 'scale(1.02)' },
       }}
     >
       <Box
+        component="img"
+        src={img}
+        alt="Crown Ledger Bank"
         sx={{
-          width: 38,
-          height: 38,
-          borderRadius: '11px',
-          bgcolor: BRAND,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          width: 44,
+          height: 44,
+          objectFit: 'contain',
           flexShrink: 0,
-          boxShadow: `0 4px 12px rgba(250,81,15,0.35)`,
-          transition: 'box-shadow 0.2s ease',
-          '&:hover': { boxShadow: `0 6px 18px rgba(250,81,15,0.45)` },
+          filter: 'drop-shadow(0 2px 6px rgba(250,81,15,0.22))',
+          transition: 'filter 0.2s ease',
+          '&:hover': { filter: 'drop-shadow(0 4px 12px rgba(250,81,15,0.38))' },
         }}
-      >
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <path d="M10 2L3 7v11h5v-5h4v5h5V7L10 2z" fill="white" opacity="0.95" />
-          <circle cx="10" cy="9" r="2" fill="white" />
-        </svg>
-      </Box>
+      />
       <Box>
         <Typography
           sx={{
             fontWeight: 800,
-            fontSize: 17,
+            fontSize: 16,
             color: '#0F172A',
-            lineHeight: 1,
+            lineHeight: 1.15,
             letterSpacing: '-0.4px',
+            whiteSpace: 'nowrap',
           }}
         >
-          Nova<Box component="span" sx={{ color: BRAND }}>Pay</Box>
+          Crown{' '}
+          <Box component="span" sx={{ color: BRAND }}>Ledger</Box>
         </Typography>
         <Typography
           sx={{
             fontSize: 9,
             color: '#94A3B8',
-            letterSpacing: '1.8px',
+            letterSpacing: '1.6px',
             textTransform: 'uppercase',
             lineHeight: 1,
-            mt: 0.3,
+            mt: 0.35,
+            whiteSpace: 'nowrap',
           }}
         >
-          Digital Bank
+          {t('logo_tagline')}
         </Typography>
       </Box>
     </Box>
@@ -189,6 +214,7 @@ interface ServicesDropdownProps {
 }
 
 function ServicesDropdown({ open, anchorEl, onClose }: ServicesDropdownProps) {
+  const { t } = useI18n();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -225,7 +251,6 @@ function ServicesDropdown({ open, anchorEl, onClose }: ServicesDropdownProps) {
           zIndex: 1400,
           overflow: 'hidden',
           p: 1.5,
-          // make sure it never causes horizontal scroll
           maxWidth: 'calc(100vw - 16px)',
         }}
       >
@@ -239,12 +264,12 @@ function ServicesDropdown({ open, anchorEl, onClose }: ServicesDropdownProps) {
               letterSpacing: '1px',
             }}
           >
-            Our Services
+            {t('services_heading')}
           </Typography>
         </Box>
 
-        {SERVICES.map((service, i) => (
-          <Fade in={open} timeout={120 + i * 60} key={service.label}>
+        {SERVICE_DEFS.map((service, i) => (
+          <Fade in={open} timeout={120 + i * 60} key={service.labelKey}>
             <Box
               onClick={onClose}
               sx={{
@@ -274,21 +299,16 @@ function ServicesDropdown({ open, anchorEl, onClose }: ServicesDropdownProps) {
                   justifyContent: 'center',
                   color: service.color,
                   flexShrink: 0,
-                  transition: 'transform 0.15s ease',
                 }}
               >
                 {service.icon}
               </Box>
               <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography
-                  sx={{ fontSize: 13.5, fontWeight: 600, color: '#0F172A', lineHeight: 1.3 }}
-                >
-                  {service.label}
+                <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: '#0F172A', lineHeight: 1.3 }}>
+                  {t(service.labelKey)}
                 </Typography>
-                <Typography
-                  sx={{ fontSize: 12, color: '#64748B', lineHeight: 1.4, mt: 0.2 }}
-                >
-                  {service.description}
+                <Typography sx={{ fontSize: 12, color: '#64748B', lineHeight: 1.4, mt: 0.2 }}>
+                  {t(service.descKey)}
                 </Typography>
               </Box>
               <ArrowForwardIcon
@@ -325,10 +345,10 @@ function ServicesDropdown({ open, anchorEl, onClose }: ServicesDropdownProps) {
         >
           <Box>
             <Typography sx={{ fontSize: 13, fontWeight: 700, color: BRAND }}>
-              Compare all services
+              {t('services_cta_label')}
             </Typography>
             <Typography sx={{ fontSize: 11, color: BRAND_DARK, opacity: 0.8 }}>
-              Find the right plan for you
+              {t('services_cta_sub')}
             </Typography>
           </Box>
           <ArrowForwardIcon sx={{ fontSize: 16, color: BRAND }} />
@@ -340,22 +360,23 @@ function ServicesDropdown({ open, anchorEl, onClose }: ServicesDropdownProps) {
 
 // ─── Desktop Nav ──────────────────────────────────────────────────────────────
 interface DesktopNavProps {
-  activeNav: NavLink | null;
-  onNavClick: (nav: NavLink, e: React.MouseEvent<HTMLElement>) => void;
+  activeNav: NavLinkKey | null;
+  onNavClick: (navKey: NavLinkKey, e: React.MouseEvent<HTMLElement>) => void;
   servicesOpen: boolean;
 }
 
 function DesktopNav({ activeNav, onNavClick, servicesOpen }: DesktopNavProps) {
+  const { t } = useI18n();
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-      {NAV_LINKS.map((link) => {
-        const isActive = activeNav === link || (link === 'Services' && servicesOpen);
+      {NAV_LINK_KEYS.map((key) => {
+        const isActive = activeNav === key || (key === 'nav_services' && servicesOpen);
         return (
           <Button
-            key={link}
-            onClick={(e) => onNavClick(link, e)}
+            key={key}
+            onClick={(e) => onNavClick(key, e)}
             endIcon={
-              link === 'Services'
+              key === 'nav_services'
                 ? servicesOpen
                   ? <ArrowUpIcon sx={{ fontSize: '15px !important', ml: -0.75, transition: 'transform 0.2s ease' }} />
                   : <ArrowDownIcon sx={{ fontSize: '15px !important', ml: -0.75, transition: 'transform 0.2s ease' }} />
@@ -372,7 +393,6 @@ function DesktopNav({ activeNav, onNavClick, servicesOpen }: DesktopNavProps) {
               transition: 'color 0.15s ease, background 0.15s ease',
               '&:hover': { bgcolor: BRAND_LIGHT, color: BRAND },
               ...(isActive && { bgcolor: BRAND_LIGHT }),
-              // animated underline
               '&::after': {
                 content: '""',
                 position: 'absolute',
@@ -385,12 +405,10 @@ function DesktopNav({ activeNav, onNavClick, servicesOpen }: DesktopNavProps) {
                 borderRadius: 1,
                 transition: 'transform 0.2s ease',
               },
-              '&:hover::after': {
-                transform: 'translateX(-50%) scaleX(1)',
-              },
+              '&:hover::after': { transform: 'translateX(-50%) scaleX(1)' },
             }}
           >
-            {link}
+            {t(key)}
           </Button>
         );
       })}
@@ -405,14 +423,13 @@ interface MobileDrawerProps {
 }
 
 function MobileDrawer({ open, onClose }: MobileDrawerProps) {
+  const { t } = useI18n();
   const [servicesExpanded, setServicesExpanded] = useState(false);
 
   const handleClose = () => {
     setServicesExpanded(false);
     onClose();
   };
-
-
 
   return (
     <Drawer
@@ -461,13 +478,13 @@ function MobileDrawer({ open, onClose }: MobileDrawerProps) {
 
       {/* Nav links */}
       <List sx={{ px: 1.5, pt: 1.5, flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
-        {NAV_LINKS.map((link, i) => (
-          <React.Fragment key={link}>
+        {NAV_LINK_KEYS.map((key, i) => (
+          <React.Fragment key={key}>
             <Fade in={open} timeout={200 + i * 60}>
               <ListItem disablePadding>
                 <ListItemButton
                   onClick={() => {
-                    if (link === 'Services') {
+                    if (key === 'nav_services') {
                       setServicesExpanded((p) => !p);
                     } else {
                       handleClose();
@@ -484,7 +501,7 @@ function MobileDrawer({ open, onClose }: MobileDrawerProps) {
                   }}
                 >
                   <ListItemText
-                    primary={link}
+                    primary={t(key)}
                     slotProps={{
                       primary: {
                         className: 'nav-label',
@@ -492,7 +509,7 @@ function MobileDrawer({ open, onClose }: MobileDrawerProps) {
                       },
                     }}
                   />
-                  {link === 'Services' && (
+                  {key === 'nav_services' && (
                     <Box
                       sx={{
                         transform: servicesExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
@@ -508,11 +525,11 @@ function MobileDrawer({ open, onClose }: MobileDrawerProps) {
               </ListItem>
             </Fade>
 
-            {link === 'Services' && (
+            {key === 'nav_services' && (
               <Collapse in={servicesExpanded} timeout={220} unmountOnExit>
                 <List disablePadding sx={{ pl: 1, pb: 0.5 }}>
-                  {SERVICES.map((service) => (
-                    <ListItem key={service.label} disablePadding>
+                  {SERVICE_DEFS.map((service) => (
+                    <ListItem key={service.labelKey} disablePadding>
                       <ListItemButton
                         onClick={handleClose}
                         sx={{
@@ -544,11 +561,9 @@ function MobileDrawer({ open, onClose }: MobileDrawerProps) {
                           </Box>
                         </ListItemIcon>
                         <ListItemText
-                          primary={service.label}
+                          primary={t(service.labelKey)}
                           slotProps={{
-                            primary: {
-                              style: { fontSize: 13.5, fontWeight: 500, color: '#1E293B' },
-                            },
+                            primary: { style: { fontSize: 13.5, fontWeight: 500, color: '#1E293B' } },
                           }}
                         />
                       </ListItemButton>
@@ -564,6 +579,10 @@ function MobileDrawer({ open, onClose }: MobileDrawerProps) {
       {/* CTA buttons */}
       <Box sx={{ px: 2.5, pb: 3, pt: 1, flexShrink: 0 }}>
         <Divider sx={{ mb: 2 }} />
+        {/* Language toggle inside drawer */}
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
+          <LanguageToggle />
+        </Box>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
           <Button
             fullWidth
@@ -575,13 +594,10 @@ function MobileDrawer({ open, onClose }: MobileDrawerProps) {
               py: 1.25,
               fontWeight: 600,
               transition: 'all 0.15s ease',
-              '&:hover': {
-                borderColor: BRAND,
-                bgcolor: BRAND_LIGHT,
-              },
+              '&:hover': { borderColor: BRAND, bgcolor: BRAND_LIGHT },
             }}
           >
-            Log in
+            {t('cta_login')}
           </Button>
           <Button
             fullWidth
@@ -602,7 +618,7 @@ function MobileDrawer({ open, onClose }: MobileDrawerProps) {
               '&:active': { transform: 'translateY(0)' },
             }}
           >
-            Sign up
+            {t('cta_signup')}
           </Button>
         </Box>
       </Box>
@@ -642,30 +658,31 @@ function HamburgerIcon({ open }: { open: boolean }) {
   );
 }
 
-// ─── Main Header ─────────────────────────────────────────────────────────────
+// ─── Main Header ──────────────────────────────────────────────────────────────
 const Header = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { t } = useI18n();
 
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [activeNav, setActiveNav] = useState<NavLink | null>(null);
+  const [activeNav, setActiveNav] = useState<NavLinkKey | null>(null);
   const [servicesOpen, setServicesOpen] = useState(false);
   const [servicesAnchor, setServicesAnchor] = useState<HTMLElement | null>(null);
 
   const scrolled = useScrollTrigger({ disableHysteresis: true, threshold: 10 });
 
-  const handleNavClick = (nav: NavLink, e: React.MouseEvent<HTMLElement>) => {
-    if (nav === 'Services') {
+  const handleNavClick = (navKey: NavLinkKey, e: React.MouseEvent<HTMLElement>) => {
+    if (navKey === 'nav_services') {
       if (servicesOpen) {
         setServicesOpen(false);
         setServicesAnchor(null);
       } else {
         setServicesOpen(true);
         setServicesAnchor(e.currentTarget);
-        setActiveNav('Services');
+        setActiveNav('nav_services');
       }
     } else {
-      setActiveNav(nav);
+      setActiveNav(navKey);
       setServicesOpen(false);
       setServicesAnchor(null);
     }
@@ -673,15 +690,11 @@ const Header = () => {
 
   return (
     <ThemeProvider theme={headerTheme}>
-      {/*
-        ── overflow fix ─────────────────────────────────────────────────────
-        This Box wraps the AppBar and acts as the containing block.
-        overflow: hidden on it prevents the drawer animation from ever
-        causing horizontal scroll on the page.
-      */}
+      {/* Spacer so fixed header doesn't cover page content */}
+      <Box sx={{ height: { xs: 64, md: 72 } }} />
       <Box sx={{ width: '100%', overflowX: 'hidden' }}>
         <AppBar
-          position="sticky"
+          position="fixed"
           elevation={0}
           sx={{
             bgcolor: 'white',
@@ -702,7 +715,6 @@ const Header = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              // prevent toolbar from ever overflowing its own width
               overflow: 'hidden',
             }}
           >
@@ -718,9 +730,10 @@ const Header = () => {
               />
             )}
 
-            {/* Desktop CTA */}
+            {/* Desktop CTA + Language toggle */}
             {!isMobile && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexShrink: 0 }}>
+                <LanguageToggle />
                 <Button
                   variant="outlined"
                   sx={{
@@ -737,7 +750,7 @@ const Header = () => {
                     '&:active': { transform: 'translateY(0)' },
                   }}
                 >
-                  Log in
+                  {t('cta_login')}
                 </Button>
                 <Button
                   variant="contained"
@@ -756,7 +769,7 @@ const Header = () => {
                     '&:active': { transform: 'translateY(0)' },
                   }}
                 >
-                  Sign up
+                  {t('cta_signup')}
                 </Button>
               </Box>
             )}
@@ -774,7 +787,7 @@ const Header = () => {
                   transition: 'background 0.15s ease',
                   '&:hover': { bgcolor: BRAND_LIGHT },
                   flexShrink: 0,
-                  marginRight: "25px"
+                  marginRight: '25px',
                 }}
               >
                 <HamburgerIcon open={mobileOpen} />
@@ -800,6 +813,6 @@ const Header = () => {
       <MobileDrawer open={mobileOpen} onClose={() => setMobileOpen(false)} />
     </ThemeProvider>
   );
-}
+};
 
-export default Header
+export default Header;
