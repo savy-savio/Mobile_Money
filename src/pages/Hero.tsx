@@ -1,9 +1,27 @@
 import React, { useState, useEffect, useRef } from 'react';
+// import { useI18n } from './i18n';
 import { useI18n } from '../context/l18n';
 
 // ─── Brand ────────────────────────────────────────────────────────────────────
 const BRAND = '#FA510F';
 const BRAND_DARK = '#D94309';
+
+// ─── Translations (extend your i18n.tsx with these keys) ─────────────────────
+// Add to EN:
+//   hero_eyebrow: 'The future of banking',
+//   hero_heading_1: 'Your money,',
+//   hero_heading_2: 'your rules.',
+//   hero_sub: 'NovaPay gives you full control — instant transfers, zero hidden fees, and smart savings that work for you 24/7.',
+//   hero_cta_primary: 'Open free account',
+//   hero_cta_secondary: 'Watch how it works',
+//   hero_stat_users: 'Active users',
+//   hero_stat_transfers: 'Transfers daily',
+//   hero_stat_rating: 'App rating',
+//   hero_slide_1_caption: 'Lagos · Nigeria',
+//   hero_slide_2_caption: 'Accra · Ghana',
+//   hero_slide_3_caption: 'Nairobi · Kenya',
+//   hero_slide_4_caption: 'Kano · Nigeria',
+// Add to ES: (same keys, translated)
 
 const COPY = {
   en: {
@@ -13,6 +31,7 @@ const COPY = {
     sub: 'NovaPay gives you full control — instant transfers, zero hidden fees, and smart savings that work for you 24/7.',
     cta1: 'Open free account',
     cta2: 'Watch how it works',
+    // stat1_val: '2.4M+',
     stat1_label: 'Active users',
     stat2_val: '₦18B+',
     stat2_label: 'Transfers daily',
@@ -46,6 +65,7 @@ const SLIDES = [
 ];
 
 // ─── Floating card data ───────────────────────────────────────────────────────
+// transfer → top-right | savings → bottom-right | instant → bottom-left
 const FLOAT_CARDS = [
   {
     id: 'transfer',
@@ -54,8 +74,8 @@ const FLOAT_CARDS = [
     value: '+₦250,000',
     color: '#10B981',
     delay: '0s',
-    top: '18%',
-    right: '6%',
+    top: '12%',
+    right: '3%',
   },
   {
     id: 'savings',
@@ -64,19 +84,19 @@ const FLOAT_CARDS = [
     value: '87% reached',
     color: BRAND,
     delay: '0.4s',
-    top: '52%',
-    right: '4%',
+    bottom: '14%',
+    right: '3%',
   },
-//   {
-//     id: 'notify',
-//     icon: '⚡',
-//     label: { en: 'Instant payment', es: 'Pago instantáneo' },
-//     value: '0.3s',
-//     color: '#6366F1',
-//     delay: '0.8s',
-//     bottom: '22%',
-//     left: '3%',
-//   },
+  {
+    id: 'notify',
+    icon: '⚡',
+    label: { en: 'Instant payment', es: 'Pago instantáneo' },
+    value: '0.3s',
+    color: '#6366F1',
+    delay: '0.8s',
+    bottom: '14%',
+    left: '2%',
+  },
 ];
 
 // ─── Slide indicator dots ─────────────────────────────────────────────────────
@@ -154,7 +174,7 @@ function Dots({ count, active, onChange }: { count: number; active: number; onCh
 
 // ─── Floating glass card ─────────────────────────────────────────────────────
 function FloatCard({
-  icon, label, value, color, delay, style,
+  icon, label, value, color, delay, style, isLeft,
 }: {
   icon: string;
   label: string;
@@ -162,9 +182,11 @@ function FloatCard({
   color: string;
   delay: string;
   style: React.CSSProperties;
+  isLeft?: boolean;
 }) {
   return (
     <div
+      className={`hero-float-card${isLeft ? ' hero-float-card-left' : ''}`}
       style={{
         position: 'absolute',
         ...style,
@@ -261,6 +283,8 @@ const Hero = () => {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
 
+        *, *::before, *::after { box-sizing: border-box; }
+
         @keyframes floatUp {
           from { opacity: 0; transform: translateY(24px); }
           to   { opacity: 1; transform: translateY(0); }
@@ -281,10 +305,6 @@ const Hero = () => {
           from { opacity: 0; transform: translateY(32px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        @keyframes shimmer {
-          0%   { background-position: -400px 0; }
-          100% { background-position: 400px 0; }
-        }
         @keyframes pulse-ring {
           0%   { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(250,81,15,0.5); }
           70%  { transform: scale(1);    box-shadow: 0 0 0 14px rgba(250,81,15,0); }
@@ -302,7 +322,16 @@ const Hero = () => {
           transform: translateY(-2px) !important;
         }
         .hero-cta-secondary:active { transform: translateY(0) !important; }
-        .dot-nav-btn:hover { background: rgba(255,255,255,0.55) !important; }
+
+        /* Hide float cards on narrow screens so they don't overlap content */
+        @media (max-width: 768px) {
+          .hero-float-card { display: none !important; }
+        }
+        /* Shrink float cards on medium screens */
+        @media (max-width: 1024px) {
+          .hero-float-card { transform: scale(0.88); transform-origin: top right; }
+          .hero-float-card-left { transform-origin: bottom left; }
+        }
       `}</style>
 
       <section
@@ -385,18 +414,20 @@ const Hero = () => {
             maxWidth: 1200,
             width: '100%',
             margin: '0 auto',
-            padding: 'clamp(60px, 10vh, 100px) clamp(20px, 5vw, 64px) clamp(40px, 6vh, 80px)',
+            padding: 'clamp(48px, 8vh, 96px) clamp(16px, 5vw, 64px) clamp(80px, 10vh, 100px)',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
             flex: 1,
+            boxSizing: 'border-box',
           }}
         >
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr',
-              maxWidth: 660,
+              display: 'flex',
+              flexDirection: 'column',
+              maxWidth: 'min(600px, 100%)',
+              width: '100%',
               gap: 0,
             }}
           >
@@ -442,10 +473,12 @@ const Hero = () => {
                 margin: 0,
                 fontFamily: '"Syne", Georgia, serif',
                 fontWeight: 800,
-                fontSize: 'clamp(46px, 6.5vw, 80px)',
-                lineHeight: 1.02,
-                letterSpacing: '-2px',
+                fontSize: 'clamp(36px, 5.5vw, 74px)',
+                lineHeight: 1.05,
+                letterSpacing: 'clamp(-1px, -0.03em, -2px)',
                 color: '#ffffff',
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word',
                 opacity: mounted ? 1 : 0,
                 transform: mounted ? 'translateY(0)' : 'translateY(28px)',
                 transition: 'opacity 0.65s ease 0.2s, transform 0.65s ease 0.2s',
@@ -468,13 +501,15 @@ const Hero = () => {
             {/* Sub */}
             <p
               style={{
-                marginTop: 24,
+                marginTop: 20,
                 marginBottom: 0,
-                fontSize: 'clamp(15px, 1.8vw, 18px)',
-                lineHeight: 1.7,
+                fontSize: 'clamp(14px, 1.6vw, 17px)',
+                lineHeight: 1.75,
                 color: 'rgba(255,255,255,0.62)',
-                maxWidth: 480,
+                maxWidth: '100%',
                 fontWeight: 400,
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word',
                 opacity: mounted ? 1 : 0,
                 transform: mounted ? 'translateY(0)' : 'translateY(24px)',
                 transition: 'opacity 0.65s ease 0.32s, transform 0.65s ease 0.32s',
@@ -488,8 +523,8 @@ const Hero = () => {
               style={{
                 display: 'flex',
                 flexWrap: 'wrap',
-                gap: 14,
-                marginTop: 36,
+                gap: 12,
+                marginTop: 32,
                 opacity: mounted ? 1 : 0,
                 transform: mounted ? 'translateY(0)' : 'translateY(24px)',
                 transition: 'opacity 0.65s ease 0.44s, transform 0.65s ease 0.44s',
@@ -502,8 +537,8 @@ const Hero = () => {
                   color: '#fff',
                   border: 'none',
                   borderRadius: 12,
-                  padding: '15px 28px',
-                  fontSize: 15,
+                  padding: 'clamp(12px, 1.5vw, 15px) clamp(18px, 2.5vw, 28px)',
+                  fontSize: 'clamp(13px, 1.4vw, 15px)',
                   fontWeight: 700,
                   cursor: 'pointer',
                   boxShadow: `0 6px 24px rgba(250,81,15,0.35)`,
@@ -513,6 +548,7 @@ const Hero = () => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {copy.cta1}
@@ -527,8 +563,8 @@ const Hero = () => {
                   color: '#fff',
                   border: '1px solid rgba(255,255,255,0.25)',
                   borderRadius: 12,
-                  padding: '15px 28px',
-                  fontSize: 15,
+                  padding: 'clamp(12px, 1.5vw, 15px) clamp(18px, 2.5vw, 28px)',
+                  fontSize: 'clamp(13px, 1.4vw, 15px)',
                   fontWeight: 600,
                   cursor: 'pointer',
                   backdropFilter: 'blur(8px)',
@@ -538,9 +574,10 @@ const Hero = () => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
+                  whiteSpace: 'nowrap',
                 }}
               >
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
                   <circle cx="9" cy="9" r="7.5" stroke="currentColor" strokeWidth="1.4"/>
                   <path d="M7.5 6.5l4 2.5-4 2.5V6.5z" fill="currentColor"/>
                 </svg>
@@ -552,18 +589,19 @@ const Hero = () => {
             {/* <div
               style={{
                 display: 'flex',
-                gap: 'clamp(24px, 4vw, 48px)',
-                marginTop: 52,
-                paddingTop: 28,
+                flexWrap: 'wrap',
+                gap: 'clamp(16px, 3vw, 40px)',
+                marginTop: 40,
+                paddingTop: 24,
                 borderTop: '1px solid rgba(255,255,255,0.1)',
                 opacity: mounted ? 1 : 0,
                 transition: 'opacity 0.65s ease 0.56s',
               }}
             >
               <AnimatedStat value={copy.stat1_val} label={copy.stat1_label} delay={700} />
-              <div style={{ width: 1, background: 'rgba(255,255,255,0.12)', alignSelf: 'stretch' }} />
+              <div style={{ width: 1, background: 'rgba(255,255,255,0.12)', alignSelf: 'stretch', flexShrink: 0 }} />
               <AnimatedStat value={copy.stat2_val} label={copy.stat2_label} delay={820} />
-              <div style={{ width: 1, background: 'rgba(255,255,255,0.12)', alignSelf: 'stretch' }} />
+              <div style={{ width: 1, background: 'rgba(255,255,255,0.12)', alignSelf: 'stretch', flexShrink: 0 }} />
               <AnimatedStat value={copy.stat3_val} label={copy.stat3_label} delay={940} />
             </div> */}
           </div>
@@ -574,8 +612,8 @@ const Hero = () => {
           const posStyle: React.CSSProperties = {};
           if (card.top) posStyle.top = card.top;
           if (card.right) posStyle.right = card.right;
-        //   if (card.bottom) posStyle.bottom = card.bottom;
-        //   if (card.left) posStyle.left = card.left;
+          if (card.bottom) posStyle.bottom = card.bottom;
+          if (card.left) posStyle.left = card.left;
 
           return (
             <FloatCard
@@ -586,6 +624,7 @@ const Hero = () => {
               color={card.color}
               delay={card.delay}
               style={posStyle}
+              isLeft={!!card.left}
             />
           );
         })}
