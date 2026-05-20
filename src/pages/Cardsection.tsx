@@ -370,8 +370,9 @@ const CardsSection: React.FC = () => {
             {/* Heading */}
             <h2 style={{
               margin:'0 0 16px',
-              fontFamily:'"Syne",Georgia,serif', fontWeight:800,
-              fontSize:'clamp(26px,3.6vw,48px)',
+            //   fontFamily:'"Syne",Georgia,serif', 
+              fontWeight:800,
+              fontSize:'clamp(30px,3.6vw,48px)',
               lineHeight:1.08, letterSpacing:'-0.03em',
               color:'#fff', wordBreak:'break-word',
               opacity: inView ? 1 : 0,
