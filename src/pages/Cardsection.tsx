@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+// import { useI18n } from './i18n';
 import { useI18n } from '../context/l18n';
 
 const BRAND      = '#FA510F';
@@ -101,11 +102,12 @@ function CardStack({
   ];
 
   return (
-    <div style={{
+    <div className="cs-stack-wrap"
+    style={{
       position: 'relative',
       width: '100%',
       /* height is driven by the card aspect ratio (card images ~3:2) */
-      paddingBottom: '80%',
+      paddingBottom: '92%',
       opacity: inView ? 1 : 0,
       transition: 'opacity .7s ease .3s',
     }}>
@@ -121,7 +123,7 @@ function CardStack({
               position: 'absolute',
               top: ly.top,
               left: ly.left,
-              width: '85%',
+              width: '95%',
               zIndex: ly.zIndex,
               transform: `rotate(${ly.rotate}) scale(${ly.scale})`,
               opacity: ly.opacity,
@@ -311,21 +313,35 @@ const CardsSection: React.FC = () => {
         .cs-cta:hover { background:${BRAND_DARK}; transform:translateY(-2px); box-shadow:0 10px 28px rgba(250,81,15,0.45); }
         .cs-cta:active { transform:translateY(0); }
 
+        /* cs-inline-stack: hidden on desktop, visible on mobile */
+        .cs-inline-stack { display: none; }
+
         /* ── RESPONSIVE ── */
         @media (max-width: 800px) {
           .cs-inner {
             grid-template-columns: 1fr;
             padding: clamp(40px,6vh,64px) clamp(14px,4vw,24px);
-            gap: 40px;
+            gap: 28px;
           }
-          /* card stack goes on top */
-          .cs-right { order: -1; }
-          .cs-orb   { display: none; }
+          .cs-orb { display: none; }
+          /* show inline stack, hide the right column */
+          .cs-inline-stack { display: block; margin-bottom: 24px; }
+          .cs-right        { display: none; }
+          /* shrink stack on mobile */
+          .cs-stack-wrap {
+            padding-bottom: 58% !important;
+            max-width: 310px !important;
+            margin: 0 auto !important;
+          }
         }
 
         @media (max-width: 480px) {
           .cs-tabs { gap: 6px; }
           .cs-tab  { font-size: 11px; padding: 7px 13px; }
+          .cs-stack-wrap {
+            padding-bottom: 62% !important;
+            max-width: 270px !important;
+          }
         }
       `}</style>
 
@@ -370,7 +386,7 @@ const CardsSection: React.FC = () => {
 
             {/* Sub */}
             <p style={{
-              margin:'0 0 24px',
+              margin:'0 0 44px',
               fontSize:'clamp(13px,1.35vw,15px)', lineHeight:1.82,
               color:'rgba(255,255,255,0.5)',
               wordBreak:'break-word', overflowWrap:'break-word',
@@ -378,6 +394,14 @@ const CardsSection: React.FC = () => {
               transform: inView ? 'none' : 'translateY(16px)',
               transition: 'opacity .65s ease .3s, transform .65s ease .3s',
             }}>{c.sub}</p>
+
+            {/* ── Card stack: MOBILE ONLY (sits right under the sub text) ── */}
+            <div className="cs-inline-stack" style={{
+              opacity: inView ? 1 : 0,
+              transition: 'opacity .7s ease .35s',
+            }}>
+              <CardStack active={active} onSelect={setActive} inView={inView} />
+            </div>
 
             {/* Card selector tabs */}
             <div className="cs-tabs" style={{ opacity: inView ? 1 : 0, transition:'opacity .5s ease .38s' }}>
