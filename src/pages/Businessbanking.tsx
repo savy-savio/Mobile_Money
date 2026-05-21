@@ -171,7 +171,7 @@ function ServiceCard({ svc, lang, idx }: { svc: typeof SERVICES[0]; lang: string
       {/* Title */}
       <h3 style={{
         margin: '0 0 10px',
-        fontFamily: '"Syne", Georgia, serif',
+        // fontFamily: '"Syne", Georgia, serif',
         fontWeight: 700,
         fontSize: 'clamp(14px,1.4vw,16px)',
         color: '#fff',
