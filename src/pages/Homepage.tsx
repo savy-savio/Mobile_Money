@@ -1,6 +1,7 @@
 import BusinessBanking from "./Businessbanking"
 import CardsSection from "./Cardsection"
 import Hero from "./Hero"
+import Investments from "./Investments"
 import PersonalBanking from "./Personalbanking"
 
 
@@ -10,6 +11,7 @@ const Homepage = () => {
       <Hero />
       <PersonalBanking />
       <BusinessBanking />
+      <Investments />
       <CardsSection />
     </div>
   )
