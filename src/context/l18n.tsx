@@ -30,6 +30,46 @@ const translations = {
 
     // Logo
     logo_tagline: 'Digital Bank',
+
+    footer_brand_desc: 'Banking built for the modern world. Secure, intelligent, and always in your corner.',
+ 
+  // Footer — headings
+  footer_services_heading: 'Services',
+  footer_company_heading: 'Company',
+  footer_support_heading: 'Support',
+//   footer_app_heading: 'Get the App',
+ 
+  // Footer — company links
+  footer_about_us:   'About Us',
+  footer_careers:    'Careers',
+  footer_press:      'Press',
+  footer_blog:       'Blog',
+  footer_investors:  'Investors',
+ 
+  // Footer — support links
+  footer_help_center:   'Help Center',
+  footer_contact:       'Contact Us',
+  footer_security:      'Security',
+  footer_fraud:         'Report Fraud',
+  footer_accessibility: 'Accessibility',
+ 
+  // Footer — legal links
+  footer_privacy:      'Privacy Policy',
+  footer_terms:        'Terms of Service',
+  footer_cookies:      'Cookie Policy',
+  footer_disclosures:  'Disclosures',
+ 
+  // Footer — app
+  footer_app_ios:     'App Store',
+  footer_app_android: 'Google Play',
+ 
+  // Footer — trust badges
+  footer_trust_fdic:    'FDIC Insured',
+  footer_trust_ssl:     '256-bit SSL',
+  footer_trust_secured: 'Bank-grade Security',
+ 
+  // Footer — bottom bar
+  footer_copyright: '© {year} Crown Ledger Bank. All rights reserved.',
   },
   es: {
     // Nav
@@ -59,6 +99,39 @@ const translations = {
 
     // Logo
     logo_tagline: 'Banco Digital',
+
+    footer_brand_desc: 'Banca construida para el mundo moderno. Segura, inteligente y siempre de tu lado.',
+ 
+  footer_services_heading: 'Servicios',
+  footer_company_heading:  'Empresa',
+  footer_support_heading:  'Soporte',
+  footer_app_heading:      'Descarga la App',
+ 
+  footer_about_us:   'Sobre Nosotros',
+  footer_careers:    'Empleos',
+  footer_press:      'Prensa',
+  footer_blog:       'Blog',
+  footer_investors:  'Inversores',
+ 
+  footer_help_center:   'Centro de Ayuda',
+  footer_contact:       'Contáctanos',
+  footer_security:      'Seguridad',
+  footer_fraud:         'Reportar Fraude',
+  footer_accessibility: 'Accesibilidad',
+ 
+  footer_privacy:     'Política de Privacidad',
+  footer_terms:       'Términos de Servicio',
+  footer_cookies:     'Política de Cookies',
+  footer_disclosures: 'Divulgaciones',
+ 
+  footer_app_ios:     'App Store',
+  footer_app_android: 'Google Play',
+ 
+  footer_trust_fdic:    'Asegurado por FDIC',
+  footer_trust_ssl:     'SSL de 256 bits',
+  footer_trust_secured: 'Seguridad Bancaria',
+ 
+  footer_copyright: '© {year} Crown Ledger Bank. Todos los derechos reservados.',
   },
 } as const;
 
