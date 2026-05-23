@@ -557,7 +557,7 @@ const Investments: React.FC = () => {
 
         .inv-plan-name {
           margin: 0 0 8px;
-          font-family: "Syne", Georgia, serif; font-weight: 800;
+        //   font-family: "Syne", Georgia, serif; font-weight: 800;
           font-size: clamp(20px,2.2vw,26px);
           color: #fff; line-height: 1.1; letter-spacing: -0.4px;
         }
