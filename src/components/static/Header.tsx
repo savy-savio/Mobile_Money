@@ -426,6 +426,7 @@ interface MobileDrawerProps {
 function MobileDrawer({ open, onClose }: MobileDrawerProps) {
   const { t } = useI18n();
   const [servicesExpanded, setServicesExpanded] = useState(false);
+  const navigate = useNavigate()
 
   const handleClose = () => {
     setServicesExpanded(false);
@@ -603,6 +604,7 @@ function MobileDrawer({ open, onClose }: MobileDrawerProps) {
           <Button
             fullWidth
             variant="contained"
+            onClick={() => navigate('/open-Account')}
             size="large"
             sx={{
               bgcolor: BRAND,
@@ -756,7 +758,7 @@ const Header = () => {
                 </Button>
                 <Button
                   variant="contained"
-                  onClick={() => navigate('/openaccount')}
+                  onClick={() => navigate('/open-Account')}
                   sx={{
                     bgcolor: BRAND,
                     color: 'white',
