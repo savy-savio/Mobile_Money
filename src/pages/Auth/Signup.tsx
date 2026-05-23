@@ -473,7 +473,7 @@ export default function SignUp() {
         <div style={{ width: 80, height: 80, borderRadius: "50%", background: `linear-gradient(135deg,${BRAND},#FF8A50)`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px", boxShadow: `0 12px 32px ${BRAND}40`, animation: "popIn .5s cubic-bezier(.34,1.56,.64,1) both" }}>
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 7" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </div>
-        <h2 style={{ fontFamily: '"Syne",serif', fontSize: 28, fontWeight: 800, color: "#0D1117", margin: "0 0 12px", letterSpacing: "-0.03em" }}>Account Created!</h2>
+        <h2 style={{ fontSize: 28, fontWeight: 800, color: "#0D1117", margin: "0 0 12px", letterSpacing: "-0.03em" }}>Account Created!</h2>
         <p style={{ color: "#64748B", fontSize: 15, lineHeight: 1.7, margin: "0 0 28px" }}>Welcome to Crown Ledger, <strong style={{ color: "#0D1117" }}>{form.firstName}</strong>. Your account is being set up. Check your email to verify and activate it.</p>
         <button onClick={() => { setDone(false); setStep(0); setForm({ firstName:"",lastName:"",middleName:"",username:"",email:"",phone:"",country:"",currency:"",accountType:"",pin:"",pinConfirm:"",password:"",confirmPassword:"",agreed:false }); }}
           style={{ background: BRAND, color: "#fff", border: "none", borderRadius: 12, padding: "13px 28px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: `0 6px 20px ${BRAND}35` }}>
