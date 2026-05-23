@@ -1,6 +1,7 @@
 import { Homelayout } from "../components";
 import Homepage from "../pages/Homepage";
 import { createBrowserRouter } from "react-router-dom";
+import SignUp from "../pages/Auth/Signup";
 
 export const Router = createBrowserRouter([
     {
@@ -12,5 +13,9 @@ export const Router = createBrowserRouter([
                 element: <Homepage />
             }
         ]
+    },
+    {
+        path: "/openaccount",
+        element: <SignUp />
     }
 ])

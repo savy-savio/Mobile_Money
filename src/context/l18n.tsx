@@ -11,7 +11,7 @@ const translations = {
 
     // Header CTA
     cta_login: 'Log in',
-    cta_signup: 'Sign up',
+    cta_signup: 'Open Account',
 
     // Services dropdown
     services_heading: 'Our Services',

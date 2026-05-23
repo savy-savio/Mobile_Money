@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   AppBar,
   Box,
@@ -663,6 +664,7 @@ const Header = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { t } = useI18n();
+  const navigate = useNavigate()
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeNav, setActiveNav] = useState<NavLinkKey | null>(null);
@@ -754,6 +756,7 @@ const Header = () => {
                 </Button>
                 <Button
                   variant="contained"
+                  onClick={() => navigate('/openaccount')}
                   sx={{
                     bgcolor: BRAND,
                     color: 'white',
