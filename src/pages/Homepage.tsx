@@ -1,3 +1,4 @@
+import AboutUs from "./Aboutus"
 import BusinessBanking from "./Businessbanking"
 import CardsSection from "./Cardsection"
 import Hero from "./Hero"
@@ -9,6 +10,7 @@ const Homepage = () => {
   return (
     <div>
       <Hero />
+      <AboutUs />
       <PersonalBanking />
       <BusinessBanking />
       <Investments />

@@ -471,7 +471,7 @@ const Hero = () => {
             <h1
               style={{
                 margin: 0,
-                fontFamily: '"Syne", Georgia, serif',
+                fontFamily: "'Cormorant Garamond', Georgia, serif",
                 fontWeight: 800,
                 fontSize: 'clamp(36px, 5.5vw, 74px)',
                 lineHeight: 1.05,
