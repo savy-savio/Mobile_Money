@@ -588,6 +588,7 @@ function MobileDrawer({ open, onClose }: MobileDrawerProps) {
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
           <Button
             fullWidth
+            onClick={() => navigate("/login")}
             variant="outlined"
             size="large"
             sx={{
@@ -740,6 +741,7 @@ const Header = () => {
                 <LanguageToggle />
                 <Button
                   variant="outlined"
+                  onClick={() => navigate("/login")}
                   sx={{
                     borderColor: 'rgba(250,81,15,0.4)',
                     color: BRAND,

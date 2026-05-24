@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import { useI18n } from "../../context/l18n";
 import { Box, Typography } from "@mui/material";
 import img from "../../assets/crown.png"
+import { useNavigate } from "react-router-dom";
 
 // ─── Brand ────────────────────────────────────────────────────────────────────
 const BRAND = "#FA510F";
@@ -395,6 +396,7 @@ export default function SignUp() {
   const [animating, setAnimating] = useState(false);
   const [visible, setVisible] = useState(true);
   const [done, setDone] = useState(false);
+  const navigate = useNavigate()
 
   // Form state
   const [form, setForm] = useState({
@@ -740,7 +742,7 @@ export default function SignUp() {
             {/* Sign in link */}
             <p style={{ textAlign: "center", marginTop: 20, fontSize: 13, color: "#9CA3AF" }}>
               Already have an account?{" "}
-              <span style={{ color: BRAND, fontWeight: 600, cursor: "pointer" }}>Sign in</span>
+              <span onClick={() => navigate("/login")} style={{ color: BRAND, fontWeight: 600, cursor: "pointer" }}>Sign in</span>
             </p>
           </div>
         </div>
