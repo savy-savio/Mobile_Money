@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useI18n } from "../../context/l18n";
 import { Box, Typography } from "@mui/material";
 import img from "../../assets/crown.png";
+import { useNavigate } from "react-router-dom";
 
 // ─── Brand ────────────────────────────────────────────────────────────────────
 const BRAND = "#FA510F";
@@ -162,6 +163,7 @@ function SocialBtn({ children }: { children: React.ReactNode }) {
 
 // ─── Main Login component ─────────────────────────────────────────────────────
 export default function Login() {
+  const navigate = useNavigate()
   const { language } = useI18n();
   const c = COPY[language as keyof typeof COPY] ?? COPY.en;
 
@@ -427,7 +429,7 @@ export default function Login() {
               </label>
 
               {/* Submit */}
-              <button type="submit" className="lg-submit" disabled={loading} style={{ marginTop: 4 }}>
+              <button type="submit" onClick={() => navigate("/dashboard")} className="lg-submit" disabled={loading} style={{ marginTop: 4 }}>
                 {loading
                   ? <><div className="lg-spinner" /> Signing in...</>
                   : <>

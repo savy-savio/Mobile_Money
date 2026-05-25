@@ -3,6 +3,12 @@ import Homepage from "../pages/Homepage";
 import { createBrowserRouter } from "react-router-dom";
 import SignUp from "../pages/Auth/Signup";
 import Login from "../pages/Auth/Login";
+import DashboardHome from "../pages/Dashboard/DashboardHome";
+import DashboardLayout from "../components/layout/DashboardLayout";
+import Transactions from "../pages/Dashboard/Transaction";
+import Cards from "../pages/Dashboard/Cards";
+import Investments from "../pages/Dashboard/Investment";
+import Settings from "../pages/Dashboard/Settings";
 
 export const Router = createBrowserRouter([
     {
@@ -12,6 +18,32 @@ export const Router = createBrowserRouter([
             {
                 index: true,
                 element: <Homepage />
+            }
+        ]
+    },
+    {
+        path: "/dashboard",
+        element: <DashboardLayout />,
+        children: [
+            {
+                index: true,
+                element: <DashboardHome />
+            },
+            {
+                path: "/dashboard/transactions",
+                element: <Transactions/>
+            },
+            {
+                path: "/dashboard/cards",
+                element: <Cards />
+            },
+            {
+                path: "/dashboard/investments",
+                element: <Investments />
+            },
+            {
+                path: "/dashboard/settings",
+                element: <Settings />
             }
         ]
     },
