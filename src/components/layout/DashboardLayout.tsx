@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -17,6 +17,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+
 import {
   Dashboard as DashboardIcon,
   History as HistoryIcon,
@@ -27,9 +28,12 @@ import {
   Close as CloseIcon,
   Menu as MenuIcon,
 } from '@mui/icons-material';
-import img from "../../assets/crown.png"
+
+import img from '../../assets/crown.png';
+import ScrollToTop from '../../utils/ScrollToTop';
 
 const DRAWER_WIDTH = 280;
+const BRAND = '#FA510F';
 
 function Logo() {
   return (
@@ -97,20 +101,22 @@ function Logo() {
   );
 }
 
-// ─── Brand color ─────────────────────────────────────────────────────────────
-const BRAND = '#FA510F';
-// const BRAND_DARK = '#D94309';
-// const BRAND_LIGHT = 'rgba(250,81,15,0.08)';
-
 const navigation = [
   { label: 'Dashboard', path: '/dashboard', icon: DashboardIcon },
-  { label: 'Transactions', path: '/dashboard/transactions', icon: HistoryIcon },
+  {
+    label: 'Transactions',
+    path: '/dashboard/transactions',
+    icon: HistoryIcon,
+  },
   { label: 'Cards', path: '/dashboard/cards', icon: CardIcon },
-  { label: 'Investments', path: '/dashboard/investments', icon: InvestmentIcon },
+  {
+    label: 'Investments',
+    path: '/dashboard/investments',
+    icon: InvestmentIcon,
+  },
   { label: 'Settings', path: '/dashboard/settings', icon: SettingsIcon },
 ];
 
-// Page title map
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Overview',
   '/dashboard/transactions': 'Transactions',
@@ -121,10 +127,14 @@ const PAGE_TITLES: Record<string, string> = {
 
 export default function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+
   const location = useLocation();
   const navigate = useNavigate();
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const handleNavigate = (path: string) => {
     navigate(path);
@@ -141,7 +151,6 @@ export default function DashboardLayout() {
       (item.path === '/dashboard' && location.pathname === '/'),
   );
 
-  // ─── Desktop Sidebar ────────────────────────────────────────────────────────
   const SidebarContent = (
     <Box
       sx={{
@@ -174,29 +183,41 @@ export default function DashboardLayout() {
           sx={{
             width: 40,
             height: 40,
-            bgcolor: '#FA510F',
+            bgcolor: BRAND,
             fontSize: '0.95rem',
             fontWeight: 700,
           }}
         >
           JD
         </Avatar>
+
         <Box>
           <Typography
-            sx={{ fontSize: '0.875rem', fontWeight: 700, color: '#1A1A1A' }}
+            sx={{
+              fontSize: '0.875rem',
+              fontWeight: 700,
+              color: '#1A1A1A',
+            }}
           >
             John Doe
           </Typography>
-          <Typography sx={{ fontSize: '0.75rem', color: '#6B7280' }}>
+
+          <Typography
+            sx={{
+              fontSize: '0.75rem',
+              color: '#6B7280',
+            }}
+          >
             Premium Account
           </Typography>
         </Box>
       </Box>
 
-      {/* Nav */}
+      {/* Navigation */}
       <List sx={{ px: 1.5, flex: 1 }}>
         {navigation.map((item) => {
           const Icon = item.icon;
+
           const isActive =
             location.pathname === item.path ||
             (item.path === '/dashboard' && location.pathname === '/');
@@ -209,9 +230,6 @@ export default function DashboardLayout() {
                   borderRadius: '12px',
                   py: 1.2,
                   color: isActive ? '#FFFFFF' : '#6B7280',
-                  bgcolor: isActive
-                    ? 'linear-gradient(135deg, #FA510F 0%, #D94309 100%)'
-                    : 'transparent',
                   background: isActive
                     ? 'linear-gradient(135deg, #FA510F 0%, #D94309 100%)'
                     : 'transparent',
@@ -219,9 +237,6 @@ export default function DashboardLayout() {
                     ? '0 4px 14px rgba(250,81,15,0.3)'
                     : 'none',
                   '&:hover': {
-                    bgcolor: isActive
-                      ? undefined
-                      : 'rgba(250, 81, 15, 0.06)',
                     background: isActive
                       ? 'linear-gradient(135deg, #FA510F 0%, #D94309 100%)'
                       : 'rgba(250, 81, 15, 0.06)',
@@ -229,9 +244,15 @@ export default function DashboardLayout() {
                   transition: 'all 0.2s ease',
                 }}
               >
-                <ListItemIcon sx={{ minWidth: 40, color: 'inherit' }}>
+                <ListItemIcon
+                  sx={{
+                    minWidth: 40,
+                    color: 'inherit',
+                  }}
+                >
                   <Icon fontSize="small" />
                 </ListItemIcon>
+
                 <ListItemText
                   primary={item.label}
                   slotProps={{
@@ -243,6 +264,7 @@ export default function DashboardLayout() {
                     },
                   }}
                 />
+
                 {isActive && (
                   <Box
                     sx={{
@@ -270,11 +292,22 @@ export default function DashboardLayout() {
           }}
         >
           <Typography
-            sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#1A1A1A' }}
+            sx={{
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              color: '#1A1A1A',
+            }}
           >
             Need help?
           </Typography>
-          <Typography sx={{ fontSize: '0.7rem', color: '#9CA3AF', mt: 0.3 }}>
+
+          <Typography
+            sx={{
+              fontSize: '0.7rem',
+              color: '#9CA3AF',
+              mt: 0.3,
+            }}
+          >
             Contact our 24/7 support team
           </Typography>
         </Box>
@@ -283,8 +316,14 @@ export default function DashboardLayout() {
   );
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#F5F6FA' }}>
-      {/* ─── Desktop Sidebar ──────────────────────────────────────────────── */}
+    <Box
+      sx={{
+        display: 'flex',
+        minHeight: '100vh',
+        bgcolor: '#F5F6FA',
+      }}
+    >
+      {/* Desktop Sidebar */}
       {!isMobile && (
         <Box
           sx={{
@@ -301,7 +340,7 @@ export default function DashboardLayout() {
         </Box>
       )}
 
-      {/* ─── Mobile Drawer (swipe/hamburger) ─────────────────────────────── */}
+      {/* Mobile Drawer */}
       {isMobile && (
         <Drawer
           anchor="left"
@@ -327,26 +366,32 @@ export default function DashboardLayout() {
               onClick={() => setMobileOpen(false)}
               sx={{
                 bgcolor: '#F5F6FA',
-                '&:hover': { bgcolor: '#EDEFF5' },
+                '&:hover': {
+                  bgcolor: '#EDEFF5',
+                },
               }}
             >
               <CloseIcon fontSize="small" />
             </IconButton>
           </Box>
+
           {SidebarContent}
         </Drawer>
       )}
 
-      {/* ─── Main content column ──────────────────────────────────────────── */}
+      {/* Main Content */}
       <Box
         sx={{
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
           minWidth: 0,
+          height: '100vh',
         }}
       >
-        {/* ── Header ── */}
+        <ScrollToTop containerRef={contentRef} />
+
+        {/* Header */}
         <AppBar
           position="sticky"
           elevation={0}
@@ -363,7 +408,7 @@ export default function DashboardLayout() {
               gap: 1.5,
             }}
           >
-            {/* Hamburger — mobile only */}
+            {/* Mobile menu */}
             {isMobile && (
               <IconButton
                 edge="start"
@@ -371,7 +416,9 @@ export default function DashboardLayout() {
                 sx={{
                   color: '#1A1A1A',
                   mr: 0.5,
-                  '&:hover': { bgcolor: 'rgba(250,81,15,0.06)' },
+                  '&:hover': {
+                    bgcolor: 'rgba(250,81,15,0.06)',
+                  },
                 }}
               >
                 <MenuIcon />
@@ -391,6 +438,7 @@ export default function DashboardLayout() {
               >
                 {currentTitle}
               </Typography>
+
               <Typography
                 sx={{
                   fontSize: '0.72rem',
@@ -408,21 +456,23 @@ export default function DashboardLayout() {
               </Typography>
             </Box>
 
-            {/* Notification bell */}
+            {/* Notifications */}
             <IconButton
               sx={{
                 bgcolor: '#F5F6FA',
                 borderRadius: '12px',
                 width: 42,
                 height: 42,
-                '&:hover': { bgcolor: '#EDEFF5' },
+                '&:hover': {
+                  bgcolor: '#EDEFF5',
+                },
               }}
             >
               <Badge
                 badgeContent={3}
                 sx={{
                   '& .MuiBadge-badge': {
-                    bgcolor: '#FA510F',
+                    bgcolor: BRAND,
                     color: '#fff',
                     fontSize: '0.6rem',
                     minWidth: 16,
@@ -431,7 +481,12 @@ export default function DashboardLayout() {
                   },
                 }}
               >
-                <NotificationsIcon sx={{ color: '#374151', fontSize: '1.3rem' }} />
+                <NotificationsIcon
+                  sx={{
+                    color: '#374151',
+                    fontSize: '1.3rem',
+                  }}
+                />
               </Badge>
             </IconButton>
 
@@ -440,7 +495,7 @@ export default function DashboardLayout() {
               sx={{
                 width: 42,
                 height: 42,
-                bgcolor: '#FA510F',
+                bgcolor: BRAND,
                 fontSize: '0.85rem',
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -453,8 +508,9 @@ export default function DashboardLayout() {
           </Toolbar>
         </AppBar>
 
-        {/* ── Page content ── */}
+        {/* Page Content */}
         <Box
+          ref={contentRef}
           sx={{
             flex: 1,
             overflowY: 'auto',
@@ -465,7 +521,7 @@ export default function DashboardLayout() {
           <Outlet />
         </Box>
 
-        {/* ── Modern Bottom Tab Bar — mobile only ────────────────────────── */}
+        {/* Mobile Bottom Navigation */}
         {isMobile && (
           <Box
             sx={{
@@ -517,10 +573,10 @@ export default function DashboardLayout() {
                       position: 'relative',
                       userSelect: 'none',
                       WebkitTapHighlightColor: 'transparent',
-                      transition: 'all 0.2s cubic-bezier(0.34,1.56,0.64,1)',
+                      transition:
+                        'all 0.2s cubic-bezier(0.34,1.56,0.64,1)',
                     }}
                   >
-                    {/* Active pill bg */}
                     {isActive && (
                       <Box
                         sx={{
@@ -529,12 +585,12 @@ export default function DashboardLayout() {
                           borderRadius: '18px',
                           background:
                             'linear-gradient(135deg, #FA510F 0%, #D94309 100%)',
-                          boxShadow: '0 4px 12px rgba(250,81,15,0.35)',
+                          boxShadow:
+                            '0 4px 12px rgba(250,81,15,0.35)',
                         }}
                       />
                     )}
 
-                    {/* Icon */}
                     <Box
                       sx={{
                         position: 'relative',
@@ -543,14 +599,16 @@ export default function DashboardLayout() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        transition: 'transform 0.2s cubic-bezier(0.34,1.56,0.64,1)',
-                        transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                        transition:
+                          'transform 0.2s cubic-bezier(0.34,1.56,0.64,1)',
+                        transform: isActive
+                          ? 'scale(1.1)'
+                          : 'scale(1)',
                       }}
                     >
                       <Icon sx={{ fontSize: '1.3rem' }} />
                     </Box>
 
-                    {/* Label */}
                     <Typography
                       sx={{
                         position: 'relative',
