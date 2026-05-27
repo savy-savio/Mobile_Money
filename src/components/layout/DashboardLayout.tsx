@@ -27,8 +27,80 @@ import {
   Close as CloseIcon,
   Menu as MenuIcon,
 } from '@mui/icons-material';
+import img from "../../assets/crown.png"
 
 const DRAWER_WIDTH = 280;
+
+function Logo() {
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1.5,
+        cursor: 'pointer',
+        flexShrink: 0,
+        textDecoration: 'none',
+        transition: 'transform 0.2s ease',
+        '&:hover': { transform: 'scale(1.02)' },
+      }}
+    >
+      <Box
+        component="img"
+        src={img}
+        alt="Crown Ledger Bank"
+        sx={{
+          width: 44,
+          height: 44,
+          objectFit: 'contain',
+          flexShrink: 0,
+          filter: 'drop-shadow(0 2px 6px rgba(250,81,15,0.22))',
+          transition: 'filter 0.2s ease',
+          '&:hover': {
+            filter: 'drop-shadow(0 4px 12px rgba(250,81,15,0.38))',
+          },
+        }}
+      />
+
+      <Box>
+        <Typography
+          sx={{
+            fontWeight: 800,
+            fontSize: 16,
+            color: '#0F172A',
+            lineHeight: 1.15,
+            letterSpacing: '-0.4px',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Crown{' '}
+          <Box component="span" sx={{ color: BRAND }}>
+            Ledger
+          </Box>
+        </Typography>
+
+        <Typography
+          sx={{
+            fontSize: 9,
+            color: '#94A3B8',
+            letterSpacing: '1.6px',
+            textTransform: 'uppercase',
+            lineHeight: 1,
+            mt: 0.35,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Smart Banking
+        </Typography>
+      </Box>
+    </Box>
+  );
+}
+
+// ─── Brand color ─────────────────────────────────────────────────────────────
+const BRAND = '#FA510F';
+// const BRAND_DARK = '#D94309';
+// const BRAND_LIGHT = 'rgba(250,81,15,0.08)';
 
 const navigation = [
   { label: 'Dashboard', path: '/dashboard', icon: DashboardIcon },
@@ -82,53 +154,7 @@ export default function DashboardLayout() {
     >
       {/* Logo */}
       <Box sx={{ px: 3, pt: 3.5, pb: 2 }}>
-        <Box
-          sx={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 1,
-          }}
-        >
-          {/* Icon mark */}
-          <Box
-            sx={{
-              width: 36,
-              height: 36,
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, #FA510F 0%, #D94309 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(250,81,15,0.35)',
-            }}
-          >
-            <Box
-              component="span"
-              sx={{
-                color: '#fff',
-                fontSize: '1rem',
-                fontWeight: 800,
-                letterSpacing: '-0.5px',
-                lineHeight: 1,
-              }}
-            >
-              F
-            </Box>
-          </Box>
-          <Box
-            sx={{
-              fontSize: '1.4rem',
-              fontWeight: 800,
-              letterSpacing: '-0.5px',
-              background: 'linear-gradient(135deg, #FA510F 0%, #D94309 100%)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
-            FinBank
-          </Box>
-        </Box>
+        <Logo />
       </Box>
 
       {/* User card */}
