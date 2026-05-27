@@ -1,28 +1,197 @@
+/* eslint-disable react-hooks/static-components */
 import { useState } from 'react';
 import {
   Box,
-  Card,
-  CardContent,
   Typography,
-  useTheme,
   Switch,
   TextField,
   Button,
-  Divider,
-  FormControlLabel,
   Avatar,
+  useMediaQuery,
 } from '@mui/material';
 import {
   Edit as EditIcon,
-  Lock as LockIcon,
+  LockOutlined as LockIcon,
   NotificationsOutlined as BellIcon,
   SecurityOutlined as ShieldIcon,
-  HelpOutlineOutlined as HelpIcon,
+  HelpOutlined as HelpIcon,
   LogoutOutlined as LogoutIcon,
+  KeyboardArrowRight as ArrowIcon,
+  CheckCircle as CheckIcon,
+  PhoneAndroid as DeviceIcon,
+  EmailOutlined as EmailIcon,
+  PersonOutlined as PersonIcon,
+  CakeOutlined as CakeIcon,
+  WarningAmberOutlined as WarnIcon,
+  DeleteOutlined as DeleteIcon,
 } from '@mui/icons-material';
 
+// ─── Reusable section wrapper ─────────────────────────────────────────────────
+function Section({ children, label }: { children: React.ReactNode; label: string }) {
+  return (
+    <Box sx={{ mb: { xs: 2.5, sm: 3 } }}>
+      <Typography sx={{
+        fontSize: '0.68rem', fontWeight: 800, color: '#FA510F',
+        letterSpacing: '0.12em', textTransform: 'uppercase', mb: 1.2, px: { xs: 0, sm: 0 },
+      }}>
+        {label}
+      </Typography>
+      <Box sx={{
+        borderRadius: '20px',
+        bgcolor: '#fff',
+        border: '1px solid rgba(0,0,0,0.07)',
+        boxShadow: '0 2px 16px rgba(0,0,0,0.05)',
+        overflow: 'hidden',
+      }}>
+        {children}
+      </Box>
+    </Box>
+  );
+}
+
+// ─── Row for action buttons ───────────────────────────────────────────────────
+function ActionRow({
+  icon,
+  title,
+  subtitle,
+  action,
+//   actionColor = '#374151',
+  danger = false,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  action: React.ReactNode;
+  actionColor?: string;
+  danger?: boolean;
+}) {
+  return (
+    <Box sx={{
+      display: 'flex', alignItems: 'center',
+      px: { xs: 2, sm: 2.5 }, py: { xs: 1.8, sm: 2 },
+      gap: 2,
+      borderBottom: '1px solid rgba(0,0,0,0.05)',
+      '&:last-child': { borderBottom: 'none' },
+      bgcolor: danger ? 'rgba(220,38,38,0.02)' : 'transparent',
+      transition: 'background 0.15s',
+      '&:hover': { bgcolor: danger ? 'rgba(220,38,38,0.04)' : '#FAFBFC' },
+    }}>
+      {/* Icon */}
+      <Box sx={{
+        width: 38, height: 38, borderRadius: '11px', flexShrink: 0,
+        bgcolor: danger ? '#FEF2F2' : '#F8F9FA',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Box sx={{ color: danger ? '#DC2626' : '#6B7280', display: 'flex', fontSize: '1.1rem' }}>
+          {icon}
+        </Box>
+      </Box>
+
+      {/* Text */}
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography sx={{ fontSize: '0.88rem', fontWeight: 700, color: danger ? '#DC2626' : '#0F172A', lineHeight: 1.3 }}>
+          {title}
+        </Typography>
+        <Typography sx={{ fontSize: '0.72rem', color: '#9CA3AF', mt: 0.2, lineHeight: 1.4 }}>
+          {subtitle}
+        </Typography>
+      </Box>
+
+      {/* Action */}
+      <Box sx={{ flexShrink: 0 }}>{action}</Box>
+    </Box>
+  );
+}
+
+// ─── Row for toggle switches ──────────────────────────────────────────────────
+function ToggleRow({
+  icon,
+  title,
+  subtitle,
+  checked,
+  onChange,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <Box sx={{
+      display: 'flex', alignItems: 'center',
+      px: { xs: 2, sm: 2.5 }, py: { xs: 1.8, sm: 2 },
+      gap: 2,
+      borderBottom: '1px solid rgba(0,0,0,0.05)',
+      '&:last-child': { borderBottom: 'none' },
+      transition: 'background 0.15s',
+      '&:hover': { bgcolor: '#FAFBFC' },
+      cursor: 'pointer',
+    }}
+    onClick={() => onChange(!checked)}
+    >
+      <Box sx={{
+        width: 38, height: 38, borderRadius: '11px', flexShrink: 0,
+        bgcolor: checked ? '#FFF4F0' : '#F8F9FA',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'background 0.2s',
+      }}>
+        <Box sx={{ color: checked ? '#FA510F' : '#9CA3AF', display: 'flex', fontSize: '1.1rem', transition: 'color 0.2s' }}>
+          {icon}
+        </Box>
+      </Box>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography sx={{ fontSize: '0.88rem', fontWeight: 700, color: '#0F172A', lineHeight: 1.3 }}>
+          {title}
+        </Typography>
+        <Typography sx={{ fontSize: '0.72rem', color: '#9CA3AF', mt: 0.2, lineHeight: 1.4 }}>
+          {subtitle}
+        </Typography>
+      </Box>
+      <Switch
+        checked={checked}
+        onChange={e => { e.stopPropagation(); onChange(e.target.checked); }}
+        size="small"
+        sx={{
+          flexShrink: 0,
+          '& .MuiSwitch-switchBase.Mui-checked': { color: '#FA510F' },
+          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: '#FA510F' },
+        }}
+      />
+    </Box>
+  );
+}
+
+// ─── Profile field row ────────────────────────────────────────────────────────
+function FieldRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <Box sx={{
+      display: 'flex', alignItems: 'center',
+      px: { xs: 2, sm: 2.5 }, py: { xs: 1.6, sm: 1.8 },
+      gap: 2,
+      borderBottom: '1px solid rgba(0,0,0,0.05)',
+      '&:last-child': { borderBottom: 'none' },
+    }}>
+      <Box sx={{ color: '#9CA3AF', display: 'flex', fontSize: '1rem', flexShrink: 0 }}>{icon}</Box>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography sx={{ fontSize: '0.65rem', color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.2 }}>
+          {label}
+        </Typography>
+        <Typography sx={{ fontSize: '0.88rem', fontWeight: 600, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {value}
+        </Typography>
+      </Box>
+    </Box>
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
 export default function Settings() {
-  const theme = useTheme();
+  const isMobile = useMediaQuery('(max-width:600px)');
+
+  const [editing, setEditing] = useState(false);
+  const [saved, setSaved] = useState(false);
+
   const [notifications, setNotifications] = useState({
     email: true,
     push: true,
@@ -35,363 +204,320 @@ export default function Settings() {
     activityProtection: true,
   });
 
+  const handleSave = () => {
+    setSaved(true);
+    setEditing(false);
+    setTimeout(() => setSaved(false), 3000);
+  };
+
+  // Pill button used for security section
+  const PillButton = ({ label, variant = 'default' }: { label: string; variant?: 'default' | 'orange' | 'green' }) => {
+    const styles = {
+      default: { bgcolor: '#F1F5F9', color: '#374151', hbg: '#E8EDF5' },
+      orange:  { bgcolor: '#FFF4F0', color: '#FA510F', hbg: '#FFE8DC' },
+      green:   { bgcolor: '#ECFDF5', color: '#059669', hbg: '#D1FAE5' },
+    }[variant];
+    return (
+      <Box
+        component="button"
+        sx={{
+          px: { xs: 1.2, sm: 1.5 }, py: 0.7,
+          borderRadius: '10px', border: 'none', cursor: 'pointer',
+          bgcolor: styles.bgcolor, color: styles.color,
+          fontSize: '0.75rem', fontWeight: 700,
+          display: 'flex', alignItems: 'center', gap: 0.4,
+          transition: 'all 0.15s',
+          '&:hover': { bgcolor: styles.hbg },
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {label}
+        <ArrowIcon sx={{ fontSize: '0.7rem' }} />
+      </Box>
+    );
+  };
+
   return (
-    <Box>
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h3" sx={{ fontWeight: 700, mb: 1 }}>
+    <Box sx={{ maxWidth: '100%', overflowX: 'hidden', pb: 4 }}>
+
+      {/* ── Page header ── */}
+      <Box sx={{ mb: { xs: 3, sm: 4 } }}>
+        <Typography sx={{ fontSize: { xs: '1.5rem', sm: '1.8rem' }, fontWeight: 900, color: '#0F172A', lineHeight: 1.1, mb: 0.5 }}>
           Settings
         </Typography>
-        <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+        <Typography sx={{ fontSize: '0.82rem', color: '#9CA3AF' }}>
           Manage your account and preferences
         </Typography>
       </Box>
 
-      {/* Profile Section */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
-            Profile Information
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 3 }}>
-            <Avatar sx={{ width: 80, height: 80, backgroundColor: theme.palette.primary.main, fontSize: '2rem' }}>
+      {/* ── Profile ── */}
+      <Section label="Profile">
+        {/* Avatar + name hero */}
+        <Box sx={{
+          px: { xs: 2, sm: 2.5 }, pt: { xs: 2.5, sm: 3 }, pb: 2.5,
+          display: 'flex', alignItems: 'center', gap: { xs: 2, sm: 2.5 },
+          borderBottom: '1px solid rgba(0,0,0,0.06)',
+          background: 'linear-gradient(135deg, #FFFBF9 0%, #FFF4F0 100%)',
+        }}>
+          <Box sx={{ position: 'relative', flexShrink: 0 }}>
+            <Avatar sx={{
+              width: { xs: 60, sm: 72 }, height: { xs: 60, sm: 72 },
+              background: 'linear-gradient(135deg, #FA510F, #D94309)',
+              fontSize: { xs: '1.3rem', sm: '1.6rem' },
+              fontWeight: 800,
+              boxShadow: '0 8px 24px rgba(250,81,15,0.3)',
+            }}>
               JD
             </Avatar>
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                John Doe
+            {/* Online dot */}
+            <Box sx={{
+              position: 'absolute', bottom: 2, right: 2,
+              width: 12, height: 12, borderRadius: '50%',
+              bgcolor: '#059669', border: '2px solid #fff',
+            }} />
+          </Box>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography sx={{ fontSize: { xs: '1rem', sm: '1.15rem' }, fontWeight: 800, color: '#0F172A', lineHeight: 1.2 }}>
+              John Doe
+            </Typography>
+            <Typography sx={{ fontSize: '0.75rem', color: '#9CA3AF', mt: 0.2 }}>
+              john@example.com
+            </Typography>
+            <Box sx={{
+              display: 'inline-flex', alignItems: 'center', gap: 0.4,
+              mt: 0.8, px: 1, py: 0.3, borderRadius: '6px',
+              bgcolor: '#ECFDF5',
+            }}>
+              <CheckIcon sx={{ fontSize: '0.7rem', color: '#059669' }} />
+              <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: '#059669', letterSpacing: '0.04em' }}>
+                Verified Account
               </Typography>
-              <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                john@example.com
-              </Typography>
-              <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-                Account ID: ACC-123456789
-              </Typography>
-            </Box>
-            <Button
-              variant="outlined"
-              startIcon={<EditIcon />}
-              sx={{
-                textTransform: 'none',
-                fontWeight: 600,
-              }}
-            >
-              Edit Profile
-            </Button>
-          </Box>
-          <Divider sx={{ my: 2 }} />
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-            <Box sx={{ flex: '1 1 100%', '@media (min-width: 600px)': { flex: '1 1 calc(50% - 8px)' } }}>
-              <TextField
-                fullWidth
-                label="Full Name"
-                defaultValue="John Doe"
-                variant="outlined"
-                size="small"
-                disabled
-              />
-            </Box>
-            <Box sx={{ flex: '1 1 100%', '@media (min-width: 600px)': { flex: '1 1 calc(50% - 8px)' } }}>
-              <TextField
-                fullWidth
-                label="Email Address"
-                defaultValue="john@example.com"
-                variant="outlined"
-                size="small"
-                disabled
-              />
-            </Box>
-            <Box sx={{ flex: '1 1 100%', '@media (min-width: 600px)': { flex: '1 1 calc(50% - 8px)' } }}>
-              <TextField
-                fullWidth
-                label="Phone Number"
-                defaultValue="+1 (555) 123-4567"
-                variant="outlined"
-                size="small"
-                disabled
-              />
-            </Box>
-            <Box sx={{ flex: '1 1 100%', '@media (min-width: 600px)': { flex: '1 1 calc(50% - 8px)' } }}>
-              <TextField
-                fullWidth
-                label="Date of Birth"
-                defaultValue="January 15, 1990"
-                variant="outlined"
-                size="small"
-                disabled
-              />
             </Box>
           </Box>
-        </CardContent>
-      </Card>
+          <Button
+            variant={editing ? 'contained' : 'outlined'}
+            size="small"
+            startIcon={editing ? <CheckIcon /> : <EditIcon />}
+            onClick={editing ? handleSave : () => setEditing(true)}
+            sx={{
+              textTransform: 'none', fontWeight: 700, borderRadius: '10px',
+              flexShrink: 0, fontSize: '0.78rem',
+              ...(editing ? {
+                background: 'linear-gradient(135deg,#FA510F,#D94309)',
+                boxShadow: '0 4px 14px rgba(250,81,15,0.3)',
+                border: 'none', color: '#fff',
+                '&:hover': { background: 'linear-gradient(135deg,#D94309,#B33000)' },
+              } : {
+                borderColor: 'rgba(0,0,0,0.15)', color: '#374151',
+                '&:hover': { bgcolor: '#F8F9FA' },
+              }),
+            }}
+          >
+            {editing ? 'Save' : isMobile ? 'Edit' : 'Edit Profile'}
+          </Button>
+        </Box>
 
-      {/* Security Section */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-            <LockIcon /> Security Settings
+        {/* Saved banner */}
+        {saved && (
+          <Box sx={{
+            px: 2.5, py: 1.2,
+            bgcolor: '#ECFDF5', borderBottom: '1px solid rgba(5,150,105,0.12)',
+            display: 'flex', alignItems: 'center', gap: 1,
+          }}>
+            <CheckIcon sx={{ fontSize: '0.9rem', color: '#059669' }} />
+            <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#059669' }}>Profile updated successfully</Typography>
+          </Box>
+        )}
+
+        {/* Field rows */}
+        {editing ? (
+          <Box sx={{ p: { xs: 2, sm: 2.5 }, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
+              {[
+                { label: 'Full Name', value: 'John Doe', type: 'text' },
+                { label: 'Email Address', value: 'john@example.com', type: 'email' },
+                { label: 'Phone Number', value: '+1 (555) 123-4567', type: 'tel' },
+                { label: 'Date of Birth', value: 'January 15, 1990', type: 'text' },
+              ].map(f => (
+                <TextField
+                  key={f.label}
+                  size="small"
+                  label={f.label}
+                  defaultValue={f.value}
+                  type={f.type}
+                  fullWidth
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '12px', fontSize: '0.88rem',
+                      '&.Mui-focused fieldset': { borderColor: '#FA510F' },
+                    },
+                    '& label.Mui-focused': { color: '#FA510F' },
+                  }}
+                />
+              ))}
+            </Box>
+          </Box>
+        ) : (
+          <>
+            <FieldRow icon={<PersonIcon />}  label="Full Name"      value="John Doe" />
+            <FieldRow icon={<EmailIcon />}   label="Email Address"  value="john@example.com" />
+            <FieldRow icon={<DeviceIcon />}  label="Phone Number"   value="+1 (555) 123-4567" />
+            <FieldRow icon={<CakeIcon />}    label="Date of Birth"  value="January 15, 1990" />
+          </>
+        )}
+
+        {/* Account ID footer */}
+        <Box sx={{ px: { xs: 2, sm: 2.5 }, py: 1.5, bgcolor: '#FAFBFC', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+          <Typography sx={{ fontSize: '0.7rem', color: '#C4C9D4', fontWeight: 600 }}>
+            Account ID: <span style={{ color: '#9CA3AF' }}>ACC-123456789</span>
           </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, backgroundColor: `${theme.palette.text.secondary}08`, borderRadius: 1 }}>
-              <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  Password
-                </Typography>
-                <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-                  Last changed 2 months ago
-                </Typography>
+        </Box>
+      </Section>
+
+      {/* ── Security ── */}
+      <Section label="Security">
+        <ActionRow
+          icon={<LockIcon />}
+          title="Password"
+          subtitle="Last changed 2 months ago"
+          action={<PillButton label="Change" />}
+        />
+        <ActionRow
+          icon={<ShieldIcon />}
+          title="Two-Factor Authentication"
+          subtitle="Add an extra layer of security"
+          action={<PillButton label="Enable" variant="orange" />}
+        />
+        <ActionRow
+          icon={<DeviceIcon />}
+          title="Active Sessions"
+          subtitle="Manage your active logins"
+          action={<PillButton label="View" />}
+        />
+      </Section>
+
+      {/* ── Notifications ── */}
+      <Section label="Notifications">
+        <ToggleRow
+          icon={<EmailIcon />}
+          title="Email Notifications"
+          subtitle="Receive updates and statements via email"
+          checked={notifications.email}
+          onChange={v => setNotifications(n => ({ ...n, email: v }))}
+        />
+        <ToggleRow
+          icon={<BellIcon />}
+          title="Push Notifications"
+          subtitle="Real-time alerts on your device"
+          checked={notifications.push}
+          onChange={v => setNotifications(n => ({ ...n, push: v }))}
+        />
+        <ToggleRow
+          icon={<DeviceIcon />}
+          title="Transaction Alerts"
+          subtitle="Instant notification for every transaction"
+          checked={notifications.transactions}
+          onChange={v => setNotifications(n => ({ ...n, transactions: v }))}
+        />
+      </Section>
+
+      {/* ── Privacy & Security ── */}
+      <Section label="Privacy">
+        <ToggleRow
+          icon={<ShieldIcon />}
+          title="Login Alerts"
+          subtitle="Alert me when someone logs into my account"
+          checked={security.loginAlerts}
+          onChange={v => setSecurity(s => ({ ...s, loginAlerts: v }))}
+        />
+        <ToggleRow
+          icon={<LockIcon />}
+          title="Suspicious Activity Protection"
+          subtitle="Automatically block unauthorized access"
+          checked={security.activityProtection}
+          onChange={v => setSecurity(s => ({ ...s, activityProtection: v }))}
+        />
+      </Section>
+
+      {/* ── Help & Support ── */}
+      <Section label="Support">
+        {[
+          { icon: <HelpIcon />, title: 'Help Center', subtitle: 'Browse FAQs and guides' },
+          { icon: <EmailIcon />, title: 'Contact Support', subtitle: 'Get help from our team' },
+          { icon: <WarnIcon />, title: 'Report a Problem', subtitle: 'Let us know about an issue' },
+        ].map(item => (
+          <ActionRow
+            key={item.title}
+            icon={item.icon}
+            title={item.title}
+            subtitle={item.subtitle}
+            action={
+              <Box sx={{
+                width: 30, height: 30, borderRadius: '8px', bgcolor: '#F8F9FA',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', '&:hover': { bgcolor: '#EDEFF5' }, transition: 'background 0.15s',
+              }}>
+                <ArrowIcon sx={{ fontSize: '0.75rem', color: '#9CA3AF' }} />
               </Box>
-              <Button
-                variant="outlined"
-                size="small"
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 600,
-                }}
-              >
-                Change Password
-              </Button>
-            </Box>
+            }
+          />
+        ))}
+      </Section>
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, backgroundColor: `${theme.palette.text.secondary}08`, borderRadius: 1 }}>
-              <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  Two-Factor Authentication
-                </Typography>
-                <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-                  Add an extra layer of security
-                </Typography>
+      {/* ── Danger Zone ── */}
+      <Box sx={{ mb: 2 }}>
+        <Typography sx={{
+          fontSize: '0.68rem', fontWeight: 800, color: '#DC2626',
+          letterSpacing: '0.12em', textTransform: 'uppercase', mb: 1.2,
+        }}>
+          Danger Zone
+        </Typography>
+        <Box sx={{
+          borderRadius: '20px',
+          bgcolor: '#fff',
+          border: '1.5px solid rgba(220,38,38,0.2)',
+          boxShadow: '0 2px 16px rgba(220,38,38,0.06)',
+          overflow: 'hidden',
+        }}>
+          <ActionRow
+            icon={<LogoutIcon />}
+            title="Sign Out All Devices"
+            subtitle="End all active sessions immediately"
+            danger
+            action={
+              <Box component="button" sx={{
+                px: 1.5, py: 0.7, borderRadius: '10px', border: 'none', cursor: 'pointer',
+                bgcolor: '#FEF3C7', color: '#D97706',
+                fontSize: '0.75rem', fontWeight: 700,
+                display: 'flex', alignItems: 'center', gap: 0.4,
+                transition: 'all 0.15s', whiteSpace: 'nowrap',
+                '&:hover': { bgcolor: '#FDE68A' },
+              }}>
+                Sign Out <ArrowIcon sx={{ fontSize: '0.7rem' }} />
               </Box>
-              <Button
-                variant="outlined"
-                size="small"
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 600,
-                }}
-              >
-                Enable
-              </Button>
-            </Box>
-
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, backgroundColor: `${theme.palette.text.secondary}08`, borderRadius: 1 }}>
-              <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  Active Sessions
-                </Typography>
-                <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-                  Manage your active logins
-                </Typography>
+            }
+          />
+          <ActionRow
+            icon={<DeleteIcon />}
+            title="Delete Account"
+            subtitle="Permanently remove your account and all data"
+            danger
+            action={
+              <Box component="button" sx={{
+                px: 1.5, py: 0.7, borderRadius: '10px', border: 'none', cursor: 'pointer',
+                bgcolor: '#FEF2F2', color: '#DC2626',
+                fontSize: '0.75rem', fontWeight: 700,
+                display: 'flex', alignItems: 'center', gap: 0.4,
+                transition: 'all 0.15s', whiteSpace: 'nowrap',
+                '&:hover': { bgcolor: '#FEE2E2' },
+              }}>
+                Delete <ArrowIcon sx={{ fontSize: '0.7rem' }} />
               </Box>
-              <Button
-                variant="outlined"
-                size="small"
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 600,
-                }}
-              >
-                View Sessions
-              </Button>
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
+            }
+          />
+        </Box>
+      </Box>
 
-      {/* Notification Preferences */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-            <BellIcon /> Notification Preferences
-          </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={notifications.email}
-                  onChange={(e) => setNotifications({ ...notifications, email: e.target.checked })}
-                />
-              }
-              label={
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Email Notifications
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-                    Receive updates via email
-                  </Typography>
-                </Box>
-              }
-            />
-            <Divider />
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={notifications.push}
-                  onChange={(e) => setNotifications({ ...notifications, push: e.target.checked })}
-                />
-              }
-              label={
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Push Notifications
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-                    Receive notifications on your device
-                  </Typography>
-                </Box>
-              }
-            />
-            <Divider />
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={notifications.transactions}
-                  onChange={(e) => setNotifications({ ...notifications, transactions: e.target.checked })}
-                />
-              }
-              label={
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Transaction Alerts
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-                    Get alerts for every transaction
-                  </Typography>
-                </Box>
-              }
-            />
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* Privacy & Security */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-            <ShieldIcon /> Privacy & Security
-          </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={security.loginAlerts}
-                  onChange={(e) => setSecurity({ ...security, loginAlerts: e.target.checked })}
-                />
-              }
-              label={
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Login Alerts
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-                    Alert me when someone logs into my account
-                  </Typography>
-                </Box>
-              }
-            />
-            <Divider />
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={security.activityProtection}
-                  onChange={(e) => setSecurity({ ...security, activityProtection: e.target.checked })}
-                />
-              }
-              label={
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Suspicious Activity Protection
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-                    Protect against unauthorized access
-                  </Typography>
-                </Box>
-              }
-            />
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* Help & Support */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-            <HelpIcon /> Help & Support
-          </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Button
-              fullWidth
-              variant="outlined"
-              sx={{
-                textTransform: 'none',
-                fontWeight: 600,
-                justifyContent: 'flex-start',
-              }}
-            >
-              View Help Center
-            </Button>
-            <Button
-              fullWidth
-              variant="outlined"
-              sx={{
-                textTransform: 'none',
-                fontWeight: 600,
-                justifyContent: 'flex-start',
-              }}
-            >
-              Contact Support
-            </Button>
-            <Button
-              fullWidth
-              variant="outlined"
-              sx={{
-                textTransform: 'none',
-                fontWeight: 600,
-                justifyContent: 'flex-start',
-              }}
-            >
-              Report a Problem
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* Danger Zone */}
-      <Card sx={{ borderColor: theme.palette.error.main, borderWidth: 2 }}>
-        <CardContent>
-          <Typography variant="h6" sx={{ fontWeight: 700, color: theme.palette.error.main, mb: 2 }}>
-            Danger Zone
-          </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<LogoutIcon />}
-              sx={{
-                borderColor: theme.palette.warning.main,
-                color: theme.palette.warning.main,
-                textTransform: 'none',
-                fontWeight: 600,
-              }}
-            >
-              Sign Out All Devices
-            </Button>
-            <Button
-              fullWidth
-              variant="outlined"
-              sx={{
-                borderColor: theme.palette.error.main,
-                color: theme.palette.error.main,
-                textTransform: 'none',
-                fontWeight: 600,
-              }}
-            >
-              Delete Account
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
     </Box>
   );
 }
