@@ -368,7 +368,7 @@ export default function Login() {
                   <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", letterSpacing: "0.5px", textTransform: "uppercase" }}>
                     {c.pass_label}<span style={{ color: BRAND, marginLeft: 3 }}>*</span>
                   </label>
-                  <span style={{ fontSize: 12, color: BRAND, fontWeight: 600, cursor: "pointer" }}>
+                  <span onClick={() => navigate("/resetpassword")} style={{ fontSize: 12, color: BRAND, fontWeight: 600, cursor: "pointer" }}>
                     {c.forgot}
                   </span>
                 </div>

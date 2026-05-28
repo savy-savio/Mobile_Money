@@ -9,6 +9,8 @@ import Transactions from "../pages/Dashboard/Transaction";
 import Cards from "../pages/Dashboard/Cards";
 import Investments from "../pages/Dashboard/Investment";
 import Settings from "../pages/Dashboard/Settings";
+import ForgotPassword from "../pages/Auth/ForgotPassword";
+import ResetPassword from "../pages/Auth/ResetPassword";
 
 export const Router = createBrowserRouter([
     {
@@ -54,5 +56,13 @@ export const Router = createBrowserRouter([
     {
         path: "/login",
         element: <Login />
+    },
+    {
+        path: "/forgotpassword",
+        element: <ForgotPassword />
+    }, 
+    {
+        path: "resetpassword",
+        element: <ResetPassword />
     }
 ])

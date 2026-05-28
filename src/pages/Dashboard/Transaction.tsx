@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -130,7 +130,7 @@ function SpendingDonut({ data }: { data: { label: string; value: number; color: 
   }, [data]);
 
   return (
-    <Box ref={wrapRef} sx={{ position: 'relative', width: '100%', height: 160 }}>
+    <Box ref={wrapRef} sx={{ position: 'relative', width: '100%', height: { xs: 180, sm: 160 } }}>
       <canvas ref={canvasRef} />
     </Box>
   );
@@ -160,6 +160,7 @@ function MonthlyBar() {
       },
       options: {
         responsive: true, maintainAspectRatio: false,
+        layout: { padding: { left: 0, right: 0, top: 4, bottom: 0 } },
         plugins: {
           legend: { display: false },
           tooltip: {
@@ -170,9 +171,27 @@ function MonthlyBar() {
           },
         },
         scales: {
-          x: { grid: { display: false }, border: { display: false }, ticks: { color: '#9CA3AF', font: { size: 11 } } },
-          y: { grid: { color: 'rgba(0,0,0,0.04)' }, border: { display: false },
-            ticks: { color: '#9CA3AF', font: { size: 11 }, maxTicksLimit: 5, callback: v => `$${(Number(v)/1000).toFixed(0)}k` } },
+          x: {
+            grid: { display: false },
+            border: { display: false },
+            ticks: {
+              color: '#9CA3AF',
+              font: { size: 10 },
+              maxRotation: 0,
+              autoSkip: true,
+              maxTicksLimit: 6,
+            },
+          },
+          y: {
+            grid: { color: 'rgba(0,0,0,0.04)' },
+            border: { display: false },
+            ticks: {
+              color: '#9CA3AF',
+              font: { size: 10 },
+              maxTicksLimit: 4,
+              callback: v => `$${(Number(v)/1000).toFixed(0)}k`,
+            },
+          },
         },
       },
     });
@@ -314,27 +333,29 @@ export default function Transactions() {
   return (
     <Box>
       {/* ── Summary cards ── */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4,1fr)' }, gap: 2, mb: 3.5 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4,1fr)' }, gap: { xs: 1.5, sm: 2 }, mb: 3.5 }}>
         {[
           { label: 'Total Income',   value: totalIncome,  Icon: IncomeIcon,  color: '#059669', bg: '#ECFDF5', prefix: '+$' },
           { label: 'Total Expenses', value: totalExpense, Icon: ExpenseIcon, color: '#FA510F', bg: '#FFF4F0', prefix: '-$' },
           { label: 'Net Balance',    value: net,          Icon: CardIcon,    color: '#6C63FF', bg: '#F3F2FF', prefix: '$' },
-          { label: 'Pending',        value: pending,      Icon: PendingIcon, color: '#D97706', bg: '#FFFBEB', prefix: '', suffix: ' txns', isCount: true },
+          { label: 'Pending',        value: pending,      Icon: PendingIcon, color: '#D97706', bg: '#FFFBEB', prefix: '', isCount: true },
         ].map(s => (
           <Box key={s.label} sx={{
-            p: { xs: 1.8, sm: 2.5 }, borderRadius: '18px', bgcolor: s.bg,
-            position: 'relative', overflow: 'hidden',
+            p: { xs: 1.5, sm: 2.5 }, borderRadius: '16px', bgcolor: s.bg,
+            position: 'relative', overflow: 'hidden', minWidth: 0,
             transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-2px)' },
           }}>
             <Box sx={{ position: 'absolute', top: -16, right: -16, width: 60, height: 60,
               borderRadius: '50%', bgcolor: s.color + '1a' }} />
-            <Box sx={{ width: 36, height: 36, borderRadius: '10px', bgcolor: s.color + '20',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1.5 }}>
-              <s.Icon sx={{ color: s.color, fontSize: '1.1rem' }} />
+            <Box sx={{ width: { xs: 28, sm: 36 }, height: { xs: 28, sm: 36 }, borderRadius: '10px', bgcolor: s.color + '20',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
+              <s.Icon sx={{ color: s.color, fontSize: { xs: '0.9rem', sm: '1.1rem' } }} />
             </Box>
-            <Typography sx={{ fontSize: '0.68rem', color: '#9CA3AF', fontWeight: 600, mb: 0.3 }}>{s.label}</Typography>
-            <Typography sx={{ fontSize: { xs: '1rem', sm: '1.25rem' }, fontWeight: 800, color: '#0F172A', lineHeight: 1.1 }}>
-              {s.isCount ? `${s.value} txns` : <AnimatedNumber value={s.value as number} prefix={s.prefix} />}
+            <Typography sx={{ fontSize: { xs: '0.6rem', sm: '0.68rem' }, color: '#9CA3AF', fontWeight: 600, mb: 0.3,
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.label}</Typography>
+            <Typography sx={{ fontSize: { xs: '0.88rem', sm: '1.15rem' }, fontWeight: 800, color: '#0F172A', lineHeight: 1.1,
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {s.isCount ? `${s.value} pending` : <AnimatedNumber value={s.value as number} prefix={s.prefix} />}
             </Typography>
           </Box>
         ))}
@@ -343,9 +364,9 @@ export default function Transactions() {
       {/* ── Charts row ── */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2.5, mb: 3.5 }}>
         {/* Monthly bar */}
-        <Box sx={{ p: 3, borderRadius: '20px', bgcolor: '#fff',
-          border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', minWidth: 0 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2.5 }}>
+        <Box sx={{ p: { xs: 2, sm: 3 }, borderRadius: '20px', bgcolor: '#fff',
+          border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', minWidth: 0, overflow: 'hidden' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2, flexWrap: 'wrap', gap: 1 }}>
             <Box>
               <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: '#0F172A' }}>Monthly Overview</Typography>
               <Typography sx={{ fontSize: '0.72rem', color: '#9CA3AF', mt: 0.3 }}>Income vs Expenses</Typography>
@@ -363,20 +384,20 @@ export default function Transactions() {
         </Box>
 
         {/* Spending donut */}
-        <Box sx={{ p: 3, borderRadius: '20px', bgcolor: '#fff',
-          border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', minWidth: 0 }}>
+        <Box sx={{ p: { xs: 2, sm: 3 }, borderRadius: '20px', bgcolor: '#fff',
+          border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', minWidth: 0, overflow: 'hidden' }}>
           <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: '#0F172A', mb: 0.5 }}>Spending Breakdown</Typography>
           <Typography sx={{ fontSize: '0.72rem', color: '#9CA3AF', mb: 2 }}>By category this month</Typography>
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, alignItems: 'center' }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, alignItems: 'center' }}>
             <SpendingDonut data={categoryTotals} />
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.9 }}>
               {categoryTotals.map(c => (
-                <Box key={c.label} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7 }}>
+                <Box key={c.label} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7, minWidth: 0 }}>
                     <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: c.color, flexShrink: 0 }} />
-                    <Typography sx={{ fontSize: '0.72rem', color: '#6B7280', whiteSpace: 'nowrap' }}>{c.label}</Typography>
+                    <Typography sx={{ fontSize: '0.72rem', color: '#6B7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.label}</Typography>
                   </Box>
-                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#0F172A' }}>${c.value.toFixed(0)}</Typography>
+                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#0F172A', flexShrink: 0 }}>${c.value.toFixed(0)}</Typography>
                 </Box>
               ))}
             </Box>
@@ -388,45 +409,46 @@ export default function Transactions() {
       <Box sx={{ p: 2.5, borderRadius: '18px', bgcolor: '#fff',
         border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', mb: 2.5 }}>
         {/* Top row: search + actions */}
-        <Box sx={{ display: 'flex', gap: 1.5, mb: showFilters ? 2 : 0, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', gap: 1, mb: showFilters ? 2 : 0, flexWrap: 'nowrap', alignItems: 'center' }}>
           <TextField
-            placeholder="Search transactions…"
+            placeholder="Search…"
             size="small"
             value={search}
             onChange={e => setSearch(e.target.value)}
             slotProps={{
               input: {
-                startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: '#9CA3AF', fontSize: '1.1rem' }} /></InputAdornment>,
-                sx: { borderRadius: '12px', fontSize: '0.88rem', bgcolor: '#F8F9FA' },
+                startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: '#9CA3AF', fontSize: '1rem' }} /></InputAdornment>,
+                sx: { borderRadius: '12px', fontSize: '0.85rem', bgcolor: '#F8F9FA' },
               },
             }}
-            sx={{ flex: 1, minWidth: 160, '& fieldset': { border: 'none' } }}
+            sx={{ flex: 1, minWidth: 0, '& fieldset': { border: 'none' } }}
           />
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <IconButton
-              onClick={() => setShowFilters(v => !v)}
-              sx={{
-                borderRadius: '12px', bgcolor: showFilters ? '#FA510F' : '#F8F9FA',
-                color: showFilters ? '#fff' : '#374151',
-                '&:hover': { bgcolor: showFilters ? '#D94309' : '#EDEFF5' },
-              }}
-            >
-              <FilterIcon fontSize="small" />
-            </IconButton>
-            <Button
-              variant="contained" startIcon={<DownloadIcon />} onClick={handleExport}
-              sx={{
-                background: 'linear-gradient(135deg,#FA510F,#D94309)',
-                borderRadius: '12px', textTransform: 'none', fontWeight: 700,
-                fontSize: '0.82rem', px: 2,
-                boxShadow: '0 4px 14px rgba(250,81,15,0.3)',
-                '&:hover': { background: 'linear-gradient(135deg,#D94309,#B33000)' },
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Export CSV
-            </Button>
-          </Box>
+          <IconButton
+            onClick={() => setShowFilters(v => !v)}
+            sx={{
+              borderRadius: '12px', flexShrink: 0,
+              bgcolor: showFilters ? '#FA510F' : '#F8F9FA',
+              color: showFilters ? '#fff' : '#374151',
+              '&:hover': { bgcolor: showFilters ? '#D94309' : '#EDEFF5' },
+            }}
+          >
+            <FilterIcon fontSize="small" />
+          </IconButton>
+          <Button
+            variant="contained" onClick={handleExport}
+            startIcon={<DownloadIcon sx={{ fontSize: '1rem !important' }} />}
+            sx={{
+              background: 'linear-gradient(135deg,#FA510F,#D94309)',
+              borderRadius: '12px', textTransform: 'none', fontWeight: 700,
+              fontSize: '0.78rem', px: { xs: 1.2, sm: 2 },
+              minWidth: 0, flexShrink: 0,
+              boxShadow: '0 4px 14px rgba(250,81,15,0.3)',
+              '&:hover': { background: 'linear-gradient(135deg,#D94309,#B33000)' },
+              '& .MuiButton-startIcon': { mr: { xs: 0, sm: 0.5 } },
+            }}
+          >
+            <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Export CSV</Box>
+          </Button>
         </Box>
 
         {/* Expandable filter chips */}
