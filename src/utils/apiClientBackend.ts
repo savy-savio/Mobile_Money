@@ -12,12 +12,11 @@ interface ApiClientOptions extends RequestInit {
 export const buildAuthHeaders = (customHeaders: Record<string, string> = {}, hasBody = false) => {
   const token = localStorage.getItem('loginToken');
 
-  const headers = {
+  const headers: Record<string, string> = {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...customHeaders,
   };
 
-  // Only set Content-Type if there's a body
   if (hasBody && !customHeaders['Content-Type']) {
     headers['Content-Type'] = 'application/json';
   }

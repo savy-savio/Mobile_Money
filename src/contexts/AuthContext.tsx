@@ -12,7 +12,7 @@ import {
   createContext,
 } from 'react';
 
-const AuthContext = createContext(null);
+const AuthContext = createContext<any>(null);
 
 // Helper function to decode token safely
 const decodeToken = (token: string) => {
@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }: any) => {
   const [loginToken, setLoginToken] = useState(() => localStorage.getItem('loginToken'));
   const [refreshToken, setRefreshToken] = useState(() => localStorage.getItem('refreshToken'));
 //   const navigate = useNavigate();
-  const logoutTimerRef = useRef(null);
+const logoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Clear any existing auto logout timer
   const clearLogoutTimer = useCallback(() => {
