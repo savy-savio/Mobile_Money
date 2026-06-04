@@ -11,6 +11,7 @@ import Investments from "../pages/Dashboard/Investment";
 import Settings from "../pages/Dashboard/Settings";
 import ForgotPassword from "../pages/Auth/ForgotPassword";
 import ResetPassword from "../pages/Auth/ResetPassword";
+import VerifyEmail from "../pages/Auth/Verifyemail";
 
 export const Router = createBrowserRouter([
     {
@@ -60,9 +61,13 @@ export const Router = createBrowserRouter([
     {
         path: "/forgotpassword",
         element: <ForgotPassword />
-    }, 
+    },
     {
-        path: "resetpassword",
+        path: "/reset-password",
         element: <ResetPassword />
+    },
+    {
+        path: "/verify-email",
+        element: <VerifyEmail />
     }
 ])

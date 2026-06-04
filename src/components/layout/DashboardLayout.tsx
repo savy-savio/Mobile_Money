@@ -16,6 +16,7 @@ import {
   Typography,
   useMediaQuery,
   useTheme,
+  Skeleton,
 } from '@mui/material';
 
 import {
@@ -31,6 +32,7 @@ import {
 
 import img from '../../assets/crown.png';
 import ScrollToTop from '../../utils/ScrollToTop';
+import { useGetProfile } from '../../hooks/useProfile'; // adjust path as needed
 
 const DRAWER_WIDTH = 280;
 const BRAND = '#FA510F';
@@ -103,17 +105,9 @@ function Logo() {
 
 const navigation = [
   { label: 'Dashboard', path: '/dashboard', icon: DashboardIcon },
-  {
-    label: 'Transactions',
-    path: '/dashboard/transactions',
-    icon: HistoryIcon,
-  },
+  { label: 'Transactions', path: '/dashboard/transactions', icon: HistoryIcon },
   { label: 'Cards', path: '/dashboard/cards', icon: CardIcon },
-  {
-    label: 'Investments',
-    path: '/dashboard/investments',
-    icon: InvestmentIcon,
-  },
+  { label: 'Investments', path: '/dashboard/investments', icon: InvestmentIcon },
   { label: 'Settings', path: '/dashboard/settings', icon: SettingsIcon },
 ];
 
@@ -136,6 +130,24 @@ export default function DashboardLayout() {
 
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // ── Profile data ───────────────────────────────────────────────────────────
+  const { data: profileResponse, isLoading: profileLoading } = useGetProfile();
+  const profile = profileResponse?.data;
+
+  const displayName = profile
+    ? `${profile.firstName} ${profile.lastName}`.trim()
+    : '';
+
+  const displayInitials = profile
+    ? `${profile.firstName?.[0] ?? ''}${profile.lastName?.[0] ?? ''}`.toUpperCase()
+    : 'JD';
+
+  // Capitalise the account type nicely, e.g. "premium" → "Premium Account"
+  const accountTypeLabel = profile?.accountType
+    ? `${profile.accountType.charAt(0).toUpperCase()}${profile.accountType.slice(1).toLowerCase()} Account`
+    : '';
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
   const handleNavigate = (path: string) => {
     navigate(path);
     setMobileOpen(false);
@@ -151,6 +163,7 @@ export default function DashboardLayout() {
       (item.path === '/dashboard' && location.pathname === '/'),
   );
 
+  // ── Sidebar ────────────────────────────────────────────────────────────────
   const SidebarContent = (
     <Box
       sx={{
@@ -180,36 +193,53 @@ export default function DashboardLayout() {
         }}
       >
         <Avatar
+          src={profile?.profilePhoto}
           sx={{
             width: 40,
             height: 40,
             bgcolor: BRAND,
             fontSize: '0.95rem',
             fontWeight: 700,
+            flexShrink: 0,
           }}
         >
-          JD
+          {profileLoading ? null : displayInitials}
         </Avatar>
 
-        <Box>
-          <Typography
-            sx={{
-              fontSize: '0.875rem',
-              fontWeight: 700,
-              color: '#1A1A1A',
-            }}
-          >
-            John Doe
-          </Typography>
+        <Box sx={{ minWidth: 0 }}>
+          {profileLoading ? (
+            <>
+              <Skeleton variant="text" width={100} height={18} />
+              <Skeleton variant="text" width={70} height={14} sx={{ mt: 0.3 }} />
+            </>
+          ) : (
+            <>
+              <Typography
+                sx={{
+                  fontSize: '0.875rem',
+                  fontWeight: 700,
+                  color: '#1A1A1A',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {displayName || 'John Doe'}
+              </Typography>
 
-          <Typography
-            sx={{
-              fontSize: '0.75rem',
-              color: '#6B7280',
-            }}
-          >
-            Premium Account
-          </Typography>
+              <Typography
+                sx={{
+                  fontSize: '0.75rem',
+                  color: '#6B7280',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {accountTypeLabel || 'Premium Account'}
+              </Typography>
+            </>
+          )}
         </Box>
       </Box>
 
@@ -233,9 +263,7 @@ export default function DashboardLayout() {
                   background: isActive
                     ? 'linear-gradient(135deg, #FA510F 0%, #D94309 100%)'
                     : 'transparent',
-                  boxShadow: isActive
-                    ? '0 4px 14px rgba(250,81,15,0.3)'
-                    : 'none',
+                  boxShadow: isActive ? '0 4px 14px rgba(250,81,15,0.3)' : 'none',
                   '&:hover': {
                     background: isActive
                       ? 'linear-gradient(135deg, #FA510F 0%, #D94309 100%)'
@@ -244,12 +272,7 @@ export default function DashboardLayout() {
                   transition: 'all 0.2s ease',
                 }}
               >
-                <ListItemIcon
-                  sx={{
-                    minWidth: 40,
-                    color: 'inherit',
-                  }}
-                >
+                <ListItemIcon sx={{ minWidth: 40, color: 'inherit' }}>
                   <Icon fontSize="small" />
                 </ListItemIcon>
 
@@ -257,10 +280,7 @@ export default function DashboardLayout() {
                   primary={item.label}
                   slotProps={{
                     primary: {
-                      sx: {
-                        fontSize: '0.9rem',
-                        fontWeight: isActive ? 700 : 500,
-                      },
+                      sx: { fontSize: '0.9rem', fontWeight: isActive ? 700 : 500 },
                     },
                   }}
                 />
@@ -291,23 +311,10 @@ export default function DashboardLayout() {
             border: '1px solid #F0F0F0',
           }}
         >
-          <Typography
-            sx={{
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              color: '#1A1A1A',
-            }}
-          >
+          <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#1A1A1A' }}>
             Need help?
           </Typography>
-
-          <Typography
-            sx={{
-              fontSize: '0.7rem',
-              color: '#9CA3AF',
-              mt: 0.3,
-            }}
-          >
+          <Typography sx={{ fontSize: '0.7rem', color: '#9CA3AF', mt: 0.3 }}>
             Contact our 24/7 support team
           </Typography>
         </Box>
@@ -316,13 +323,7 @@ export default function DashboardLayout() {
   );
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        minHeight: '100vh',
-        bgcolor: '#F5F6FA',
-      }}
-    >
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#F5F6FA' }}>
       {/* Desktop Sidebar */}
       {!isMobile && (
         <Box
@@ -346,35 +347,17 @@ export default function DashboardLayout() {
           anchor="left"
           open={mobileOpen}
           onClose={() => setMobileOpen(false)}
-          sx={{
-            '& .MuiDrawer-paper': {
-              width: DRAWER_WIDTH,
-              border: 'none',
-            },
-          }}
+          sx={{ '& .MuiDrawer-paper': { width: DRAWER_WIDTH, border: 'none' } }}
         >
-          <Box
-            sx={{
-              position: 'absolute',
-              top: 12,
-              right: 12,
-              zIndex: 1,
-            }}
-          >
+          <Box sx={{ position: 'absolute', top: 12, right: 12, zIndex: 1 }}>
             <IconButton
               size="small"
               onClick={() => setMobileOpen(false)}
-              sx={{
-                bgcolor: '#F5F6FA',
-                '&:hover': {
-                  bgcolor: '#EDEFF5',
-                },
-              }}
+              sx={{ bgcolor: '#F5F6FA', '&:hover': { bgcolor: '#EDEFF5' } }}
             >
               <CloseIcon fontSize="small" />
             </IconButton>
           </Box>
-
           {SidebarContent}
         </Drawer>
       )}
@@ -408,7 +391,7 @@ export default function DashboardLayout() {
               gap: 1.5,
             }}
           >
-            {/* Mobile menu */}
+            {/* Mobile menu button */}
             {isMobile && (
               <IconButton
                 edge="start"
@@ -416,9 +399,7 @@ export default function DashboardLayout() {
                 sx={{
                   color: '#1A1A1A',
                   mr: 0.5,
-                  '&:hover': {
-                    bgcolor: 'rgba(250,81,15,0.06)',
-                  },
+                  '&:hover': { bgcolor: 'rgba(250,81,15,0.06)' },
                 }}
               >
                 <MenuIcon />
@@ -463,9 +444,7 @@ export default function DashboardLayout() {
                 borderRadius: '12px',
                 width: 42,
                 height: 42,
-                '&:hover': {
-                  bgcolor: '#EDEFF5',
-                },
+                '&:hover': { bgcolor: '#EDEFF5' },
               }}
             >
               <Badge
@@ -481,17 +460,13 @@ export default function DashboardLayout() {
                   },
                 }}
               >
-                <NotificationsIcon
-                  sx={{
-                    color: '#374151',
-                    fontSize: '1.3rem',
-                  }}
-                />
+                <NotificationsIcon sx={{ color: '#374151', fontSize: '1.3rem' }} />
               </Badge>
             </IconButton>
 
-            {/* Avatar */}
+            {/* Avatar — shows profile photo or initials */}
             <Avatar
+              src={profile?.profilePhoto}
               sx={{
                 width: 42,
                 height: 42,
@@ -503,7 +478,7 @@ export default function DashboardLayout() {
                 border: '2px solid #fff',
               }}
             >
-              JD
+              {profileLoading ? null : displayInitials}
             </Avatar>
           </Toolbar>
         </AppBar>
@@ -533,8 +508,7 @@ export default function DashboardLayout() {
               px: 2,
               pb: 'env(safe-area-inset-bottom, 12px)',
               pt: 1,
-              background:
-                'linear-gradient(to top, rgba(255,255,255,1) 80%, rgba(255,255,255,0))',
+              background: 'linear-gradient(to top, rgba(255,255,255,1) 80%, rgba(255,255,255,0))',
             }}
           >
             <Box
@@ -544,8 +518,7 @@ export default function DashboardLayout() {
                 justifyContent: 'space-around',
                 bgcolor: '#FFFFFF',
                 borderRadius: '24px',
-                boxShadow:
-                  '0 -2px 0 rgba(0,0,0,0.03), 0 8px 32px rgba(0,0,0,0.12)',
+                boxShadow: '0 -2px 0 rgba(0,0,0,0.03), 0 8px 32px rgba(0,0,0,0.12)',
                 border: '1px solid rgba(0,0,0,0.06)',
                 px: 1,
                 py: 0.75,
@@ -573,8 +546,7 @@ export default function DashboardLayout() {
                       position: 'relative',
                       userSelect: 'none',
                       WebkitTapHighlightColor: 'transparent',
-                      transition:
-                        'all 0.2s cubic-bezier(0.34,1.56,0.64,1)',
+                      transition: 'all 0.2s cubic-bezier(0.34,1.56,0.64,1)',
                     }}
                   >
                     {isActive && (
@@ -583,10 +555,8 @@ export default function DashboardLayout() {
                           position: 'absolute',
                           inset: 0,
                           borderRadius: '18px',
-                          background:
-                            'linear-gradient(135deg, #FA510F 0%, #D94309 100%)',
-                          boxShadow:
-                            '0 4px 12px rgba(250,81,15,0.35)',
+                          background: 'linear-gradient(135deg, #FA510F 0%, #D94309 100%)',
+                          boxShadow: '0 4px 12px rgba(250,81,15,0.35)',
                         }}
                       />
                     )}
@@ -599,11 +569,8 @@ export default function DashboardLayout() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        transition:
-                          'transform 0.2s cubic-bezier(0.34,1.56,0.64,1)',
-                        transform: isActive
-                          ? 'scale(1.1)'
-                          : 'scale(1)',
+                        transition: 'transform 0.2s cubic-bezier(0.34,1.56,0.64,1)',
+                        transform: isActive ? 'scale(1.1)' : 'scale(1)',
                       }}
                     >
                       <Icon sx={{ fontSize: '1.3rem' }} />

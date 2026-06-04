@@ -3,6 +3,7 @@ import { useI18n } from "../../context/l18n";
 import { Box, Typography } from "@mui/material";
 import img from "../../assets/crown.png";
 import { useNavigate } from "react-router-dom";
+import { useLogin } from "../../hooks/useAuth";
 
 // ─── Brand ────────────────────────────────────────────────────────────────────
 const BRAND = "#FA510F";
@@ -66,7 +67,7 @@ const inputStyle = (hasError?: boolean, focused?: boolean): React.CSSProperties 
   boxSizing: "border-box",
 });
 
-// ─── Logo (same pattern as SignUp) ────────────────────────────────────────────
+// ─── Logo ─────────────────────────────────────────────────────────────────────
 function Logo() {
   const { t } = useI18n();
   return (
@@ -163,16 +164,17 @@ function SocialBtn({ children }: { children: React.ReactNode }) {
 
 // ─── Main Login component ─────────────────────────────────────────────────────
 export default function Login() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const { language } = useI18n();
   const c = COPY[language as keyof typeof COPY] ?? COPY.en;
+
+  const { mutate: login, isPending } = useLogin();
 
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [remember, setRemember] = useState(false);
-  const [loading, setLoading]   = useState(false);
-  const [errors, setErrors]     = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors]     = useState<{ email?: string; password?: string; api?: string }>({});
   const [focusedField, setFocused] = useState<string | null>(null);
 
   const validate = () => {
@@ -183,12 +185,38 @@ export default function Login() {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = (ev: React.FormEvent) => {
-    ev.preventDefault();
-    if (!validate()) return;
-    setLoading(true);
-    setTimeout(() => setLoading(false), 2000);
-  };
+const handleSubmit = (ev: React.FormEvent) => {
+  ev.preventDefault();
+  if (!validate()) return;
+  setErrors({});
+
+  login(
+    { email, password, rememberMe: remember },
+    {
+      onSuccess: (data) => {
+        console.log("🔥 Login response:", data);
+        console.log("🔄 Remember Me enabled:", remember);
+
+        navigate("/dashboard");
+      },
+      onError: (error: unknown) => {
+        const err = error as {
+          message?: string;
+          response?: { data?: { message?: string } };
+        };
+
+        const message =
+          err?.response?.data?.message ||
+          err?.message ||
+          "Invalid email or password. Please try again.";
+
+        console.log("❌ Login error:", err);
+
+        setErrors({ api: message });
+      },
+    }
+  );
+};
 
   return (
     <>
@@ -236,12 +264,8 @@ export default function Login() {
           border-radius: 50%;
           animation: lgSpin 0.7s linear infinite;
         }
-
-        .lg-social-btn:hover { border-color: ${BRAND}60 !important; background: ${BRAND}06 !important; }
-        .lg-back-link:hover  { color: ${BRAND} !important; }
       `}</style>
 
-      {/* Page wrapper — same pattern as SignUp */}
       <div
         style={{
           minHeight: "100vh",
@@ -253,7 +277,6 @@ export default function Login() {
           fontFamily: "'DM Sans', sans-serif",
         }}
       >
-        {/* Card — same max-width, radius, shadow as SignUp */}
         <div
           className="lg-card"
           style={{
@@ -265,7 +288,7 @@ export default function Login() {
             overflow: "hidden",
           }}
         >
-          {/* ── Dark header (same style as SignUp) ── */}
+          {/* ── Dark header ── */}
           <div
             style={{
               background: "linear-gradient(135deg,#0D1117 0%,#1A2035 100%)",
@@ -274,16 +297,11 @@ export default function Login() {
               overflow: "hidden",
             }}
           >
-            {/* decorative blobs */}
             <div style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: `radial-gradient(circle,${BRAND}30 0%,transparent 70%)`, pointerEvents: "none" }} />
             <div style={{ position: "absolute", bottom: -30, left: 60, width: 100, height: 100, borderRadius: "50%", background: "radial-gradient(circle,rgba(99,102,241,0.15) 0%,transparent 70%)", pointerEvents: "none" }} />
 
-            {/* Logo */}
-            <div style={{ marginBottom: 22 }}>
-              <Logo />
-            </div>
+            <div style={{ marginBottom: 22 }}><Logo /></div>
 
-            {/* Heading */}
             <div>
               <div style={{ fontSize: 22, fontWeight: 800, color: "#fff", letterSpacing: "-0.3px", marginBottom: 6 }}>
                 {c.welcome} 👋
@@ -317,17 +335,27 @@ export default function Login() {
             </div>
 
             {/* Divider */}
-            <div
-              style={{
-                display: "flex", alignItems: "center", gap: 12,
-                color: "#9CA3AF", fontSize: 12, fontWeight: 500,
-                marginBottom: 20,
-              }}
-            >
+            <div style={{ display: "flex", alignItems: "center", gap: 12, color: "#9CA3AF", fontSize: 12, fontWeight: 500, marginBottom: 20 }}>
               <div style={{ flex: 1, height: 1, background: "#E5E7EB" }} />
               {c.or}
               <div style={{ flex: 1, height: 1, background: "#E5E7EB" }} />
             </div>
+
+            {/* API error banner */}
+            {errors.api && (
+              <div style={{
+                display: "flex", gap: 10, alignItems: "flex-start",
+                padding: "12px 14px", borderRadius: 10,
+                background: "#FEF2F2", border: "1px solid #FECACA",
+                marginBottom: 16,
+              }}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, marginTop: 1 }}>
+                  <circle cx="8" cy="8" r="7" stroke="#EF4444" strokeWidth="1.4"/>
+                  <path d="M8 5v4M8 10.5h.01" stroke="#EF4444" strokeWidth="1.4" strokeLinecap="round"/>
+                </svg>
+                <span style={{ fontSize: 13, color: "#B91C1C", lineHeight: 1.5 }}>{errors.api}</span>
+              </div>
+            )}
 
             {/* Form */}
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -348,10 +376,11 @@ export default function Login() {
                     type="email"
                     placeholder={c.email_ph}
                     value={email}
-                    onChange={e => { setEmail(e.target.value); setErrors(er => ({ ...er, email: "" })); }}
+                    onChange={e => { setEmail(e.target.value); setErrors(er => ({ ...er, email: "", api: "" })); }}
                     onFocus={() => setFocused("email")}
                     onBlur={() => setFocused(null)}
                     style={{ ...inputStyle(!!errors.email, focusedField === "email"), paddingLeft: 38 }}
+                    autoComplete="email"
                   />
                 </div>
                 {errors.email && (
@@ -368,7 +397,7 @@ export default function Login() {
                   <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", letterSpacing: "0.5px", textTransform: "uppercase" }}>
                     {c.pass_label}<span style={{ color: BRAND, marginLeft: 3 }}>*</span>
                   </label>
-                  <span onClick={() => navigate("/resetpassword")} style={{ fontSize: 12, color: BRAND, fontWeight: 600, cursor: "pointer" }}>
+                  <span onClick={() => navigate("/forgotpassword")} style={{ fontSize: 12, color: BRAND, fontWeight: 600, cursor: "pointer" }}>
                     {c.forgot}
                   </span>
                 </div>
@@ -383,10 +412,11 @@ export default function Login() {
                     type={showPass ? "text" : "password"}
                     placeholder={c.pass_ph}
                     value={password}
-                    onChange={e => { setPassword(e.target.value); setErrors(er => ({ ...er, password: "" })); }}
+                    onChange={e => { setPassword(e.target.value); setErrors(er => ({ ...er, password: "", api: "" })); }}
                     onFocus={() => setFocused("pass")}
                     onBlur={() => setFocused(null)}
                     style={{ ...inputStyle(!!errors.password, focusedField === "pass"), paddingLeft: 38, paddingRight: 42 }}
+                    autoComplete="current-password"
                   />
                   <button
                     type="button"
@@ -429,8 +459,8 @@ export default function Login() {
               </label>
 
               {/* Submit */}
-              <button type="submit" onClick={() => navigate("/dashboard")} className="lg-submit" disabled={loading} style={{ marginTop: 4 }}>
-                {loading
+              <button type="submit" className="lg-submit" disabled={isPending} style={{ marginTop: 4 }}>
+                {isPending
                   ? <><div className="lg-spinner" /> Signing in...</>
                   : <>
                       {c.signin}
@@ -445,17 +475,11 @@ export default function Login() {
             {/* Sign up link */}
             <p style={{ textAlign: "center", marginTop: 20, fontSize: 13, color: "#9CA3AF" }}>
               {c.no_account}{" "}
-              <span style={{ color: BRAND, fontWeight: 600, cursor: "pointer" }}>{c.signup}</span>
+              <span onClick={() => navigate("/signup")} style={{ color: BRAND, fontWeight: 600, cursor: "pointer" }}>{c.signup}</span>
             </p>
 
             {/* Trust badges */}
-            <div
-              style={{
-                display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "center",
-                marginTop: 24, paddingTop: 20,
-                borderTop: "1px solid #F3F4F6",
-              }}
-            >
+            <div style={{ display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "center", marginTop: 24, paddingTop: 20, borderTop: "1px solid #F3F4F6" }}>
               {[
                 { icon: "🔒", label: c.trust1 },
                 { icon: "🏛️", label: c.trust2 },
@@ -467,7 +491,6 @@ export default function Login() {
                 </div>
               ))}
             </div>
-
           </div>
         </div>
       </div>

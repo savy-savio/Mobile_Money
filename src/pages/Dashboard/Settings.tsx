@@ -1,5 +1,6 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable react-hooks/static-components */
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -10,6 +11,8 @@ import {
   useMediaQuery,
   Dialog,
   IconButton,
+  CircularProgress,
+  Skeleton,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -31,6 +34,11 @@ import {
   CloudUpload as UploadIcon,
   Refresh as RetakeIcon,
 } from '@mui/icons-material';
+import {
+  useGetProfile,
+  useUpdateProfileDetails,
+  useUploadProfilePhoto,
+} from '../../hooks/useProfile'; // adjust path as needed
 
 // ─── Reusable section wrapper ─────────────────────────────────────────────────
 function Section({ children, label }: { children: React.ReactNode; label: string }) {
@@ -144,7 +152,20 @@ function FieldRow({ icon, label, value }: { icon: React.ReactNode; label: string
       <Box sx={{ color: '#9CA3AF', display: 'flex', fontSize: '1rem', flexShrink: 0 }}>{icon}</Box>
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Typography sx={{ fontSize: '0.65rem', color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.2 }}>{label}</Typography>
-        <Typography sx={{ fontSize: '0.88rem', fontWeight: 600, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</Typography>
+        <Typography sx={{ fontSize: '0.88rem', fontWeight: 600, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value || '—'}</Typography>
+      </Box>
+    </Box>
+  );
+}
+
+// ─── Profile field skeleton ───────────────────────────────────────────────────
+function FieldRowSkeleton() {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', px: { xs: 2, sm: 2.5 }, py: { xs: 1.6, sm: 1.8 }, gap: 2, borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+      <Skeleton variant="circular" width={20} height={20} />
+      <Box sx={{ flex: 1 }}>
+        <Skeleton variant="text" width="30%" height={12} />
+        <Skeleton variant="text" width="60%" height={18} sx={{ mt: 0.5 }} />
       </Box>
     </Box>
   );
@@ -152,10 +173,12 @@ function FieldRow({ icon, label, value }: { icon: React.ReactNode; label: string
 
 // ─── Avatar Upload Dialog ─────────────────────────────────────────────────────
 function AvatarUploadDialog({
-  open, onClose, onSave, currentImage,
+  open, onClose, onSave, currentImage, isUploading,
 }: {
   open: boolean; onClose: () => void;
-  onSave: (url: string) => void; currentImage: string | null;
+  onSave: (url: string) => void;
+  currentImage: string | null;
+  isUploading: boolean;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -190,15 +213,29 @@ function AvatarUploadDialog({
   };
 
   const handleSave = () => {
-    if (preview) { onSave(preview); onClose(); setPreview(null); }
+    if (preview) onSave(preview);
   };
 
-  const handleClose = () => { onClose(); setPreview(null); setError(''); };
+  const handleClose = () => {
+    if (isUploading) return;
+    onClose();
+    setPreview(null);
+    setError('');
+  };
+
+  // Reset preview when dialog closes
+  const handleDialogClose = () => {
+    if (!isUploading) {
+      setPreview(null);
+      setError('');
+      onClose();
+    }
+  };
 
   return (
     <Dialog
       open={open}
-      onClose={handleClose}
+      onClose={handleDialogClose}
       maxWidth="xs"
       fullWidth
       slotProps={{ paper: { sx: { borderRadius: '24px', m: { xs: 1.5, sm: 3 }, overflow: 'hidden' } } }}
@@ -213,7 +250,7 @@ function AvatarUploadDialog({
           <Typography sx={{ fontWeight: 800, fontSize: '1rem', color: '#0F172A' }}>Update Profile Photo</Typography>
           <Typography sx={{ fontSize: '0.72rem', color: '#9CA3AF', mt: 0.2 }}>JPG, PNG, GIF or WebP · Max 5 MB</Typography>
         </Box>
-        <IconButton size="small" onClick={handleClose} sx={{ bgcolor: '#F5F6FA', '&:hover': { bgcolor: '#EDEFF5' } }}>
+        <IconButton size="small" onClick={handleClose} disabled={isUploading} sx={{ bgcolor: '#F5F6FA', '&:hover': { bgcolor: '#EDEFF5' } }}>
           <CloseIcon fontSize="small" />
         </IconButton>
       </Box>
@@ -221,7 +258,6 @@ function AvatarUploadDialog({
       <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
 
         {preview ? (
-          /* ── Preview state ── */
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
             <Box sx={{ position: 'relative' }}>
               <Avatar
@@ -247,11 +283,13 @@ function AvatarUploadDialog({
             <Box
               component="button"
               onClick={() => { setPreview(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+              disabled={isUploading}
               sx={{
                 display: 'flex', alignItems: 'center', gap: 0.6,
                 border: 'none', bgcolor: 'transparent', cursor: 'pointer',
                 color: '#9CA3AF', fontSize: '0.75rem', fontWeight: 700,
                 '&:hover': { color: '#FA510F' }, transition: 'color 0.15s',
+                '&:disabled': { opacity: 0.5, cursor: 'not-allowed' },
               }}
             >
               <RetakeIcon sx={{ fontSize: '0.9rem' }} />
@@ -259,7 +297,6 @@ function AvatarUploadDialog({
             </Box>
           </Box>
         ) : (
-          /* ── Drop zone ── */
           <Box
             onDragOver={e => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
@@ -317,7 +354,6 @@ function AvatarUploadDialog({
           </Box>
         )}
 
-        {/* Hidden file input */}
         <input
           ref={fileInputRef}
           type="file"
@@ -326,7 +362,6 @@ function AvatarUploadDialog({
           onChange={handleInputChange}
         />
 
-        {/* Error message */}
         {error && (
           <Box sx={{ px: 2, py: 1.2, borderRadius: '10px', bgcolor: '#FEF2F2', display: 'flex', alignItems: 'center', gap: 1 }}>
             <WarnIcon sx={{ fontSize: '0.9rem', color: '#DC2626' }} />
@@ -334,10 +369,9 @@ function AvatarUploadDialog({
           </Box>
         )}
 
-        {/* Action buttons */}
         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
           <Button
-            fullWidth variant="outlined" onClick={handleClose}
+            fullWidth variant="outlined" onClick={handleClose} disabled={isUploading}
             sx={{
               borderRadius: '12px', textTransform: 'none', fontWeight: 700,
               borderColor: 'rgba(0,0,0,0.12)', color: '#374151', py: 1.2,
@@ -347,15 +381,20 @@ function AvatarUploadDialog({
             Cancel
           </Button>
           <Button
-            fullWidth variant="contained" disabled={!preview} onClick={handleSave}
+            fullWidth variant="contained" disabled={!preview || isUploading} onClick={handleSave}
             sx={{
               borderRadius: '12px', textTransform: 'none', fontWeight: 700, py: 1.2,
-              background: preview ? 'linear-gradient(135deg,#FA510F,#D94309)' : undefined,
-              boxShadow: preview ? '0 4px 14px rgba(250,81,15,0.3)' : 'none',
+              background: preview && !isUploading ? 'linear-gradient(135deg,#FA510F,#D94309)' : undefined,
+              boxShadow: preview && !isUploading ? '0 4px 14px rgba(250,81,15,0.3)' : 'none',
               '&:not(:disabled):hover': { background: 'linear-gradient(135deg,#D94309,#B33000)' },
             }}
           >
-            Save Photo
+            {isUploading ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CircularProgress size={14} sx={{ color: '#fff' }} />
+                Uploading…
+              </Box>
+            ) : 'Save Photo'}
           </Button>
         </Box>
       </Box>
@@ -367,26 +406,108 @@ function AvatarUploadDialog({
 export default function Settings() {
   const isMobile = useMediaQuery('(max-width:600px)');
 
+  // ── API hooks ──────────────────────────────────────────────────────────────
+  const { data: profileResponse, isLoading: profileLoading, isError: profileError } = useGetProfile();
+  const updateProfileMutation = useUpdateProfileDetails();
+  const uploadPhotoMutation = useUploadProfilePhoto();
+
+  const profile = profileResponse?.data;
+
+  // ── Local state ────────────────────────────────────────────────────────────
   const [editing, setEditing] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
+
+  // Edit form state — seeded from API data
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    phoneNumber: '',
+    dateOfBirth: '',
+    country: '',
+    currency: '',
+    accountType: '',
+  });
+
+  // Track displayed photo URL (from API or local preview after upload)
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+
+  // Success/error banners
+  const [profileSaved, setProfileSaved] = useState(false);
   const [photoSaved, setPhotoSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [photoError, setPhotoError] = useState('');
 
   const [notifications, setNotifications] = useState({ email: true, push: true, transactions: true });
   const [security, setSecurity] = useState({ loginAlerts: true, deviceManagement: false, activityProtection: true });
 
-  const handleSave = () => {
-    setSaved(true);
-    setEditing(false);
-    setTimeout(() => setSaved(false), 3000);
+  // Sync profile photo from API when profile loads
+  useEffect(() => {
+    if (profile?.profilePhoto) {
+      setPhotoUrl(profile.profilePhoto);
+    }
+  }, [profile?.profilePhoto]);
+
+  // Seed form when entering edit mode
+  const handleEditClick = () => {
+    setFormData({
+      firstName: profile?.firstName ?? '',
+      lastName: profile?.lastName ?? '',
+      phoneNumber: profile?.phoneNumber ?? '',
+      dateOfBirth: profile?.dateOfBirth ? new Date(profile.dateOfBirth).toISOString().split('T')[0] : '',
+      country: profile?.country ?? '',
+      currency: profile?.currency ?? '',
+      accountType: profile?.accountType ?? '',
+    });
+    setSaveError('');
+    setEditing(true);
   };
 
-  const handlePhotoSave = (url: string) => {
-    setProfileImage(url);
-    setPhotoSaved(true);
-    setTimeout(() => setPhotoSaved(false), 3000);
+  const handleSave = async () => {
+    setSaveError('');
+    try {
+      await updateProfileMutation.mutateAsync({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phoneNumber: formData.phoneNumber,
+        dateOfBirth: formData.dateOfBirth || undefined,
+        country: formData.country || undefined,
+        currency: formData.currency || undefined,
+        accountType: formData.accountType || undefined,
+      });
+      setEditing(false);
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 3000);
+    } catch {
+      setSaveError('Failed to update profile. Please try again.');
+    }
   };
+
+  const handlePhotoSave = async (base64Url: string) => {
+    setPhotoError('');
+    try {
+      const response = await uploadPhotoMutation.mutateAsync({ photoUrl: base64Url });
+      // Update photoUrl with the response from server (in case it's processed/stored differently)
+      if (response?.data?.profilePhoto) {
+        setPhotoUrl(response.data.profilePhoto);
+      } else {
+        // Fallback to the uploaded base64 if server doesn't return processed version
+        setPhotoUrl(base64Url);
+      }
+      setAvatarOpen(false);
+      setPhotoSaved(true);
+      setTimeout(() => setPhotoSaved(false), 3000);
+    } catch {
+      setPhotoError('Failed to upload photo. Please try again.');
+    }
+  };
+
+  const displayName = profile
+    ? `${profile.firstName}${profile.middleName ? ' ' + profile.middleName : ''} ${profile.lastName}`.trim()
+    : 'John Doe';
+
+  const displayInitials = profile
+    ? `${profile.firstName?.[0] ?? ''}${profile.lastName?.[0] ?? ''}`.toUpperCase()
+    : 'JD';
 
   const PillButton = ({ label, variant = 'default' }: { label: string; variant?: 'default' | 'orange' | 'green' }) => {
     const styles = {
@@ -428,7 +549,7 @@ export default function Settings() {
           borderBottom: '1px solid rgba(0,0,0,0.06)',
           background: 'linear-gradient(135deg, #FFFBF9 0%, #FFF4F0 100%)',
         }}>
-          {/* ── Clickable avatar ── */}
+          {/* Clickable avatar */}
           <Box
             onClick={() => setAvatarOpen(true)}
             sx={{
@@ -437,22 +558,19 @@ export default function Settings() {
             }}
           >
             <Avatar
-              src={profileImage ?? undefined}
+              src={photoUrl ?? undefined}
               sx={{
                 width: { xs: 60, sm: 72 }, height: { xs: 60, sm: 72 },
                 background: 'linear-gradient(135deg, #FA510F, #D94309)',
                 fontSize: { xs: '1.3rem', sm: '1.6rem' }, fontWeight: 800,
-                boxShadow: profileImage
-                  ? '0 8px 24px rgba(250,81,15,0.25)'
-                  : '0 8px 24px rgba(250,81,15,0.3)',
-                border: profileImage ? '2.5px solid #FA510F' : 'none',
+                boxShadow: photoUrl ? '0 8px 24px rgba(250,81,15,0.25)' : '0 8px 24px rgba(250,81,15,0.3)',
+                border: photoUrl ? '2.5px solid #FA510F' : 'none',
                 transition: 'box-shadow 0.2s',
               }}
             >
-              JD
+              {profileLoading ? null : displayInitials}
             </Avatar>
 
-            {/* Camera hover overlay */}
             <Box
               className="cam-overlay"
               sx={{
@@ -465,7 +583,6 @@ export default function Settings() {
               <CameraIcon sx={{ color: '#fff', fontSize: { xs: '1.1rem', sm: '1.3rem' } }} />
             </Box>
 
-            {/* Online dot */}
             <Box sx={{
               position: 'absolute', bottom: 2, right: 2,
               width: 12, height: 12, borderRadius: '50%',
@@ -474,18 +591,26 @@ export default function Settings() {
           </Box>
 
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography sx={{ fontSize: { xs: '1rem', sm: '1.15rem' }, fontWeight: 800, color: '#0F172A', lineHeight: 1.2 }}>
-              John Doe
-            </Typography>
-            <Typography sx={{ fontSize: '0.75rem', color: '#9CA3AF', mt: 0.2 }}>
-              john@example.com
-            </Typography>
+            {profileLoading ? (
+              <>
+                <Skeleton variant="text" width="50%" height={22} />
+                <Skeleton variant="text" width="70%" height={16} sx={{ mt: 0.5 }} />
+              </>
+            ) : (
+              <>
+                <Typography sx={{ fontSize: { xs: '1rem', sm: '1.15rem' }, fontWeight: 800, color: '#0F172A', lineHeight: 1.2 }}>
+                  {displayName}
+                </Typography>
+                <Typography sx={{ fontSize: '0.75rem', color: '#9CA3AF', mt: 0.2 }}>
+                  {profile?.email ?? ''}
+                </Typography>
+              </>
+            )}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.8, flexWrap: 'wrap' }}>
               <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.4, px: 1, py: 0.3, borderRadius: '6px', bgcolor: '#ECFDF5' }}>
                 <CheckIcon sx={{ fontSize: '0.7rem', color: '#059669' }} />
                 <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: '#059669', letterSpacing: '0.04em' }}>Verified Account</Typography>
               </Box>
-              {/* Photo badge */}
               <Box
                 onClick={() => setAvatarOpen(true)}
                 sx={{
@@ -497,7 +622,7 @@ export default function Settings() {
               >
                 <CameraIcon sx={{ fontSize: '0.7rem', color: '#FA510F' }} />
                 <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: '#FA510F', letterSpacing: '0.04em' }}>
-                  {profileImage ? 'Change Photo' : 'Add Photo'}
+                  {photoUrl ? 'Change Photo' : 'Add Photo'}
                 </Typography>
               </Box>
             </Box>
@@ -506,8 +631,12 @@ export default function Settings() {
           <Button
             variant={editing ? 'contained' : 'outlined'}
             size="small"
-            startIcon={editing ? <CheckIcon /> : <EditIcon />}
-            onClick={editing ? handleSave : () => setEditing(true)}
+            startIcon={editing
+              ? (updateProfileMutation.isPending ? <CircularProgress size={12} sx={{ color: '#fff' }} /> : <CheckIcon />)
+              : <EditIcon />
+            }
+            onClick={editing ? handleSave : handleEditClick}
+            disabled={profileLoading || updateProfileMutation.isPending}
             sx={{
               textTransform: 'none', fontWeight: 700, borderRadius: '10px',
               flexShrink: 0, fontSize: '0.78rem',
@@ -516,63 +645,136 @@ export default function Settings() {
                 boxShadow: '0 4px 14px rgba(250,81,15,0.3)',
                 border: 'none', color: '#fff',
                 '&:hover': { background: 'linear-gradient(135deg,#D94309,#B33000)' },
+                '&:disabled': { opacity: 0.7 },
               } : {
                 borderColor: 'rgba(0,0,0,0.15)', color: '#374151',
                 '&:hover': { bgcolor: '#F8F9FA' },
               }),
             }}
           >
-            {editing ? 'Save' : isMobile ? 'Edit' : 'Edit Profile'}
+            {editing
+              ? (updateProfileMutation.isPending ? 'Saving…' : 'Save')
+              : (isMobile ? 'Edit' : 'Edit Profile')
+            }
           </Button>
         </Box>
 
-        {/* Success banners */}
+        {/* ── Banners ── */}
         {photoSaved && (
           <Box sx={{ px: 2.5, py: 1.2, bgcolor: '#FFF4F0', borderBottom: '1px solid rgba(250,81,15,0.12)', display: 'flex', alignItems: 'center', gap: 1 }}>
             <CameraIcon sx={{ fontSize: '0.9rem', color: '#FA510F' }} />
             <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#FA510F' }}>Profile photo updated!</Typography>
           </Box>
         )}
-        {saved && (
+        {photoError && (
+          <Box sx={{ px: 2.5, py: 1.2, bgcolor: '#FEF2F2', borderBottom: '1px solid rgba(220,38,38,0.12)', display: 'flex', alignItems: 'center', gap: 1 }}>
+            <WarnIcon sx={{ fontSize: '0.9rem', color: '#DC2626' }} />
+            <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#DC2626' }}>{photoError}</Typography>
+          </Box>
+        )}
+        {profileSaved && (
           <Box sx={{ px: 2.5, py: 1.2, bgcolor: '#ECFDF5', borderBottom: '1px solid rgba(5,150,105,0.12)', display: 'flex', alignItems: 'center', gap: 1 }}>
             <CheckIcon sx={{ fontSize: '0.9rem', color: '#059669' }} />
             <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#059669' }}>Profile updated successfully</Typography>
           </Box>
         )}
+        {saveError && (
+          <Box sx={{ px: 2.5, py: 1.2, bgcolor: '#FEF2F2', borderBottom: '1px solid rgba(220,38,38,0.12)', display: 'flex', alignItems: 'center', gap: 1 }}>
+            <WarnIcon sx={{ fontSize: '0.9rem', color: '#DC2626' }} />
+            <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#DC2626' }}>{saveError}</Typography>
+          </Box>
+        )}
+        {profileError && !profileLoading && (
+          <Box sx={{ px: 2.5, py: 1.2, bgcolor: '#FEF2F2', borderBottom: '1px solid rgba(220,38,38,0.12)', display: 'flex', alignItems: 'center', gap: 1 }}>
+            <WarnIcon sx={{ fontSize: '0.9rem', color: '#DC2626' }} />
+            <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#DC2626' }}>Could not load profile data.</Typography>
+          </Box>
+        )}
 
-        {/* Field rows */}
-        {editing ? (
+        {/* ── Fields ── */}
+        {profileLoading ? (
+          <>
+            <FieldRowSkeleton />
+            <FieldRowSkeleton />
+            <FieldRowSkeleton />
+            <FieldRowSkeleton />
+            <FieldRowSkeleton />
+            <FieldRowSkeleton />
+          </>
+        ) : editing ? (
           <Box sx={{ p: { xs: 2, sm: 2.5 }, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
-              {[
-                { label: 'Full Name', value: 'John Doe', type: 'text' },
-                { label: 'Email Address', value: 'john@example.com', type: 'email' },
-                { label: 'Phone Number', value: '+1 (555) 123-4567', type: 'tel' },
-                { label: 'Date of Birth', value: 'January 15, 1990', type: 'text' },
-              ].map(f => (
-                <TextField
-                  key={f.label} size="small" label={f.label}
-                  defaultValue={f.value} type={f.type} fullWidth
-                  sx={{
-                    '& .MuiOutlinedInput-root': { borderRadius: '12px', fontSize: '0.88rem', '&.Mui-focused fieldset': { borderColor: '#FA510F' } },
-                    '& label.Mui-focused': { color: '#FA510F' },
-                  }}
-                />
-              ))}
+              <TextField
+                size="small" label="First Name" value={formData.firstName} type="text" fullWidth
+                onChange={e => setFormData(f => ({ ...f, firstName: e.target.value }))}
+                sx={{
+                  '& .MuiOutlinedInput-root': { borderRadius: '12px', fontSize: '0.88rem', '&.Mui-focused fieldset': { borderColor: '#FA510F' } },
+                  '& label.Mui-focused': { color: '#FA510F' },
+                }}
+              />
+              <TextField
+                size="small" label="Last Name" value={formData.lastName} type="text" fullWidth
+                onChange={e => setFormData(f => ({ ...f, lastName: e.target.value }))}
+                sx={{
+                  '& .MuiOutlinedInput-root': { borderRadius: '12px', fontSize: '0.88rem', '&.Mui-focused fieldset': { borderColor: '#FA510F' } },
+                  '& label.Mui-focused': { color: '#FA510F' },
+                }}
+              />
+              <TextField
+                size="small" label="Phone Number" value={formData.phoneNumber} type="tel" fullWidth
+                onChange={e => setFormData(f => ({ ...f, phoneNumber: e.target.value }))}
+                sx={{
+                  '& .MuiOutlinedInput-root': { borderRadius: '12px', fontSize: '0.88rem', '&.Mui-focused fieldset': { borderColor: '#FA510F' } },
+                  '& label.Mui-focused': { color: '#FA510F' },
+                }}
+              />
+              <TextField
+                size="small" label="Date of Birth" value={formData.dateOfBirth} type="date"
+                fullWidth
+                slotProps={{ inputLabel: { shrink: true } }}
+                onChange={e => setFormData(f => ({ ...f, dateOfBirth: e.target.value }))}
+                sx={{
+                  '& .MuiOutlinedInput-root': { borderRadius: '12px', fontSize: '0.88rem', '&.Mui-focused fieldset': { borderColor: '#FA510F' } },
+                  '& label.Mui-focused': { color: '#FA510F' },
+                }}
+              />
+              <TextField
+                size="small" label="Country" value={formData.country} type="text" fullWidth
+                onChange={e => setFormData(f => ({ ...f, country: e.target.value }))}
+                sx={{
+                  '& .MuiOutlinedInput-root': { borderRadius: '12px', fontSize: '0.88rem', '&.Mui-focused fieldset': { borderColor: '#FA510F' } },
+                  '& label.Mui-focused': { color: '#FA510F' },
+                }}
+              />
+              <TextField
+                size="small" label="Currency" value={formData.currency} type="text" fullWidth
+                onChange={e => setFormData(f => ({ ...f, currency: e.target.value }))}
+                sx={{
+                  '& .MuiOutlinedInput-root': { borderRadius: '12px', fontSize: '0.88rem', '&.Mui-focused fieldset': { borderColor: '#FA510F' } },
+                  '& label.Mui-focused': { color: '#FA510F' },
+                }}
+              />
             </Box>
           </Box>
         ) : (
           <>
-            <FieldRow icon={<PersonIcon />} label="Full Name"     value="John Doe" />
-            <FieldRow icon={<EmailIcon />}  label="Email Address" value="john@example.com" />
-            <FieldRow icon={<DeviceIcon />} label="Phone Number"  value="+1 (555) 123-4567" />
-            <FieldRow icon={<CakeIcon />}   label="Date of Birth" value="January 15, 1990" />
+            <FieldRow icon={<PersonIcon />} label="Full Name"     value={displayName} />
+            <FieldRow icon={<EmailIcon />}  label="Email Address" value={profile?.email ?? ''} />
+            <FieldRow icon={<DeviceIcon />} label="Phone Number"  value={profile?.phoneNumber ?? ''} />
+            <FieldRow icon={<CakeIcon />}   label="Date of Birth" value={profile?.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : ''} />
+            <FieldRow icon={<PersonIcon />} label="Country"       value={profile?.country ?? ''} />
+            <FieldRow icon={<PersonIcon />} label="Currency"      value={profile?.currency ?? ''} />
           </>
         )}
 
         <Box sx={{ px: { xs: 2, sm: 2.5 }, py: 1.5, bgcolor: '#FAFBFC', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
           <Typography sx={{ fontSize: '0.7rem', color: '#C4C9D4', fontWeight: 600 }}>
-            Account ID: <span style={{ color: '#9CA3AF' }}>ACC-123456789</span>
+            Member since:{' '}
+            <span style={{ color: '#9CA3AF' }}>
+              {profile?.createdAt
+                ? new Date(profile.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+                : '—'}
+            </span>
           </Typography>
         </Box>
       </Section>
@@ -643,9 +845,10 @@ export default function Settings() {
       {/* ── Upload dialog ── */}
       <AvatarUploadDialog
         open={avatarOpen}
-        onClose={() => setAvatarOpen(false)}
+        onClose={() => { setAvatarOpen(false); setPhotoError(''); }}
         onSave={handlePhotoSave}
-        currentImage={profileImage}
+        currentImage={photoUrl}
+        isUploading={uploadPhotoMutation.isPending}
       />
     </Box>
   );
