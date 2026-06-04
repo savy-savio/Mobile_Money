@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-refresh/only-export-components */
 /* eslint-disable react-hooks/set-state-in-effect */
 // import { useNavigate } from 'react-router-dom';
@@ -14,7 +15,7 @@ import {
 const AuthContext = createContext(null);
 
 // Helper function to decode token safely
-const decodeToken = (token) => {
+const decodeToken = (token: string) => {
   try {
     if (!token) return null;
 
@@ -29,7 +30,7 @@ const decodeToken = (token) => {
 };
 
 // Helper function to check if token is expired
-const isTokenExpired = (token) => {
+const isTokenExpired = (token: string) => {
   const payload = decodeToken(token);
 
   if (!payload?.exp) return true;
@@ -38,7 +39,7 @@ const isTokenExpired = (token) => {
   return payload.exp < currentTime;
 };
 
-export const AuthProvider = ({ children }) => {
+export const AuthProvider = ({ children }: any) => {
   const [userId, setUserId] = useState(() => localStorage.getItem('userId'));
   const [loginToken, setLoginToken] = useState(() => localStorage.getItem('loginToken'));
   const [refreshToken, setRefreshToken] = useState(() => localStorage.getItem('refreshToken'));
@@ -92,7 +93,7 @@ const logout = useCallback(() => {
 
   // Schedule automatic logout based on token expiry
   const scheduleAutoLogout = useCallback(
-    (token) => {
+    (token: string) => {
       const payload = decodeToken(token);
 
       if (!payload?.exp) {
