@@ -475,7 +475,7 @@ const handleSubmit = (ev: React.FormEvent) => {
             {/* Sign up link */}
             <p style={{ textAlign: "center", marginTop: 20, fontSize: 13, color: "#9CA3AF" }}>
               {c.no_account}{" "}
-              <span onClick={() => navigate("/signup")} style={{ color: BRAND, fontWeight: 600, cursor: "pointer" }}>{c.signup}</span>
+              <span onClick={() => navigate("open-Account")} style={{ color: BRAND, fontWeight: 600, cursor: "pointer" }}>{c.signup}</span>
             </p>
 
             {/* Trust badges */}
