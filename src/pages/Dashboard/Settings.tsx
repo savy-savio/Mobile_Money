@@ -1886,7 +1886,7 @@ export default function Settings() {
           { icon: <EmailIcon />, title: 'Contact Support',  subtitle: 'Get help from our team', onClick: () => setContactDialogOpen(true) },
           // { icon: <WarnIcon />,  title: 'Report a Problem', subtitle: 'Let us know about an issue', onClick: () => setReportDialogOpen(true) },
         ].map(item => (
-          <Box key={item.title} onClick={item.onClick} sx={{ cursor: item.onClick ? 'pointer' : 'default' }}>
+          <Box key={item.title} onClick={item.onClick} sx={{ cursor: 'pointer' }}>
             <ActionRow
               icon={item.icon} title={item.title} subtitle={item.subtitle}
               action={

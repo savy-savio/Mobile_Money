@@ -420,7 +420,7 @@ export default function Cards() {
         apy: selectedPlanDetail.interestRate || selectedPlanDetail.apy || 0,
         targetAmount: selectedPlanDetail.targetAmount || 0,
         currentAmount: selectedPlanDetail.currentAmount || 0,
-        duration: (parseInt(selectedPlanDetail.duration) || 12) as Duration,
+        duration: (parseInt(selectedPlanDetail.duration || '12') || 12) as Duration,
         frequency: (selectedPlanDetail.frequency || 'monthly') as Frequency,
         status: (selectedPlanDetail.status || 'active') as PlanStatus,
         startDate: selectedPlanDetail.startDate || new Date().toISOString(),
