@@ -23,7 +23,7 @@ const COPY = {
     signin:      "Sign In",
     no_account:  "Don't have an account?",
     signup:      "Create account",
-    or:          "or continue with",
+    // or:          "or continue with",
     trust1:      "256-bit SSL encrypted",
     trust2:      "Globally regulated",
     trust3:      "Instant access",
@@ -132,35 +132,35 @@ function Logo() {
 }
 
 // ─── Social button ────────────────────────────────────────────────────────────
-function SocialBtn({ children }: { children: React.ReactNode }) {
-  const [hov, setHov] = useState(false);
-  return (
-    <button
-      type="button"
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      style={{
-        flex: 1,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-        padding: "11px 0",
-        borderRadius: 10,
-        border: `1.5px solid ${hov ? BRAND + "60" : "#E5E7EB"}`,
-        background: hov ? BRAND + "06" : "#FAFAFA",
-        cursor: "pointer",
-        fontFamily: "inherit",
-        fontSize: 13,
-        fontWeight: 600,
-        color: "#374151",
-        transition: "all 0.2s ease",
-      }}
-    >
-      {children}
-    </button>
-  );
-}
+// function SocialBtn({ children }: { children: React.ReactNode }) {
+//   const [hov, setHov] = useState(false);
+//   return (
+//     <button
+//       type="button"
+//       onMouseEnter={() => setHov(true)}
+//       onMouseLeave={() => setHov(false)}
+//       style={{
+//         flex: 1,
+//         display: "flex",
+//         alignItems: "center",
+//         justifyContent: "center",
+//         gap: 8,
+//         padding: "11px 0",
+//         borderRadius: 10,
+//         border: `1.5px solid ${hov ? BRAND + "60" : "#E5E7EB"}`,
+//         background: hov ? BRAND + "06" : "#FAFAFA",
+//         cursor: "pointer",
+//         fontFamily: "inherit",
+//         fontSize: 13,
+//         fontWeight: 600,
+//         color: "#374151",
+//         transition: "all 0.2s ease",
+//       }}
+//     >
+//       {children}
+//     </button>
+//   );
+// }
 
 // ─── Main Login component ─────────────────────────────────────────────────────
 export default function Login() {
@@ -316,7 +316,7 @@ const handleSubmit = (ev: React.FormEvent) => {
           <div style={{ padding: "28px 32px 32px" }}>
 
             {/* Social buttons */}
-            <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+            {/* <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
               <SocialBtn>
                 <svg width="18" height="18" viewBox="0 0 24 24">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -332,14 +332,14 @@ const handleSubmit = (ev: React.FormEvent) => {
                 </svg>
                 Facebook
               </SocialBtn>
-            </div>
+            </div> */}
 
             {/* Divider */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12, color: "#9CA3AF", fontSize: 12, fontWeight: 500, marginBottom: 20 }}>
+            {/* <div style={{ display: "flex", alignItems: "center", gap: 12, color: "#9CA3AF", fontSize: 12, fontWeight: 500, marginBottom: 20 }}>
               <div style={{ flex: 1, height: 1, background: "#E5E7EB" }} />
               {c.or}
               <div style={{ flex: 1, height: 1, background: "#E5E7EB" }} />
-            </div>
+            </div> */}
 
             {/* API error banner */}
             {errors.api && (

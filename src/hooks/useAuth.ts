@@ -1401,7 +1401,7 @@ export const useCancelSavingsPlan = () => {
   return useMutation({
     mutationFn: async (planId: string) => {
       const response = await apiClient(`savings-plans/plan/${planId}/cancel`, {
-        method: 'DELETE',
+        method: 'POST',
       }) as CancelSavingsPlanResponse;
 
       if (!response.success) {

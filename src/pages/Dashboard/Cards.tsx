@@ -65,6 +65,7 @@ import {
   CancelOutlined as CancelPlanIcon,
   ArrowForward as ArrowForwardIcon,
   FlagOutlined as TargetIcon,
+  ContentCopy as CopyIcon,
 } from '@mui/icons-material';
 import InputAdornment from '@mui/material/InputAdornment';
 import type { JSX } from '@emotion/react/jsx-runtime';
@@ -301,6 +302,11 @@ interface FundingState {
   transactionId: string;
   verifyError: string;
   loading: boolean;
+  bitcoinAddress?: string;
+  message?: string;
+  instructions?: string;
+  planName?: string;
+  amountUSD?: number;
   // context for what we're funding
   draft: PlanDraft | null; // when mode === 'create'
   planId: string | null; // when mode === 'topup'
@@ -583,6 +589,11 @@ export default function Cards() {
         paymentReference: paymentData.paymentReference,
         amountBTC: paymentData.amountBTC || (amt / MOCK_BTC_RATE).toFixed(8),
         exchangeRate: paymentData.exchangeRate || MOCK_BTC_RATE,
+        bitcoinAddress: paymentData.bitcoinAddress,
+        message: paymentData.message,
+        instructions: paymentData.instructions,
+        planName: paymentData.planName,
+        amountUSD: paymentData.amountUSD,
       }));
     } catch (error) {
       console.log('[v0] Payment initialization error:', error);
@@ -1605,8 +1616,43 @@ function FundingFlow({
             </Box>
             <Typography sx={{ fontWeight: 800, fontSize: '1rem', color: ink, mb: 0.5 }}>Payment Initiated</Typography>
             <Typography sx={{ fontSize: '0.85rem', color: grey, mb: 1.5 }}>{currency(parsedAmount)} deposit initiated</Typography>
+            
+            {/* Bitcoin Address and Instructions */}
+            {state.bitcoinAddress && (
+              <Box sx={{ bgcolor: orangeBg, p: 2.5, borderRadius: '12px', textAlign: 'left', mb: 2 }}>
+                <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: brand, mb: 1.5, textTransform: 'uppercase' }}>Bitcoin Address</Typography>
+                <Box sx={{ bgcolor: '#fff', p: 1.5, borderRadius: '8px', mb: 1.5, border: `1px solid ${border}`, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: ink, wordBreak: 'break-all', flex: 1, fontFamily: 'monospace' }}>{state.bitcoinAddress}</Typography>
+                  <IconButton
+                    size="small"
+                    onClick={() => {
+                      navigator.clipboard.writeText(state.bitcoinAddress || '');
+                    }}
+                    sx={{ flexShrink: 0, color: brand }}
+                    aria-label="Copy bitcoin address"
+                  >
+                    <CopyIcon sx={{ fontSize: '1rem' }} />
+                  </IconButton>
+                </Box>
+                
+                {state.instructions && (
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: grey, mb: 0.5 }}>Instructions:</Typography>
+                    <Typography sx={{ fontSize: '0.75rem', color: ink, lineHeight: 1.5 }}>{state.instructions}</Typography>
+                  </Box>
+                )}
+                
+                {state.message && (
+                  <Box sx={{ mb: 1 }}>
+                    <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: grey, mb: 0.5 }}>Message:</Typography>
+                    <Typography sx={{ fontSize: '0.75rem', color: ink, lineHeight: 1.5 }}>{state.message}</Typography>
+                  </Box>
+                )}
+              </Box>
+            )}
+            
             <Box sx={{ bgcolor: orangeBg, p: 2, borderRadius: '12px', textAlign: 'left', mb: 1.5 }}>
-              <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: brand, mb: 1, textTransform: 'uppercase' }}>Bitcoin Payment Details</Typography>
+              <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: brand, mb: 1, textTransform: 'uppercase' }}>Payment Details</Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography sx={{ fontSize: '0.72rem', color: grey }}>Reference:</Typography>
