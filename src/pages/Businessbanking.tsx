@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-// import { useI18n } from './i18n';
 import { useI18n } from '../context/l18n';
 import img from "../assets/dollar.png"
 
@@ -9,7 +8,7 @@ const BRAND_DARK = '#D94309';
 // ── Service cards data ────────────────────────────────────────────────────────
 const SERVICES = [
   {
-    id: 'checking',
+    id: 'corp-investment',
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
         <rect x="2" y="5" width="20" height="14" rx="3" stroke="currentColor" strokeWidth="1.8"/>
@@ -18,22 +17,22 @@ const SERVICES = [
       </svg>
     ),
     color: '#60A5FA', glowColor: 'rgba(96,165,250,0.15)',
-    en: { title: 'Business Checking', perks: ['No monthly maintenance fees', 'Unlimited transactions', 'Online banking included'] },
-    es: { title: 'Cuenta Corriente Empresarial', perks: ['Sin cuotas mensuales', 'Transacciones ilimitadas', 'Banca en línea incluida'] },
+    en: { title: 'Corporate Investment Account', perks: ['No management fees under $1M', 'Real-time portfolio access', 'Multi-user permissions'] },
+    es: { title: 'Cuenta de Inversión Corporativa', perks: ['Sin comisiones bajo $1M', 'Acceso a portafolio en tiempo real', 'Permisos multiusuario'] },
   },
   {
-    id: 'savings',
+    id: 'institutional-savings',
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
         <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
       </svg>
     ),
     color: '#34D399', glowColor: 'rgba(52,211,153,0.15)',
-    en: { title: 'Business Savings', perks: ['High-yield interest rates', 'No minimum balance', 'FDIC insured'] },
-    es: { title: 'Ahorro Empresarial', perks: ['Tasas de alto rendimiento', 'Sin saldo mínimo', 'Asegurado FDIC'] },
+    en: { title: 'Institutional Savings', perks: ['High-yield interest rates', 'No minimum balance', 'SIPC protected'] },
+    es: { title: 'Ahorro Institucional', perks: ['Tasas de alto rendimiento', 'Sin saldo mínimo', 'Protegido por SIPC'] },
   },
   {
-    id: 'loans',
+    id: 'treasury',
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
@@ -41,11 +40,11 @@ const SERVICES = [
       </svg>
     ),
     color: '#F472B6', glowColor: 'rgba(244,114,182,0.15)',
-    en: { title: 'Business Loans', perks: ['Competitive rates', 'Quick approval process', 'Flexible terms'] },
-    es: { title: 'Préstamos Empresariales', perks: ['Tasas competitivas', 'Aprobación rápida', 'Términos flexibles'] },
+    en: { title: 'Treasury & Cash Management', perks: ['Automated cash sweeps', 'Short-term money market access', 'Liquidity forecasting tools'] },
+    es: { title: 'Gestión de Tesorería', perks: ['Barridos de efectivo automatizados', 'Acceso a mercado monetario', 'Pronóstico de liquidez'] },
   },
   {
-    id: 'merchant',
+    id: 'reporting',
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
         <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
@@ -53,11 +52,11 @@ const SERVICES = [
       </svg>
     ),
     color: '#A78BFA', glowColor: 'rgba(167,139,250,0.15)',
-    en: { title: 'Merchant Services', perks: ['Multiple payment methods', 'Secure transactions', 'Real-time reporting'] },
-    es: { title: 'Servicios de Comerciante', perks: ['Múltiples métodos de pago', 'Transacciones seguras', 'Reportes en tiempo real'] },
+    en: { title: 'Portfolio Reporting & Analytics', perks: ['Real-time performance dashboards', 'Custom investor reports', 'Tax-lot accounting'] },
+    es: { title: 'Análisis de Portafolio', perks: ['Paneles en tiempo real', 'Reportes personalizados', 'Contabilidad fiscal por lote'] },
   },
   {
-    id: 'cash',
+    id: 'retirement-plans',
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
         <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8"/>
@@ -65,11 +64,11 @@ const SERVICES = [
       </svg>
     ),
     color: '#FBBF24', glowColor: 'rgba(251,191,36,0.15)',
-    en: { title: 'Cash Management', perks: ['Automated clearing', 'Wire transfers', 'Account reconciliation'] },
-    es: { title: 'Gestión de Efectivo', perks: ['Compensación automatizada', 'Transferencias bancarias', 'Conciliación de cuentas'] },
+    en: { title: 'Employee Retirement Plans', perks: ['Company-sponsored retirement plans', 'Automated contribution matching', 'Employee onboarding portal'] },
+    es: { title: 'Planes de Jubilación', perks: ['Planes patrocinados por la empresa', 'Igualación automática de aportes', 'Portal de incorporación'] },
   },
   {
-    id: 'credit',
+    id: 'corp-cards',
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
         <rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="1.8"/>
@@ -77,34 +76,30 @@ const SERVICES = [
       </svg>
     ),
     color: '#FB923C', glowColor: 'rgba(251,146,60,0.15)',
-    en: { title: 'Business Credit Cards', perks: ['Cashback rewards', 'Expense tracking', 'Employee cards'] },
-    es: { title: 'Tarjetas de Crédito Empresarial', perks: ['Recompensas de cashback', 'Seguimiento de gastos', 'Tarjetas para empleados'] },
+    en: { title: 'Corporate Investment Cards', perks: ['Cashback into investment account', 'Spend tracking by team', 'Employee cards'] },
+    es: { title: 'Tarjetas de Inversión Corporativa', perks: ['Cashback a la cuenta de inversión', 'Seguimiento de gastos por equipo', 'Tarjetas para empleados'] },
   },
 ];
 
 const COPY = {
   en: {
-    eyebrow:   'Business Banking',
-    heading1:  'Banking built for',
+    eyebrow:   'Institutional Investing',
+    heading1:  'Investing built for',
     heading2:  'businesses that mean business.',
-    sub:       'From startups to enterprises — Crown Ledger gives you the tools, accounts, and credit lines to run your business with confidence, every day.',
-    cta:       'Open business account',
-    cta2:      'Talk to an advisor',
-    // stat1_val: '50K+',   stat1_label: 'Businesses',
-    // stat2_val: '₦42B+',  stat2_label: 'Business volume',
-    // stat3_val: '24/7',   stat3_label: 'Support',
+    sub:       'From startups to enterprises — Crown Ledger gives you the accounts, portfolios, and treasury tools to grow capital with confidence, every day.',
+    // cta:       'Open institutional account',
+    // cta2:      'Talk to an advisor',
     learn:     'Learn more',
-    // img_caption: 'Built for Nigerian entrepreneurs',
   },
   es: {
-    eyebrow:   'Banca Empresarial',
-    heading1:  'Banca construida para',
+    eyebrow:   'Inversión Institucional',
+    heading1:  'Inversión construida para',
     heading2:  'empresas que van en serio.',
-    sub:       'Desde startups hasta grandes empresas — Crown Ledger te da las herramientas, cuentas y líneas de crédito para operar con confianza, todos los días.',
-    cta:       'Abrir cuenta empresarial',
+    sub:       'Desde startups hasta grandes empresas — Crown Ledger te da las cuentas, portafolios y herramientas de tesorería para crecer con confianza, todos los días.',
+    cta:       'Abrir cuenta institucional',
     cta2:      'Hablar con un asesor',
     stat1_val: '50K+',   stat1_label: 'Empresas',
-    stat2_val: '₦42B+',  stat2_label: 'Volumen empresarial',
+    stat2_val: '₦42B+',  stat2_label: 'Capital gestionado',
     stat3_val: '24/7',   stat3_label: 'Soporte',
     learn:     'Saber más',
     img_caption: 'Para empresarios nigerianos',
@@ -171,7 +166,6 @@ function ServiceCard({ svc, lang, idx }: { svc: typeof SERVICES[0]; lang: string
       {/* Title */}
       <h3 style={{
         margin: '0 0 10px',
-        // fontFamily: '"Syne", Georgia, serif',
         fontWeight: 700,
         fontSize: 'clamp(14px,1.4vw,16px)',
         color: '#fff',
@@ -201,7 +195,7 @@ function ServiceCard({ svc, lang, idx }: { svc: typeof SERVICES[0]; lang: string
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
-const BusinessBanking: React.FC = () => {
+const InstitutionalInvesting: React.FC = () => {
   const { language } = useI18n();
   const c = COPY[language as keyof typeof COPY] ?? COPY.en;
   const { ref: secRef, inView } = useInView();
@@ -226,7 +220,6 @@ const BusinessBanking: React.FC = () => {
           position: relative;
           overflow: hidden;
           font-family: "DM Sans", sans-serif;
-          /* rich gradient: deep navy → dark slate with warm undertone */
           background: linear-gradient(135deg,
             #0A0F1E 0%,
             #0F172A 30%,
@@ -235,7 +228,6 @@ const BusinessBanking: React.FC = () => {
           );
         }
 
-        /* mesh gradient blobs */
         .bb-blob1 {
           position: absolute; border-radius: 50%; pointer-events: none; z-index: 0;
           width: 700px; height: 700px;
@@ -255,7 +247,6 @@ const BusinessBanking: React.FC = () => {
           top: 40%; left: 35%;
         }
 
-        /* subtle grid lines */
         .bb-grid-lines {
           position: absolute; inset: 0; z-index: 0; pointer-events: none;
           background-image:
@@ -264,7 +255,6 @@ const BusinessBanking: React.FC = () => {
           background-size: 60px 60px;
         }
 
-        /* ── Layout ── */
         .bb-inner {
           position: relative; z-index: 1;
           max-width: 1200px; margin: 0 auto;
@@ -274,7 +264,6 @@ const BusinessBanking: React.FC = () => {
           gap: clamp(40px,6vh,64px);
         }
 
-        /* ── Left: image + stats ── */
         .bb-img-col { position: relative; }
 
         .bb-img-frame {
@@ -300,7 +289,6 @@ const BusinessBanking: React.FC = () => {
           z-index: 2;
         }
 
-        /* orange corner accent */
         .bb-corner-tl {
           position: absolute; top: -14px; left: -14px;
           width: 48px; height: 48px;
@@ -316,7 +304,6 @@ const BusinessBanking: React.FC = () => {
           border-radius: 0 0 5px 0; z-index: 3;
         }
 
-        /* floating approved badge */
         .bb-badge {
           position: absolute;
           top: 22px; right: -24px;
@@ -333,14 +320,12 @@ const BusinessBanking: React.FC = () => {
           animation: bbFloat 4.5s ease-in-out infinite;
         }
 
-        /* img caption */
         .bb-img-caption {
           position: absolute; bottom: 0; left: 0; right: 0;
           z-index: 3; padding: 20px 22px;
           display: flex; align-items: center; gap: 8px;
         }
 
-        /* stats row */
         .bb-stats {
           display: grid;
           grid-template-columns: repeat(3,1fr);
@@ -357,7 +342,6 @@ const BusinessBanking: React.FC = () => {
         }
         .bb-stat:hover { background: rgba(255,255,255,0.08); }
 
-        /* ── Top 2-col: image left, text right ── */
         .bb-top-row {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -365,10 +349,8 @@ const BusinessBanking: React.FC = () => {
           align-items: center;
         }
 
-        /* ── Right: text only (no cards) ── */
         .bb-text-col { display: flex; flex-direction: column; }
 
-        /* ── Bottom: full-width 3-col cards grid ── */
         .bb-cards-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
@@ -380,7 +362,6 @@ const BusinessBanking: React.FC = () => {
         .bb-card-2{animation-delay:.19s} .bb-card-3{animation-delay:.26s}
         .bb-card-4{animation-delay:.33s} .bb-card-5{animation-delay:.40s}
 
-        /* CTA row */
         .bb-cta-row {
           display: flex; gap: 12px; flex-wrap: wrap;
           margin-top: 28px;
@@ -410,7 +391,6 @@ const BusinessBanking: React.FC = () => {
         .bb-cta-s:hover { background:rgba(255,255,255,0.13); border-color:rgba(255,255,255,0.4); transform:translateY(-2px); }
         .bb-cta-s:active { transform:translateY(0); }
 
-        /* ── Responsive ── */
         @media (max-width: 900px) {
           .bb-inner { padding: clamp(44px,6vh,68px) clamp(14px,4vw,28px); gap: 32px; }
           .bb-top-row { grid-template-columns: 1fr; gap: 28px; }
@@ -429,7 +409,6 @@ const BusinessBanking: React.FC = () => {
       `}</style>
 
       <section className="bb-root">
-        {/* Background decorations */}
         <div className="bb-blob1" />
         <div className="bb-blob2" />
         <div className="bb-blob3" />
@@ -437,10 +416,8 @@ const BusinessBanking: React.FC = () => {
 
         <div className="bb-inner" ref={secRef}>
 
-          {/* ════════ TOP ROW: Image left + Text right ════════ */}
           <div className="bb-top-row">
 
-          {/* ── Image column ── */}
           <div
             className="bb-img-col"
             ref={imgRef}
@@ -453,75 +430,18 @@ const BusinessBanking: React.FC = () => {
             <div className="bb-corner-tl" />
             <div className="bb-corner-br" />
 
-            {/* Floating approval badge */}
-            {/* <div
-              className="bb-badge"
-              style={{
-                opacity: imgIn ? 1 : 0,
-                transform: imgIn ? 'none' : 'scale(0.85) translateY(-10px)',
-                transition: 'opacity .6s ease .65s, transform .6s cubic-bezier(.34,1.56,.64,1) .65s',
-              }}
-            >
-              <div style={{
-                width: 34, height: 34, borderRadius: '50%',
-                background: 'linear-gradient(135deg,#10B981,#059669)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M3 8l3.5 3.5L13 5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
-              <div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginBottom: 2 }}>Loan approved</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>₦5,000,000</div>
-              </div>
-            </div> */}
-
             <div className="bb-img-frame">
-              {/* Professional Black business person — Unsplash */}
               <img
                 src={img}
                 style={{objectFit: "cover"}}
-                alt="Business banking professional"
+                alt="Institutional investing professional"
                 loading="lazy"
               />
-
-              {/* Caption */}
-              {/* <div className="bb-img-caption">
-                <div style={{ width: 22, height: 1.5, background: BRAND, borderRadius: 2, flexShrink: 0 }} />
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: '1.4px', textTransform: 'uppercase' }}>
-                  {c.img_caption}
-                </span>
-              </div> */}
             </div>
-
-            {/* Stats row */}
-            {/* <div className="bb-stats">
-              {[
-                { val: c.stat1_val, label: c.stat1_label },
-                { val: c.stat2_val, label: c.stat2_label },
-                { val: c.stat3_val, label: c.stat3_label },
-              ].map((s, i) => (
-                <div
-                  key={i}
-                  className="bb-stat"
-                  style={{
-                    opacity: imgIn ? 1 : 0,
-                    transform: imgIn ? 'none' : 'translateY(12px)',
-                    transition: `opacity .55s ease ${0.4 + i * 0.1}s, transform .55s ease ${0.4 + i * 0.1}s`,
-                  }}
-                >
-                  <div style={{ fontSize: 'clamp(18px,2.2vw,24px)', fontWeight: 800, color: '#fff', fontFamily: '"Syne",serif', lineHeight: 1, letterSpacing: '-0.5px' }}>{s.val}</div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 5, textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>{s.label}</div>
-                </div>
-              ))}
-            </div> */}
           </div>
 
-          {/* ════════ RIGHT: Text + service cards ════════ */}
           <div className="bb-text-col">
 
-            {/* Eyebrow */}
             <div style={{
               display: 'flex', alignItems: 'center', gap: 9, marginBottom: 18,
               opacity: inView ? 1 : 0,
@@ -532,10 +452,8 @@ const BusinessBanking: React.FC = () => {
               <span style={{ fontSize: 11, fontWeight: 700, color: BRAND, textTransform: 'uppercase', letterSpacing: '2.4px' }}>{c.eyebrow}</span>
             </div>
 
-            {/* Heading */}
             <h2 style={{
               margin: '0 0 18px',
-            //   fontFamily: '"Syne",Georgia,serif', fontWeight: 800,
               fontSize: 'clamp(26px,3.6vw,48px)',
               lineHeight: 1.08, letterSpacing: '-0.03em',
               color: '#fff', wordBreak: 'break-word',
@@ -549,7 +467,6 @@ const BusinessBanking: React.FC = () => {
               </span>
             </h2>
 
-            {/* Sub */}
             <p style={{
               margin: '0 0 4px',
               fontSize: 'clamp(13px,1.35vw,15.5px)', lineHeight: 1.8,
@@ -560,7 +477,6 @@ const BusinessBanking: React.FC = () => {
               transition: 'opacity .65s ease .35s, transform .65s ease .35s',
             }}>{c.sub}</p>
 
-            {/* CTA buttons */}
             <div
               className="bb-cta-row"
               style={{
@@ -569,21 +485,20 @@ const BusinessBanking: React.FC = () => {
                 transition: 'opacity .6s ease .82s, transform .6s ease .82s',
               }}
             >
-              <button className="bb-cta-p">
+              {/* <button className="bb-cta-p">
                 {c.cta}
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                   <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-              </button>
-              <button className="bb-cta-s">
+              </button> */}
+              {/* <button className="bb-cta-s">
                 {c.cta2}
-              </button>
+              </button> */}
             </div>
 
-          </div>{/* end bb-text-col */}
-          </div>{/* end bb-top-row */}
+          </div>
+          </div>
 
-          {/* ════════ BOTTOM: Full-width 3-col service cards ════════ */}
           <div
             className="bb-cards-grid"
             style={{
@@ -601,4 +516,4 @@ const BusinessBanking: React.FC = () => {
   );
 };
 
-export default BusinessBanking;
+export default InstitutionalInvesting;

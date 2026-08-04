@@ -41,7 +41,7 @@ const isTokenExpired = (token: string) => {
 
 export const AuthProvider = ({ children }: any) => {
   const [userId, setUserId] = useState(() => localStorage.getItem('userId'));
-  const [loginToken, setLoginToken] = useState(() => localStorage.getItem('loginToken'));
+  const [loginToken, setLoginToken] = useState(() => localStorage.getItem('accessToken'));
   const [refreshToken, setRefreshToken] = useState(() => localStorage.getItem('refreshToken'));
 //   const navigate = useNavigate();
 const logoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -62,7 +62,7 @@ const logout = useCallback(() => {
   setLoginToken(null);
 
   localStorage.removeItem('userId');
-  localStorage.removeItem('loginToken');
+  localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
   localStorage.removeItem('user');
   localStorage.removeItem('userName');
@@ -126,10 +126,10 @@ const logout = useCallback(() => {
         return;
       }
 
-      localStorage.setItem('loginToken', loginToken);
+      localStorage.setItem('accessToken', loginToken);
       scheduleAutoLogout(loginToken);
     } else {
-      localStorage.removeItem('loginToken');
+      localStorage.removeItem('accessToken');
       clearLogoutTimer();
     }
   }, [loginToken, logout, scheduleAutoLogout, clearLogoutTimer]);

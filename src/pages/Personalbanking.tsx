@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useI18n } from '../context/l18n';
 
 const BRAND      = '#FA510F';
-const BRAND_DARK = '#D94309';
+// const BRAND_DARK = '#D94309';
 
 // ── Account data ──────────────────────────────────────────────────────────────
 const ACCOUNTS = [
@@ -22,7 +22,7 @@ const ACCOUNTS = [
       title: 'Checking Account',
       sub: 'Everyday banking made easy with no monthly fees and unlimited transactions.',
       perks: ['No monthly maintenance fee', 'Free online and mobile banking', 'Free debit card', 'Overdraft protection available'],
-      cta: 'Open account',
+      // cta: 'Open account',
     },
     es: {
       title: 'Cuenta Corriente',
@@ -45,7 +45,7 @@ const ACCOUNTS = [
       title: 'High Yield Savings',
       sub: 'Grow your money with competitive interest rates and flexible access.',
       perks: ['2.50% APY interest rate', 'No minimum balance', 'FDIC insured up to $250K', 'Unlimited withdrawals'],
-      cta: 'Start saving',
+      // cta: 'Start saving',
     },
     es: {
       title: 'Ahorro de Alto Rendimiento',
@@ -69,7 +69,7 @@ const ACCOUNTS = [
       title: 'Money Market',
       sub: 'Higher interest rates with check-writing privileges and debit card access.',
       perks: ['3.25% APY interest rate', '$2,500 minimum balance', 'Limited check writing', 'Debit card included'],
-      cta: 'Learn more',
+      // cta: 'Learn more',
     },
     es: {
       title: 'Mercado Monetario',
@@ -93,7 +93,7 @@ const ACCOUNTS = [
       title: 'Certificate of Deposit',
       sub: 'Lock in guaranteed returns with our competitive CD rates and terms.',
       perks: ['Up to 4.50% APY', 'Terms from 3 months to 5 years', '$1,000 minimum deposit', 'Guaranteed rate of return'],
-      cta: 'View CD rates',
+      // cta: 'View CD rates',
     },
     es: {
       title: 'Certificado de Depósito',
@@ -117,7 +117,7 @@ const ACCOUNTS = [
       title: 'IRA Accounts',
       sub: 'Plan for retirement with traditional and Roth IRA options.',
       perks: ['Traditional and Roth options', 'Tax advantages', 'Investment options available', 'Retirement planning tools'],
-      cta: 'Plan retirement',
+      // cta: 'Plan retirement',
     },
     es: {
       title: 'Cuentas IRA',
@@ -142,7 +142,7 @@ const ACCOUNTS = [
       title: 'Youth Savings',
       sub: 'Help young savers build good financial habits with our youth accounts.',
       perks: ['Ages 13–17 eligible', 'No monthly fees', 'Financial education resources', 'Parent/guardian oversight'],
-      cta: 'Open youth account',
+      // cta: 'Open youth account',
     },
     es: {
       title: 'Ahorro Juvenil',
@@ -155,7 +155,7 @@ const ACCOUNTS = [
 
 const COPY = {
   en: {
-    eyebrow:  'Personal Banking',
+    eyebrow:  'Personal Savings',
     heading1: 'Everything you need',
     heading2: 'to take control of your money.',
     sub:      'Whether you\'re saving for a rainy day, planning for retirement, or teaching your child the value of money — Crown Ledger has the right account for every goal.',
@@ -320,7 +320,7 @@ function AccountCard({
       </ul>
 
       {/* CTA */}
-      <div style={{ marginTop: 'auto' }}>
+      {/* <div style={{ marginTop: 'auto' }}>
         <button
           style={{
             width: '100%',
@@ -359,7 +359,7 @@ function AccountCard({
             <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-      </div>
+      </div> */}
     </div>
   );
 }

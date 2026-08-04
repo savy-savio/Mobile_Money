@@ -37,7 +37,7 @@ export const Router = createBrowserRouter([
                 element: <Transactions/>
             },
             {
-                path: "/dashboard/cards",
+                path: "/dashboard/savings",
                 element: <Cards />
             },
             {

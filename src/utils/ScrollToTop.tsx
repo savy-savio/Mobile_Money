@@ -1,18 +1,11 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
-type ScrollToTopProps = {
-  containerRef: React.RefObject<HTMLDivElement | null>;
-};
-
-export default function ScrollToTop({
-  containerRef,
-}: ScrollToTopProps) {
+export default function ScrollToTop() {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    containerRef.current?.scrollTo({
+    window.scrollTo({
       top: 0,
       behavior: "smooth",
     });

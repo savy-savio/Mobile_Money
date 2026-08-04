@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/refs */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/l18n';
 
 const BRAND      = '#FA510F';
@@ -159,6 +160,7 @@ const STATS = [
 // ── Main Component ────────────────────────────────────────────────────────────
 const AboutUs: React.FC = () => {
   const { language } = useI18n();
+  const navigate = useNavigate();
   const lang = language as 'en' | 'es';
 
   const hero  = useInView(0.06);
@@ -686,7 +688,7 @@ const AboutUs: React.FC = () => {
                 : 'Join over 12,000 investors already building generational wealth on our platform.'
               }
             </p>
-            <button className="ab-cta-btn">
+            <button className="ab-cta-btn" onClick={() => navigate('/open-Account')}>
               {lang === 'es' ? 'Comenzar a Invertir Hoy' : 'Start Investing Today'}
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                 <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

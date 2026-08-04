@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 const baseURL = 'https://mobile-money-backend-tcyb.onrender.com'
+// const baseURL = 'http://localhost:5000'
 
 interface ApiClientOptions extends RequestInit {
   method?: string;
@@ -10,10 +11,12 @@ interface ApiClientOptions extends RequestInit {
 }
 
 export const buildAuthHeaders = (customHeaders: Record<string, string> = {}, hasBody = false) => {
-  const token = localStorage.getItem('loginToken');
+  const accessToken = localStorage.getItem('accessToken');
+  const refreshToken = localStorage.getItem('refreshToken');
 
   const headers: Record<string, string> = {
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    ...(refreshToken ? { 'x-refresh-token': refreshToken } : {}),
     ...customHeaders,
   };
 
@@ -70,7 +73,7 @@ const refreshAccessToken = async (): Promise<string | null> => {
 
     if (!response.ok) {
       // Refresh failed - clear tokens and redirect to login
-      localStorage.removeItem('loginToken');
+      localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
       window.location.href = '/login';
@@ -81,7 +84,7 @@ const refreshAccessToken = async (): Promise<string | null> => {
     const newRefreshToken = data.data?.refreshToken;
 
     if (newAccessToken && newRefreshToken) {
-      localStorage.setItem('loginToken', newAccessToken);
+      localStorage.setItem('accessToken', newAccessToken);
       localStorage.setItem('refreshToken', newRefreshToken);
       console.log('[TOKEN] Access token refreshed successfully');
       return newAccessToken;
@@ -90,7 +93,7 @@ const refreshAccessToken = async (): Promise<string | null> => {
     throw new Error('No tokens in refresh response');
   } catch (error) {
     console.error('[TOKEN] Refresh failed:', error);
-    localStorage.removeItem('loginToken');
+    localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     window.location.href = '/login';
@@ -119,6 +122,13 @@ const apiClient = async (endpoint: string, options: ApiClientOptions = {}): Prom
     data = await response.json();
   } catch (error) {
     data = null;
+  }
+
+  // Check for new access token in response headers (auto-refresh)
+  const newAccessTokenFromHeader = response.headers.get('x-new-access-token');
+  if (newAccessTokenFromHeader) {
+    localStorage.setItem('accessToken', newAccessTokenFromHeader);
+    console.log('[TOKEN] Access token auto-refreshed from response header');
   }
 
   // Handle 401 - token expired

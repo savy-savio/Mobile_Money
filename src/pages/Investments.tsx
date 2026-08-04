@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 // import { useI18n } from './i18n';
 import { useI18n } from '../context/l18n';
 
@@ -199,11 +200,12 @@ function useInView(threshold = 0.06) {
 
 // ── Plan card ─────────────────────────────────────────────────────────────────
 function PlanCard({
-  plan, lang, active, idx, total, onPrev, onNext,
+  plan, lang, active, idx, total, onPrev, onNext, onInvest,
 }: {
   plan: typeof PLANS[0]; lang: string; active: boolean;
   idx: number; total: number;
   onPrev: () => void; onNext: () => void;
+  onInvest: () => void;
 }) {
   const t = plan[lang as keyof typeof plan] as typeof plan.en ?? plan.en;
   const [imgLoaded, setImgLoaded] = useState(false);
@@ -275,7 +277,7 @@ function PlanCard({
 
         {/* CTA + nav */}
         <div className="inv-card-foot">
-          <button className="inv-invest-btn">
+          <button className="inv-invest-btn" onClick={onInvest}>
             {lang === 'es' ? 'Invertir ahora' : 'Invest now'}
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
               <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -303,12 +305,12 @@ function PlanCard({
 // ── Main ──────────────────────────────────────────────────────────────────────
 const Investments: React.FC = () => {
   const { language } = useI18n();
+  const navigate = useNavigate();
   const c = COPY[language as keyof typeof COPY] ?? COPY.en;
   const [active, setActive] = useState(0);
   const [, setDir] = useState<'left'|'right'>('right');
   const [animating, setAnimating] = useState(false);
   const { ref, inView } = useInView();
-  const autoRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const go = useCallback((next: number, direction: 'left'|'right') => {
     if (animating) return;
@@ -323,16 +325,9 @@ const Investments: React.FC = () => {
   const prev = () => go((active - 1 + PLANS.length) % PLANS.length, 'left');
   const next = useCallback(() => go((active + 1) % PLANS.length, 'right'), [active, go]);
 
-  // Auto-advance
-  useEffect(() => {
-    autoRef.current = setInterval(() => next(), 4500);
-    return () => { if (autoRef.current) clearInterval(autoRef.current); };
-  }, [next]);
+  const goToSignup = () => navigate('/open-Account');
 
-  const resetAuto = () => {
-    if (autoRef.current) clearInterval(autoRef.current);
-    autoRef.current = setInterval(() => next(), 4500);
-  };
+  // Auto-advance removed — navigation is now fully manual via arrows/dots.
 
   return (
     <>
@@ -557,7 +552,6 @@ const Investments: React.FC = () => {
 
         .inv-plan-name {
           margin: 0 0 8px;
-        //   font-family: "Syne", Georgia, serif; font-weight: 800;
           font-size: clamp(20px,2.2vw,26px);
           color: #fff; line-height: 1.1; letter-spacing: -0.4px;
         }
@@ -644,18 +638,6 @@ const Investments: React.FC = () => {
             padding: clamp(44px,6vh,68px) clamp(14px,4vw,28px);
             gap: 32px;
           }
-          /*
-           * Mobile stacking order:
-           *   1. Eyebrow + Heading + Sub  (inv-left, top portion)
-           *   2. Slider card              (inv-slider-wrap)
-           *   3. Dots + ticker + trust    (inv-left, bottom portion — achieved via flex order reset)
-           *
-           * Because inv-left is a single flex column we split it visually by
-           * moving the whole inv-left ABOVE the slider, then the slider appears
-           * right below the subtitle paragraph. The dots/ticker/trust that live
-           * inside inv-left will just follow naturally after the heading text.
-           * Reset both orders to natural DOM order so inv-left comes first, slider second.
-           */
           .inv-slider-wrap { order: 2; }
           .inv-left        { order: 1; }
           .inv-card { min-height: clamp(420px,70vw,520px); }
@@ -694,7 +676,6 @@ const Investments: React.FC = () => {
             {/* Heading */}
             <h2 style={{
               margin:'0 0 18px',
-            //   fontFamily:'"Syne",Georgia,serif', 
               fontWeight:800,
               fontSize:'clamp(28px,3.8vw,52px)',
               lineHeight:1.07, letterSpacing:'-0.03em',
@@ -718,7 +699,7 @@ const Investments: React.FC = () => {
                 <button
                   key={p.id}
                   className={`inv-dot${active===i ? ' active-dot' : ''}`}
-                  onClick={() => { go(i, i > active ? 'right' : 'left'); resetAuto(); }}
+                  onClick={() => go(i, i > active ? 'right' : 'left')}
                   aria-label={p.en.name}
                 />
               ))}
@@ -762,8 +743,9 @@ const Investments: React.FC = () => {
                 active={true}
                 idx={active}
                 total={PLANS.length}
-                onPrev={() => { prev(); resetAuto(); }}
-                onNext={() => { next(); resetAuto(); }}
+                onPrev={prev}
+                onNext={next}
+                onInvest={goToSignup}
               />
             )}
           </div>

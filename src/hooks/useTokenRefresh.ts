@@ -51,7 +51,7 @@ export function useTokenRefresh() {
         }) as RefreshTokenResponse;
 
         if (response.data?.accessToken && response.data?.refreshToken) {
-          localStorage.setItem('loginToken', response.data.accessToken);
+          localStorage.setItem('accessToken', response.data.accessToken);
           localStorage.setItem('refreshToken', response.data.refreshToken);
           console.log('[TOKEN] Scheduled token refresh successful');
         }
@@ -85,7 +85,7 @@ export async function manualTokenRefresh(): Promise<boolean> {
     }) as RefreshTokenResponse;
 
     if (response.data?.accessToken && response.data?.refreshToken) {
-      localStorage.setItem('loginToken', response.data.accessToken);
+      localStorage.setItem('accessToken', response.data.accessToken);
       localStorage.setItem('refreshToken', response.data.refreshToken);
       console.log('[TOKEN] Manual token refresh successful');
       return true;

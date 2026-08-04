@@ -1,546 +1,1813 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from 'react';
+'use client';
+
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { 
+  useGetUserSavingsPlans, 
+  useGetSavingsPlanById, 
+  useCurrentUser,
+  useDefaultSavingsPlans,
+  useGetPlanTransactions,
+  usePauseSavingsPlan,
+  useResumeSavingsPlan,
+  useCancelSavingsPlan,
+  useCreateSavingsPlan,
+  useGetSavingsPlanSummary,
+  useInitializeSavingsPayment,
+  useVerifyBitcoinPayments,
+  useCompleteBitcoinSavings
+} from '../../hooks/useAuth';
 import {
   Box,
   Typography,
   Button,
-  IconButton,
-  Dialog,
   TextField,
+  Dialog,
+  IconButton,
+  CircularProgress,
+  Alert,
+  Switch,
+  Chip,
+  LinearProgress,
 } from '@mui/material';
 import {
+  AccountBalanceWallet as SavingsIcon,
+  TrendingUp as TrendIcon,
   Add as AddIcon,
-  Lock as LockIcon,
-  LockOpen as UnlockIcon,
-  Settings as SettingsIcon,
-  Visibility as EyeIcon,
-  VisibilityOff as EyeOffIcon,
-  ContentCopy as CopyIcon,
   Close as CloseIcon,
-  Send as SendIcon,
-  SwapHoriz as TransferIcon,
-  CheckCircle as CheckIcon,
-  Block as BlockIcon,
-  NorthEast as NorthEastIcon,
-  SouthWest as SouthWestIcon,
+  CheckCircle as SuccessIcon,
+  History as HistoryIcon,
+  PersonOutlined as PersonIcon,
+  SavingsOutlined as AccountTypeIcon,
+  PercentOutlined as ApyIcon,
+  VerifiedOutlined as StatusIcon,
+  Receipt as ReceiptIcon,
+  ArrowUpward as WithdrawIcon,
+  ArrowBackIosNew as BackIcon,
+  BusinessCenterOutlined as BusinessIcon,
+  HomeOutlined as RentIcon,
+  SchoolOutlined as SchoolIcon,
+  CakeOutlined as BirthdayIcon,
+  HealthAndSafetyOutlined as EmergencyIcon,
+  DevicesOtherOutlined as GadgetIcon,
+  StarOutlined as EidIcon,
+  ApartmentOutlined as RealEstateIcon,
+  BeachAccessOutlined as SummerIcon,
+  FlightTakeoffOutlined as TravelIcon,
+  DirectionsCarOutlined as AutomobileIcon,
+  AcUnitOutlined as ChristmasIcon,
+  CelebrationOutlined as DettyIcon,
+  EventOutlined as NewYearIcon,
+  CategoryOutlined as OtherIcon,
+  PauseCircleOutlined as PauseIcon,
+  PlayCircleOutlined as ResumeIcon,
+  CancelOutlined as CancelPlanIcon,
+  ArrowForward as ArrowForwardIcon,
+  FlagOutlined as TargetIcon,
 } from '@mui/icons-material';
+import InputAdornment from '@mui/material/InputAdornment';
+import type { JSX } from '@emotion/react/jsx-runtime';
 
-// ─── Data ──────────────────────────────────────────────────────────────────────
-const INITIAL_CARDS = [
-  {
-    id: 1,
-    name: 'Primary Card',
-    holder: 'JOHN DOE',
-    type: 'Visa',
-    network: 'visa',
-    number: '4159 3091 4227 6210',
-    expiry: '03/29',
-    cvv: '842',
-    balance: 15000,
-    spent: 3200,
-    limit: 20000,
-    status: 'active',
-    // Obsidian Ember — used only as fallback bg for non-SVG contexts
-    bg: 'linear-gradient(135deg, #0c0c0c 0%, #161616 55%, #0a0a0a 100%)',
-    accentColor: '#FA510F',
-    textColor: '#ffffff',
-    shimmer: 'rgba(250,81,15,0.07)',
-    cardStyle: 'obsidian', // <-- new flag used by CardFace
-    transactions: [
-      { name: 'Apple Store', amount: -299, date: 'Dec 23' },
-      { name: 'Netflix', amount: -15.99, date: 'Dec 22' },
-      { name: 'Salary', amount: 8500, date: 'Dec 21' },
-    ],
-  },
-  {
-    id: 2,
-    name: 'Savings Card',
-    holder: 'JOHN DOE',
-    type: 'Mastercard',
-    network: 'mastercard',
-    number: '2300 5529 0048 0986',
-    expiry: '03/29',
-    cvv: '391',
-    balance: 25000,
-    spent: 890,
-    limit: 30000,
-    status: 'active',
-    bg: 'linear-gradient(135deg, #ffe0cc 0%, #ffc9a0 30%, #ffb07a 60%, #ffd0b0 100%)',
-    accentColor: '#b84000',
-    textColor: '#4a1500',
-    shimmer: 'rgba(255,255,255,0.5)',
-    cardStyle: 'default',
-    transactions: [
-      { name: 'Amazon', amount: -89.99, date: 'Dec 20' },
-      { name: 'Transfer In', amount: 5000, date: 'Dec 18' },
-    ],
-  },
-  {
-    id: 3,
-    name: 'Travel Card',
-    holder: 'JOHN DOE',
-    type: 'Visa',
-    network: 'visa',
-    number: '2671 9860 8300 2023',
-    expiry: '03/29',
-    cvv: '517',
-    balance: 5000,
-    spent: 4200,
-    limit: 5000,
-    status: 'inactive',
-    bg: 'linear-gradient(135deg, #FA510F 0%, #ff6b28 35%, #ff8545 65%, #e84009 100%)',
-    accentColor: '#ffffff',
-    textColor: '#ffffff',
-    shimmer: 'rgba(255,255,255,0.1)',
-    cardStyle: 'default',
-    transactions: [
-      { name: 'Emirates Air', amount: -1200, date: 'Dec 10' },
-      { name: 'Hilton Hotel', amount: -320, date: 'Dec 8' },
-    ],
-  },
+// ─── Design tokens ──────────────────────────────────────────────────────────
+const brand = '#FA510F';
+const brandDark = '#D94309';
+const ink = '#0F172A';
+const grey = '#6B7280';
+const faint = '#9CA3AF';
+const border = 'rgba(0,0,0,0.06)';
+const rowBorder = 'rgba(0,0,0,0.045)';
+const shadow = '0 2px 12px rgba(0,0,0,0.05)';
+const green = '#059669';
+const greenBg = '#ECFDF5';
+const orangeBg = '#FFF4F0';
+const redBg = '#FEF2F2';
+const red = '#DC2626';
+
+const currency = (value: number) =>
+  (Number.isFinite(value) ? value : 0).toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+  });
+
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+
+// ─── Domain types ───────────────────────────────────────────────────────────
+type Category =
+  | 'business'
+  | 'personal'
+  | 'rent'
+  | 'school_fees'
+  | 'birthday'
+  | 'emergency'
+  | 'gadget'
+  | 'eid'
+  | 'real_estate'
+  | 'summer_holiday'
+  | 'travel'
+  | 'automobile'
+  | 'christmas'
+  | 'detty_december'
+  | 'new_year'
+  | 'other';
+
+type Duration = 3 | 6 | 9 | 12;
+type Frequency = 'daily' | 'weekly' | 'monthly';
+type PlanStatus = 'active' | 'paused' | 'cancelled' | 'completed';
+
+interface PlanTransaction {
+  id: string;
+  type: 'deposit' | 'interest' | 'withdrawal';
+  amount: number;
+  date: string;
+  description: string;
+}
+
+interface SavingsPlan {
+  planId: string;
+  planName: string;
+  description: string;
+  category: Category;
+  earnsInterest: boolean;
+  apy: number;
+  targetAmount: number;
+  currentAmount: number;
+  duration: Duration;
+  frequency: Frequency;
+  status: PlanStatus;
+  startDate: string;
+  endDate: string;
+  nextDepositDue: string;
+  transactions: PlanTransaction[];
+}
+
+interface PlanTemplate {
+  planName: string;
+  category: Category;
+  description: string;
+}
+
+// ─── Static reference data ──────────────────────────────────────────────────
+const DEFAULT_APY = 12;
+
+// const PLAN_TEMPLATES: PlanTemplate[] = [
+//   { planName: 'Save for Rainy Days', category: 'emergency', description: 'Emergency fund for unexpected expenses' },
+//   { planName: 'Detty December Funds', category: 'detty_december', description: 'Save for December celebrations and festivities' },
+//   { planName: 'Mark the Big Milestone', category: 'personal', description: 'Save for important life milestones' },
+//   { planName: 'Travel More Stress Less', category: 'travel', description: 'Save for your dream vacation' },
+// ];
+
+const CATEGORY_OPTIONS: Category[] = [
+  'business',
+  'personal',
+  'rent',
+  'school_fees',
+  'birthday',
+  'emergency',
+  'gadget',
+  'eid',
+  'real_estate',
+  'summer_holiday',
+  'travel',
+  'automobile',
+  'christmas',
+  'detty_december',
+  'new_year',
+  'other',
 ];
 
-const QUICK_STATS = [
-  { label: 'Total Balance',  value: '$45,000', change: '+2.5%',   color: '#FA510F', bg: '#FFF4F0' },
-  { label: 'Monthly Spent',  value: '$8,290',  change: '-12%',    color: '#059669', bg: '#ECFDF5' },
-  { label: 'Credit Limit',   value: '$55,000', change: '3 cards', color: '#6C63FF', bg: '#F3F2FF' },
-  { label: 'Rewards Points', value: '12,450',  change: '+340 pts',color: '#D97706', bg: '#FFFBEB' },
+const CATEGORY_META: Record<Category, { label: string; icon: JSX.Element }> = {
+  business: { label: 'Business', icon: <BusinessIcon sx={{ fontSize: '1.1rem' }} /> },
+  personal: { label: 'Personal', icon: <PersonIcon sx={{ fontSize: '1.1rem' }} /> },
+  rent: { label: 'Rent', icon: <RentIcon sx={{ fontSize: '1.1rem' }} /> },
+  school_fees: { label: 'School Fees', icon: <SchoolIcon sx={{ fontSize: '1.1rem' }} /> },
+  birthday: { label: 'Birthday', icon: <BirthdayIcon sx={{ fontSize: '1.1rem' }} /> },
+  emergency: { label: 'Emergency', icon: <EmergencyIcon sx={{ fontSize: '1.1rem' }} /> },
+  gadget: { label: 'Gadget', icon: <GadgetIcon sx={{ fontSize: '1.1rem' }} /> },
+  eid: { label: 'Eid', icon: <EidIcon sx={{ fontSize: '1.1rem' }} /> },
+  real_estate: { label: 'Real Estate', icon: <RealEstateIcon sx={{ fontSize: '1.1rem' }} /> },
+  summer_holiday: { label: 'Summer Holiday', icon: <SummerIcon sx={{ fontSize: '1.1rem' }} /> },
+  travel: { label: 'Travel', icon: <TravelIcon sx={{ fontSize: '1.1rem' }} /> },
+  automobile: { label: 'Automobile', icon: <AutomobileIcon sx={{ fontSize: '1.1rem' }} /> },
+  christmas: { label: 'Christmas', icon: <ChristmasIcon sx={{ fontSize: '1.1rem' }} /> },
+  detty_december: { label: 'Detty December', icon: <DettyIcon sx={{ fontSize: '1.1rem' }} /> },
+  new_year: { label: 'New Year', icon: <NewYearIcon sx={{ fontSize: '1.1rem' }} /> },
+  other: { label: 'Other', icon: <OtherIcon sx={{ fontSize: '1.1rem' }} /> },
+};
+
+const DURATION_OPTIONS: Duration[] = [3, 6, 9, 12];
+const FREQUENCY_OPTIONS: { value: Frequency; label: string; helper: string }[] = [
+  { value: 'daily', label: 'Daily', helper: 'Small deposits every day' },
+  { value: 'weekly', label: 'Weekly', helper: 'A deposit once a week' },
+  { value: 'monthly', label: 'Monthly', helper: 'One deposit a month' },
 ];
 
-// ─── Obsidian Ember SVG card face ─────────────────────────────────────────────
-function ObsidianEmberCard({
-  card,
-  showNumber = false,
-  size = 'full',
-}: {
-  card: typeof INITIAL_CARDS[0];
-  showNumber?: boolean;
-  size?: 'full' | 'small';
-}) {
-  const uid = `oe_${card.id}`;
-  const maskedNumber = card.number.split(' ').map((g, i) => i < 3 ? '••••' : g).join('  ');
-  const displayNumber = showNumber ? card.number : maskedNumber;
+const STATUS_META: Record<PlanStatus, { label: string; color: string; bg: string }> = {
+  active: { label: 'Active', color: green, bg: greenBg },
+  paused: { label: 'Paused', color: '#B45309', bg: '#FFFBEB' },
+  cancelled: { label: 'Cancelled', color: red, bg: redBg },
+  completed: { label: 'Completed', color: brand, bg: orangeBg },
+};
 
+// ─── Date + math helpers ──────────────────────��─────────────────────────────
+// const addMonths = (iso: string, months: number) => {
+//   const d = new Date(iso);
+//   d.setMonth(d.getMonth() + months);
+//   return d.toISOString();
+// };
+
+const nextDepositFrom = (iso: string, frequency: Frequency) => {
+  const d = new Date(iso);
+  if (frequency === 'daily') d.setDate(d.getDate() + 1);
+  else if (frequency === 'weekly') d.setDate(d.getDate() + 7);
+  else d.setMonth(d.getMonth() + 1);
+  return d.toISOString();
+};
+
+const expectedInterestFor = (targetAmount: number, apy: number, duration: Duration, earnsInterest: boolean) => {
+  if (!earnsInterest) return 0;
+  // Simple projected-yield estimate on the target balance over the plan's term.
+  return Math.round(targetAmount * (apy / 100) * (duration / 12) * 2 * 100) / 100;
+};
+
+const installmentAmount = (targetAmount: number, duration: Duration, frequency: Frequency) => {
+  const periodsPerMonth = frequency === 'daily' ? 30 : frequency === 'weekly' ? 4.33 : 1;
+  const totalPeriods = Math.max(1, Math.round(duration * periodsPerMonth));
+  return Math.round((targetAmount / totalPeriods) * 100) / 100;
+};
+
+// ─── Animated number ────────────────────────────────────────────────────────
+function AnimatedNumber({ value, prefix = '$' }: { value: number; prefix?: string }) {
+  const [display, setDisplay] = useState(0);
+  const ref = useRef<number | null>(null);
+  useEffect(() => {
+    ref.current = null;
+    const step = (ts: number) => {
+      if (!ref.current) ref.current = ts;
+      const p = Math.min((ts - ref.current) / 1100, 1);
+      setDisplay((1 - Math.pow(1 - p, 3)) * value);
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, [value]);
   return (
-    <Box
-      sx={{
-        position: 'relative',
-        width: '100%',
-        paddingBottom: '62.5%',
-        borderRadius: size === 'small' ? '12px' : '18px',
-        overflow: 'hidden',
-        boxShadow: card.status === 'inactive'
-          ? 'none'
-          : size === 'small'
-            ? '0 8px 28px rgba(0,0,0,0.45)'
-            : '0 28px 72px rgba(0,0,0,0.5), 0 0 0 0.5px rgba(255,255,255,0.06) inset',
-        filter: card.status === 'inactive' ? 'grayscale(60%) brightness(0.65)' : 'none',
-        transition: 'all 0.35s ease',
-      }}
-    >
-      <svg
-        viewBox="0 0 400 250"
-        xmlns="http://www.w3.org/2000/svg"
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
-      >
-        <defs>
-          <linearGradient id={`${uid}_base`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#0c0c0c" />
-            <stop offset="55%" stopColor="#161616" />
-            <stop offset="100%" stopColor="#0a0a0a" />
-          </linearGradient>
-          <linearGradient id={`${uid}_ember`} x1="100%" y1="100%" x2="0%" y2="0%">
-            <stop offset="0%" stopColor="#FA510F" stopOpacity="0.22" />
-            <stop offset="55%" stopColor="#c83800" stopOpacity="0.08" />
-            <stop offset="100%" stopColor="#FA510F" stopOpacity="0" />
-          </linearGradient>
-          <linearGradient id={`${uid}_sheen`} x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.07" />
-            <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-          </linearGradient>
-          <linearGradient id={`${uid}_leftBar`} x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#FA510F" stopOpacity="0" />
-            <stop offset="30%" stopColor="#FA510F" stopOpacity="1" />
-            <stop offset="70%" stopColor="#FF7849" stopOpacity="1" />
-            <stop offset="100%" stopColor="#FA510F" stopOpacity="0" />
-          </linearGradient>
-          <linearGradient id={`${uid}_bottomLine`} x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#FA510F" stopOpacity="0" />
-            <stop offset="20%" stopColor="#FA510F" stopOpacity="0.9" />
-            <stop offset="80%" stopColor="#FF7849" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#FA510F" stopOpacity="0" />
-          </linearGradient>
-          <linearGradient id={`${uid}_chipGold`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#d4a84b" />
-            <stop offset="35%" stopColor="#f2c96a" />
-            <stop offset="65%" stopColor="#e0b84e" />
-            <stop offset="100%" stopColor="#b8892a" />
-          </linearGradient>
-          <linearGradient id={`${uid}_chipInner`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#c8973a" />
-            <stop offset="100%" stopColor="#a87420" />
-          </linearGradient>
-          <radialGradient id={`${uid}_cornerGlow`} cx="100%" cy="100%" r="60%">
-            <stop offset="0%" stopColor="#FA510F" stopOpacity="0.28" />
-            <stop offset="60%" stopColor="#FA510F" stopOpacity="0.06" />
-            <stop offset="100%" stopColor="#FA510F" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id={`${uid}_topGlow`} cx="15%" cy="0%" r="50%">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.05" />
-            <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-
-        {/* Layers */}
-        <rect width="400" height="250" rx="18" fill={`url(#${uid}_base)`} />
-        <rect width="400" height="250" rx="18" fill={`url(#${uid}_sheen)`} />
-        <rect width="400" height="250" rx="18" fill={`url(#${uid}_ember)`} />
-        <rect width="400" height="250" rx="18" fill={`url(#${uid}_cornerGlow)`} />
-        <rect width="400" height="250" rx="18" fill={`url(#${uid}_topGlow)`} />
-
-        {/* Orange left accent bar */}
-        <rect x="0" y="0" width="3.5" height="250" rx="1.75" fill={`url(#${uid}_leftBar)`} />
-
-        {/* Orange bottom line */}
-        <rect x="24" y="242" width="352" height="2" rx="1" fill={`url(#${uid}_bottomLine)`} />
-
-        {/* Geometric cut shapes */}
-        <polygon points="220,0 400,0 400,130 310,50" fill="#FA510F" fillOpacity="0.045" />
-        <polygon points="310,0 400,0 400,70" fill="#ffffff" fillOpacity="0.025" />
-        <polygon points="0,180 110,145 70,250 0,250" fill="#FA510F" fillOpacity="0.03" />
-
-        {/* Card number */}
-        <text x="28" y="50" fontFamily="'Courier New', monospace" fontSize="8.5" fill="#ffffff" fillOpacity="0.35" letterSpacing="1.8" fontWeight="600">CARD NUMBER</text>
-        <text x="28" y="72" fontFamily="'Courier New', monospace" fontSize="17" fill="#ffffff" letterSpacing="3.5" fontWeight="700">
-          {displayNumber}
-        </text>
-
-        {/* Contactless icon */}
-        <g transform="translate(356, 22)">
-          <path d="M7 19 C7 19 12 15 12 11 C12 7 7 4 7 4" stroke="#FA510F" strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.45" />
-          <path d="M7 19 C7 19 16 13 16 6" stroke="#FA510F" strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.7" />
-          <path d="M7 19 C7 19 20 11 20 1" stroke="#FA510F" strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.95" />
-          <circle cx="7" cy="19" r="2.5" fill="#FA510F" />
-        </g>
-
-        {/* Gold EMV Chip */}
-        <g transform="translate(28, 96)">
-          <rect width="48" height="38" rx="5" fill={`url(#${uid}_chipGold)`} stroke="#c8972a" strokeWidth="0.5" />
-          <line x1="0" y1="13" x2="48" y2="13" stroke="#9a7020" strokeWidth="0.8" strokeOpacity="0.8" />
-          <line x1="0" y1="25" x2="48" y2="25" stroke="#9a7020" strokeWidth="0.8" strokeOpacity="0.8" />
-          <line x1="24" y1="0" x2="24" y2="38" stroke="#9a7020" strokeWidth="0.8" strokeOpacity="0.8" />
-          <rect x="9" y="13" width="12" height="12" rx="1" fill={`url(#${uid}_chipInner)`} fillOpacity="0.6" />
-          <rect x="27" y="13" width="12" height="12" rx="1" fill={`url(#${uid}_chipInner)`} fillOpacity="0.6" />
-        </g>
-
-        {/* Expiry */}
-        <text x="28" y="180" fontFamily="'Courier New', monospace" fontSize="8.5" fill="#ffffff" fillOpacity="0.35" letterSpacing="1.8" fontWeight="600">VALID THRU</text>
-        <text x="28" y="200" fontFamily="'Courier New', monospace" fontSize="16" fill="#ffffff" letterSpacing="2.5" fontWeight="700">{card.expiry}</text>
-
-        {/* Name */}
-        <text x="28" y="228" fontFamily="'Courier New', monospace" fontSize="13.5" fill="#ffffff" letterSpacing="2.5" fontWeight="700" fillOpacity="0.92">{card.holder}</text>
-
-        {/* VISA */}
-        <text x="310" y="232" fontFamily="Georgia, serif" fontSize="24" fontStyle="italic" fontWeight="900" fill="#ffffff" fillOpacity="0.95" letterSpacing="-1">VISA</text>
-
-        {/* PRIMARY badge */}
-        <rect x="290" y="16" width="80" height="22" rx="11" fill="#FA510F" fillOpacity="0.18" />
-        <rect x="290" y="16" width="80" height="22" rx="11" fill="none" stroke="#FA510F" strokeWidth="0.8" strokeOpacity="0.5" />
-        <text x="330" y="31" fontFamily="'Courier New', monospace" fontSize="8" fill="#FA510F" fillOpacity="0.9" letterSpacing="1.5" fontWeight="700" textAnchor="middle">PRIMARY</text>
-
-        {/* Outer border */}
-        <rect width="400" height="250" rx="18" fill="none" stroke="#ffffff" strokeWidth="0.5" strokeOpacity="0.07" />
-        <rect x="1" y="1" width="398" height="248" rx="17" fill="none" stroke="#FA510F" strokeWidth="0.4" strokeOpacity="0.12" />
-
-        {/* Inactive overlay */}
-        {card.status === 'inactive' && (
-          <>
-            <rect width="400" height="250" rx="18" fill="rgba(0,0,0,0.42)" />
-            <rect x="130" y="107" width="140" height="36" rx="18" fill="rgba(0,0,0,0.5)" />
-            <text x="200" y="130" fontFamily="'Courier New', monospace" fontSize="11" fill="#ffffff" fontWeight="800" letterSpacing="3" textAnchor="middle">CARD LOCKED</text>
-          </>
-        )}
-      </svg>
-    </Box>
+    <>
+      {prefix}
+      {display.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+    </>
   );
 }
 
-// ─── Default card face (for Cards 2 & 3) ─────────────────────────────────────
-function ChipIcon({ color = '#c9a84c' }: { color?: string }) {
-  return (
-    <svg width="46" height="36" viewBox="0 0 46 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="1" y="1" width="44" height="34" rx="5" fill={color} stroke={color === '#ffffff' ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.15)'} strokeWidth="1" />
-      <line x1="1" y1="12" x2="45" y2="12" stroke={color === '#ffffff' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.18)'} strokeWidth="1" />
-      <line x1="1" y1="24" x2="45" y2="24" stroke={color === '#ffffff' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.18)'} strokeWidth="1" />
-      <line x1="23" y1="1" x2="23" y2="35" stroke={color === '#ffffff' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.18)'} strokeWidth="1" />
-      <rect x="14" y="12" width="18" height="12" rx="1" fill={color === '#ffffff' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)'} />
-    </svg>
-  );
+// ─── Draft used while walking through the creation wizard ──────────────────
+interface PlanDraft {
+  planName: string;
+  description: string;
+  earnsInterest: boolean;
+  apy: number;
+  category: Category | '';
+  targetAmount: string;
+  duration: Duration | null;
+  frequency: Frequency | '';
 }
 
-function ContactlessIcon({ color = '#fff' }: { color?: string }) {
-  return (
-    <svg width="24" height="28" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 14C12 14 15 11.5 15 8.5C15 5.5 12 3 12 3" stroke={color} strokeWidth="2" strokeLinecap="round" opacity="0.5" />
-      <path d="M12 14C12 14 18 10 18 5" stroke={color} strokeWidth="2" strokeLinecap="round" opacity="0.7" />
-      <path d="M12 14C12 14 21 8.5 21 2" stroke={color} strokeWidth="2" strokeLinecap="round" opacity="0.9" />
-      <circle cx="12" cy="14" r="2" fill={color} />
-    </svg>
-  );
+const emptyDraft = (): PlanDraft => ({
+  planName: '',
+  description: '',
+  earnsInterest: true,
+  apy: DEFAULT_APY,
+  category: '',
+  targetAmount: '',
+  duration: null,
+  frequency: '',
+});
+
+// ─── Shared bitcoin funding flow state (used for new-plan funding + top-ups) ─
+type FundingMode = 'create' | 'topup';
+type FundingStep = 'amount' | 'details' | 'verify' | 'confirm' | 'success';
+
+interface FundingState {
+  open: boolean;
+  mode: FundingMode;
+  step: FundingStep;
+  amount: string;
+  amountError: string;
+  paymentReference: string;
+  amountBTC: string;
+  exchangeRate: number;
+  transactionId: string;
+  verifyError: string;
+  loading: boolean;
+  // context for what we're funding
+  draft: PlanDraft | null; // when mode === 'create'
+  planId: string | null; // when mode === 'topup'
 }
 
-function VisaLogo({ color = '#fff' }: { color?: string }) {
-  return (
-    <svg width="52" height="18" viewBox="0 0 52 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <text x="0" y="15" fontFamily="serif" fontWeight="900" fontSize="18" fontStyle="italic" fill={color} letterSpacing="-1">VISA</text>
-    </svg>
-  );
-}
+const emptyFunding = (): FundingState => ({
+  open: false,
+  mode: 'topup',
+  step: 'amount',
+  amount: '',
+  amountError: '',
+  paymentReference: '',
+  amountBTC: '',
+  exchangeRate: 0,
+  transactionId: '',
+  verifyError: '',
+  loading: false,
+  draft: null,
+  planId: null,
+});
 
-function MastercardLogo() {
-  return (
-    <svg width="44" height="28" viewBox="0 0 44 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="16" cy="14" r="13" fill="#EB001B" />
-      <circle cx="28" cy="14" r="13" fill="#F79E1B" />
-      <path d="M22 5.28C24.6 7.1 26.3 10 26.3 14C26.3 18 24.6 20.9 22 22.72C19.4 20.9 17.7 18 17.7 14C17.7 10 19.4 7.1 22 5.28Z" fill="#FF5F00" />
-    </svg>
-  );
-}
+// mock BTC/USD rate so the simulated payment details look plausible
+const MOCK_BTC_RATE = 64230.5;
 
-function CardPolygons({ shimmer }: { shimmer: string }) {
-  return (
-    <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
-      viewBox="0 0 400 250" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-      <polygon points="280,0 400,0 400,120 320,60" fill={shimmer} />
-      <polygon points="340,0 400,0 400,70" fill={shimmer} opacity="0.6" />
-      <polygon points="200,180 350,120 400,250 230,250" fill={shimmer} />
-      <polygon points="0,200 120,160 80,250 0,250" fill={shimmer} opacity="0.8" />
-      <polygon points="150,0 260,0 200,80" fill={shimmer} opacity="0.5" />
-      <polygon points="300,180 400,140 400,250 280,250" fill={shimmer} opacity="0.4" />
-    </svg>
-  );
-}
+// ─── Main component ─────────────────────────────────────────────────────────
+export default function Cards() {
+  // Get current user
+  const currentUser = useCurrentUser();
+  
+  // Fetch user savings plans from API
+  const { data: apiPlans, isLoading: plansLoading, error: plansError } = useGetUserSavingsPlans(currentUser?.userId || '');
+  
+  // Fetch default savings plan templates
+  const { data: defaultPlans, isLoading: defaultPlansLoading } = useDefaultSavingsPlans();
+  
+  // Fetch selected plan details
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+  const { data: selectedPlanDetail } = useGetSavingsPlanById(selectedPlanId || '');
+  
+  // Fetch transactions for selected plan
+  const { data: planTransactionsData } = useGetPlanTransactions(selectedPlanId || '');
+  
+  // Plan action mutations
+  const pauseMutation = usePauseSavingsPlan();
+  const resumeMutation = useResumeSavingsPlan();
+  const cancelMutation = useCancelSavingsPlan();
+  
+  // Plan creation and update mutations
+  const createPlanMutation = useCreateSavingsPlan();
+  
+  // Payment mutations
+  const initializePaymentMutation = useInitializeSavingsPayment();
+  const verifyPaymentMutation = useVerifyBitcoinPayments();
+  const completePaymentMutation = useCompleteBitcoinSavings();
+  
+  // Get plan summary query
+  useGetSavingsPlanSummary(selectedPlanId || '');
+  
+  const [plans, setPlans] = useState<SavingsPlan[]>([]);
+  const [view, setView] = useState<'dashboard' | 'wizard' | 'detail'>('dashboard');
 
-function DefaultCardFace({
-  card,
-  showNumber = false,
-  size = 'full',
-}: {
-  card: typeof INITIAL_CARDS[0];
-  showNumber?: boolean;
-  size?: 'full' | 'small';
-}) {
-  const chipColor = card.accentColor;
+  // wizard state
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardStep, setWizardStep] = useState(1);
+  const [draft, setDraft] = useState<PlanDraft>(emptyDraft());
+  const [wizardError, setWizardError] = useState('');
 
-  return (
-    <Box
-      sx={{
-        position: 'relative',
-        width: '100%',
-        paddingBottom: '62.5%',
-        borderRadius: size === 'small' ? '12px' : '18px',
-        overflow: 'hidden',
-        background: card.bg,
-        boxShadow: card.status === 'inactive'
-          ? 'none'
-          : size === 'small'
-            ? '0 8px 24px rgba(0,0,0,0.2)'
-            : '0 20px 60px rgba(0,0,0,0.28)',
-        filter: card.status === 'inactive' ? 'grayscale(55%) brightness(0.75)' : 'none',
-        transition: 'all 0.35s ease',
-      }}
-    >
-      <CardPolygons shimmer={card.shimmer} />
+  // funding flow (shared between "fund a brand new plan" and "add funds to an existing plan")
+  const [funding, setFunding] = useState<FundingState>(emptyFunding());
 
-      <Box sx={{
-        position: 'absolute', inset: 0,
-        p: size === 'small' ? '5%' : { xs: '5%', sm: '6%' },
-        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-      }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <Box>
-            <Typography sx={{
-              fontSize: size === 'small' ? '0.5rem' : { xs: '0.55rem', sm: '0.6rem' },
-              fontWeight: 700, color: card.textColor, opacity: 0.65,
-              letterSpacing: '0.12em', textTransform: 'uppercase', lineHeight: 1, mb: 0.2,
-            }}>
-              CARD NUMBER
-            </Typography>
-            <Typography sx={{
-              fontSize: size === 'small' ? '0.65rem' : { xs: '0.85rem', sm: '1rem', md: '1.1rem' },
-              fontWeight: 700, color: card.textColor,
-              letterSpacing: '0.15em', fontFamily: 'monospace',
-            }}>
-              {showNumber
-                ? card.number
-                : card.number.split(' ').map((g, i) => i < 3 ? '••••' : g).join('  ')}
-            </Typography>
-          </Box>
-          <ContactlessIcon color={card.textColor} />
-        </Box>
+  // plan action confirmation (pause / resume / cancel)
+  const [actionConfirm, setActionConfirm] = useState<{ open: boolean; kind: 'pause' | 'resume' | 'cancel' | null; planId: string | null }>({
+    open: false,
+    kind: null,
+    planId: null,
+  });
 
-        <Box>
-          <ChipIcon color={chipColor} />
-        </Box>
+  // Sync API plans to local state
+  useEffect(() => {
+    if (apiPlans && apiPlans.length > 0) {
+      const mappedPlans: SavingsPlan[] = apiPlans.map((plan: any) => ({
+        planId: plan._id,
+        planName: plan.planName,
+        description: plan.description || '',
+        category: (plan.category || 'personal') as Category,
+        earnsInterest: plan.earnInterest || false,
+        apy: plan.interestRate || 0,
+        targetAmount: plan.targetAmount || 0,
+        currentAmount: plan.currentAmount || 0,
+        duration: (parseInt(plan.duration) || 12) as Duration,
+        frequency: (plan.frequency || 'monthly') as Frequency,
+        status: (plan.status || 'active') as PlanStatus,
+        startDate: plan.startDate || new Date().toISOString(),
+        endDate: plan.endDate || new Date().toISOString(),
+        nextDepositDue: plan.nextDepositDueDate || new Date().toISOString(),
+        transactions: Array.isArray(plan.transactions) ? plan.transactions.map((t: any) => ({
+          id: t._id || uid(),
+          type: t.type as 'deposit' | 'interest' | 'withdrawal',
+          amount: t.amount || 0,
+          date: t.timestamp || new Date().toISOString(),
+          description: t.description || '',
+        })) : [],
+      }));
+      setPlans(mappedPlans);
+    }
+  }, [apiPlans]);
 
-        <Box>
-          <Typography sx={{
-            fontSize: size === 'small' ? '0.45rem' : { xs: '0.5rem', sm: '0.55rem' },
-            fontWeight: 700, opacity: 0.65,
-            color: card.textColor, letterSpacing: '0.1em',
-            textTransform: 'uppercase', mb: 0.3,
-          }}>
-            EXPIRATION DATE
-          </Typography>
-          <Typography sx={{
-            fontSize: size === 'small' ? '0.7rem' : { xs: '0.9rem', sm: '1rem' },
-            fontWeight: 700, color: card.textColor,
-            letterSpacing: '0.05em', mb: 0.6,
-          }}>
-            {card.expiry}
-          </Typography>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-            <Typography sx={{
-              fontSize: size === 'small' ? '0.6rem' : { xs: '0.75rem', sm: '0.85rem' },
-              fontWeight: 700, color: card.textColor,
-              letterSpacing: '0.08em',
-            }}>
-              {card.holder}
-            </Typography>
-            {card.network === 'visa'
-              ? <VisaLogo color={card.textColor} />
-              : <MastercardLogo />
-            }
-          </Box>
-        </Box>
-      </Box>
+  // Update selected plan with detailed data from API
+  useEffect(() => {
+    if (selectedPlanDetail && selectedPlanId) {
+      const updatedPlan: SavingsPlan = {
+        planId: selectedPlanDetail._id || selectedPlanId,
+        planName: selectedPlanDetail.planName || '',
+        description: selectedPlanDetail.description || '',
+        category: (selectedPlanDetail.category || 'personal') as Category,
+        earnsInterest: selectedPlanDetail.earnInterest || selectedPlanDetail.earnsInterest || false,
+        apy: selectedPlanDetail.interestRate || selectedPlanDetail.apy || 0,
+        targetAmount: selectedPlanDetail.targetAmount || 0,
+        currentAmount: selectedPlanDetail.currentAmount || 0,
+        duration: (parseInt(selectedPlanDetail.duration) || 12) as Duration,
+        frequency: (selectedPlanDetail.frequency || 'monthly') as Frequency,
+        status: (selectedPlanDetail.status || 'active') as PlanStatus,
+        startDate: selectedPlanDetail.startDate || new Date().toISOString(),
+        endDate: selectedPlanDetail.endDate || new Date().toISOString(),
+        nextDepositDue: selectedPlanDetail.nextDepositDueDate || selectedPlanDetail.nextDepositDue || new Date().toISOString(),
+        transactions: [], // Keep existing transactions from state
+      };
 
-      {card.status === 'inactive' && (
-        <Box sx={{
-          position: 'absolute', inset: 0,
-          bgcolor: 'rgba(0,0,0,0.38)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Box sx={{
-            px: 2.5, py: 1, borderRadius: '20px',
-            bgcolor: 'rgba(0,0,0,0.4)',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255,255,255,0.2)',
-          }}>
-            <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '0.85rem', letterSpacing: 3 }}>
-              CARD LOCKED
-            </Typography>
-          </Box>
-        </Box>
-      )}
-    </Box>
-  );
-}
+      setPlans((prevPlans) =>
+        prevPlans.map((plan) =>
+          plan.planId === selectedPlanId
+            ? { ...plan, ...updatedPlan, transactions: plan.transactions }
+            : plan
+        )
+      );
+    }
+  }, [selectedPlanDetail, selectedPlanId]);
 
-// ─── Unified CardFace dispatcher ──────────────────────────────────────────────
-function CardFace({
-  card,
-  showNumber = false,
-  size = 'full',
-}: {
-  card: typeof INITIAL_CARDS[0];
-  showNumber?: boolean;
-  size?: 'full' | 'small';
-}) {
-  if ((card as any).cardStyle === 'obsidian') {
-    return <ObsidianEmberCard card={card} showNumber={showNumber} size={size} />;
-  }
-  return <DefaultCardFace card={card} showNumber={showNumber} size={size} />;
-}
+  // Update selected plan with transaction data from API
+  useEffect(() => {
+    if (planTransactionsData && selectedPlanId) {
+      const mappedTransactions = planTransactionsData.transactions?.map((t: any) => ({
+        id: t._id || uid(),
+        type: t.type as 'deposit' | 'interest' | 'withdrawal',
+        amount: t.amount || 0,
+        date: t.timestamp || t.createdAt || new Date().toISOString(),
+        description: t.description || '',
+      })) || [];
 
-// ─── Spend bar ────────────────────────────────────────────────────────────────
-function SpendBar({ spent, limit }: { spent: number; limit: number }) {
-  const pct = Math.min((spent / limit) * 100, 100);
-  const warn = pct > 80;
-  return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.6 }}>
-        <Typography sx={{ fontSize: '0.7rem', color: '#9CA3AF' }}>Spent this month</Typography>
-        <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: warn ? '#DC2626' : '#374151' }}>
-          ${spent.toLocaleString()} / ${limit.toLocaleString()}
-        </Typography>
-      </Box>
-      <Box sx={{ height: 6, borderRadius: 99, bgcolor: '#F1F3F9', overflow: 'hidden' }}>
-        <Box sx={{
-          height: '100%', borderRadius: 99,
-          width: `${pct}%`,
-          background: warn
-            ? 'linear-gradient(90deg,#DC2626,#EF4444)'
-            : 'linear-gradient(90deg,#FA510F,#FF7849)',
-          transition: 'width 1.1s cubic-bezier(0.34,1.56,0.64,1)',
-        }} />
-      </Box>
-    </Box>
-  );
-}
+      setPlans((prevPlans) =>
+        prevPlans.map((plan) =>
+          plan.planId === selectedPlanId
+            ? { ...plan, transactions: mappedTransactions }
+            : plan
+        )
+      );
+    }
+  }, [planTransactionsData, selectedPlanId]);
 
-// ─── Add Card Dialog ──────────────────────────────────────────────────────────
-function AddCardDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [form, setForm] = useState({ name: '', number: '', expiry: '', cvv: '', holder: '' });
-  const [done, setDone] = useState(false);
+  const selectedPlan = useMemo(() => plans.find((p) => p.planId === selectedPlanId) || null, [plans, selectedPlanId]);
 
-  const handleSubmit = () => {
-    setDone(true);
-    setTimeout(() => {
-      setDone(false);
-      setForm({ name: '', number: '', expiry: '', cvv: '', holder: '' });
-      onClose();
-    }, 2000);
+  const totalSavings = useMemo(() => plans.reduce((sum, p) => sum + p.currentAmount, 0), [plans]);
+  const totalInterest = useMemo(() => plans.reduce((sum, p) => sum + p.transactions.filter((t) => t.type === 'interest').reduce((s, t) => s + t.amount, 0), 0), [plans]);
+
+  // ── Wizard flow ──
+  const startWizard = (template?: PlanTemplate) => {
+    setDraft(
+      template
+        ? { ...emptyDraft(), planName: template.planName, description: template.description, category: template.category }
+        : emptyDraft()
+    );
+    setWizardStep(1);
+    setWizardError('');
+    setWizardOpen(true);
   };
 
-  const inputSx = { '& .MuiOutlinedInput-root': { borderRadius: '12px', fontSize: '0.9rem' } };
+  const closeWizard = () => {
+    setWizardOpen(false);
+    setWizardStep(1);
+    setDraft(emptyDraft());
+    setWizardError('');
+  };
+
+  const validateStep = (step: number): string => {
+    if (step === 1) {
+      if (!draft.planName.trim()) return 'Give your plan a name.';
+    }
+    if (step === 3) {
+      if (!draft.category) return 'Select a savings category.';
+    }
+    if (step === 4) {
+      const amt = parseFloat(draft.targetAmount);
+      if (!draft.targetAmount || isNaN(amt) || amt <= 0) return 'Enter a valid target amount.';
+      if (amt > 10000000) return 'Target amount is too large.';
+    }
+    if (step === 5) {
+      if (!draft.duration) return 'Select a duration.';
+    }
+    if (step === 6) {
+      if (!draft.frequency) return 'Select how often you want to save.';
+    }
+    return '';
+  };
+
+  const goNext = () => {
+    const err = validateStep(wizardStep);
+    if (err) {
+      setWizardError(err);
+      return;
+    }
+    setWizardError('');
+    setWizardStep((s) => Math.min(7, s + 1));
+  };
+
+  const goBack = () => {
+    setWizardError('');
+    setWizardStep((s) => Math.max(1, s - 1));
+  };
+
+  const targetAmountNumber = parseFloat(draft.targetAmount || '0') || 0;
+  const expectedInterestPreview = draft.duration ? expectedInterestFor(targetAmountNumber, draft.apy, draft.duration, draft.earnsInterest) : 0;
+  const suggestedInstallment = draft.duration && draft.frequency ? installmentAmount(targetAmountNumber, draft.duration, draft.frequency) : 0;
+
+  // Move from the wizard's review step into the shared funding flow to make the first deposit.
+  const proceedToFunding = () => {
+    setWizardOpen(false);
+    setFunding({
+      ...emptyFunding(),
+      open: true,
+      mode: 'create',
+      step: 'amount',
+      amount: suggestedInstallment ? String(suggestedInstallment) : '',
+      draft,
+    });
+  };
+
+  // ── Funding flow (initialize → details → verify → confirm → success) ──
+  const closeFunding = () => setFunding(emptyFunding());
+
+  const submitFundingAmount = async () => {
+    const amt = parseFloat(funding.amount);
+    if (!funding.amount || isNaN(amt) || amt <= 0) {
+      setFunding((f) => ({ ...f, amountError: 'Enter a valid amount.' }));
+      return;
+    }
+    if (amt > 100000) {
+      setFunding((f) => ({ ...f, amountError: 'Single deposits are limited to $100,000.' }));
+      return;
+    }
+    
+    setFunding((f) => ({ ...f, amountError: '', loading: true }));
+    
+    try {
+      let planId = funding.planId || '';
+
+      // If creating a new plan, create it first
+      if (funding.mode === 'create' && funding.draft) {
+        const d = funding.draft;
+        const createResponse = await createPlanMutation.mutateAsync({
+          userId: currentUser?.userId || '',
+          planName: d.planName.trim(),
+          description: d.description.trim(),
+        });
+        planId = createResponse._id;
+      }
+
+      const planName = funding.mode === 'create' && funding.draft ? funding.draft.planName : 'Savings Plan';
+      
+      const paymentData = await initializePaymentMutation.mutateAsync({
+        userId: currentUser?.userId || '',
+        savingsPlanId: planId,
+        amount: amt,
+        planName,
+      });
+      
+      setFunding((f) => ({
+        ...f,
+        loading: false,
+        step: 'details',
+        paymentReference: paymentData.paymentReference,
+        amountBTC: paymentData.amountBTC || (amt / MOCK_BTC_RATE).toFixed(8),
+        exchangeRate: paymentData.exchangeRate || MOCK_BTC_RATE,
+      }));
+    } catch (error) {
+      console.log('[v0] Payment initialization error:', error);
+      setFunding((f) => ({ 
+        ...f, 
+        loading: false, 
+        amountError: 'Failed to initialize payment. Please try again.' 
+      }));
+    }
+  };
+
+  const submitVerify = async () => {
+    if (!funding.transactionId.trim()) {
+      setFunding((f) => ({ ...f, verifyError: 'Please enter a transaction ID.' }));
+      return;
+    }
+    
+    setFunding((f) => ({ ...f, verifyError: '', loading: true }));
+    
+    try {
+      await verifyPaymentMutation.mutateAsync({
+        paymentReference: funding.paymentReference,
+        bitcoinTransactionHash: funding.transactionId,
+        transactionAmountBTC: 0
+      });
+      
+      setFunding((f) => ({ ...f, loading: false, step: 'confirm' }));
+    } catch (error) {
+      console.log('[v0] Payment verification error:', error);
+      setFunding((f) => ({ 
+        ...f, 
+        loading: false, 
+        verifyError: 'Failed to verify payment. Please check your transaction ID and try again.' 
+      }));
+    }
+  };
+
+  const submitConfirm = async () => {
+    setFunding((f) => ({ ...f, loading: true }));
+    
+    try {
+      const amt = parseFloat(funding.amount) || 0;
+      const nowIso = new Date().toISOString();
+
+      // Complete the payment
+      await completePaymentMutation.mutateAsync({
+        paymentReference: funding.paymentReference,
+      });
+
+      // Update the plans list with the new transaction
+      if (funding.mode === 'topup' && funding.planId) {
+        setPlans((prev) =>
+          prev.map((p) =>
+            p.planId === funding.planId
+              ? {
+                  ...p,
+                  currentAmount: p.currentAmount + amt,
+                  nextDepositDue: nextDepositFrom(nowIso, p.frequency),
+                  status: p.status === 'completed' ? p.status : p.currentAmount + amt >= p.targetAmount ? 'completed' : p.status,
+                  transactions: [{ id: uid(), type: 'deposit', amount: amt, date: nowIso, description: 'Deposit' }, ...p.transactions],
+                }
+              : p
+          )
+        );
+      }
+
+      setFunding((f) => ({ ...f, loading: false, step: 'success' }));
+    } catch (error) {
+      console.log('[v0] Payment completion error:', error);
+      setFunding((f) => ({ 
+        ...f, 
+        loading: false, 
+        verifyError: 'Failed to complete payment. Please try again.' 
+      }));
+    }
+  };
+
+  const finishFunding = () => {
+    closeFunding();
+    setDraft(emptyDraft());
+    setWizardStep(1);
+    setView('detail');
+  };
+
+  const openTopUp = (planId: string) => {
+    setFunding({ ...emptyFunding(), open: true, mode: 'topup', step: 'amount', planId });
+  };
+
+  // ── Plan lifecycle actions ──
+  const requestAction = (kind: 'pause' | 'resume' | 'cancel', planId: string) => setActionConfirm({ open: true, kind, planId });
+  const closeActionConfirm = () => setActionConfirm({ open: false, kind: null, planId: null });
+
+  const applyAction = async () => {
+    if (!actionConfirm.planId || !actionConfirm.kind) return;
+
+    try {
+      if (actionConfirm.kind === 'pause') {
+        await pauseMutation.mutateAsync(actionConfirm.planId);
+      } else if (actionConfirm.kind === 'resume') {
+        await resumeMutation.mutateAsync(actionConfirm.planId);
+      } else if (actionConfirm.kind === 'cancel') {
+        await cancelMutation.mutateAsync(actionConfirm.planId);
+      }
+      closeActionConfirm();
+    } catch (error) {
+      console.log('[v0] Action error:', error);
+    }
+  };
+
+  // ── Navigation helpers ──
+  const openPlan = (planId: string) => {
+    setSelectedPlanId(planId);
+    setView('detail');
+  };
+  const backToDashboard = () => {
+    setSelectedPlanId(null);
+    setView('dashboard');
+  };
+
+  // Show loading state
+  if (plansLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // Show error state
+  if (plansError) {
+    return (
+      <Box sx={{ p: 2 }}>
+        <Alert severity="error">
+          Failed to load savings plans. {(plansError as Error)?.message}
+        </Alert>
+      </Box>
+    );
+  }
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth
-      slotProps={{ paper: { sx: { borderRadius: '24px', m: { xs: 1.5, sm: 3 } } } }}>
+    <Box>
+      {view === 'dashboard' && (
+        <DashboardView
+          plans={plans}
+          totalSavings={totalSavings}
+          totalInterest={totalInterest}
+          onStartWizard={startWizard}
+          onOpenPlan={openPlan}
+          defaultPlans={defaultPlans}
+          defaultPlansLoading={defaultPlansLoading}
+        />
+      )}
+
+      {view === 'detail' && selectedPlan && (
+        <PlanDetailView
+          plan={selectedPlan}
+          onBack={backToDashboard}
+          onAddFunds={() => openTopUp(selectedPlan.planId)}
+          onPause={() => requestAction('pause', selectedPlan.planId)}
+          onResume={() => requestAction('resume', selectedPlan.planId)}
+          onCancel={() => requestAction('cancel', selectedPlan.planId)}
+        />
+      )}
+
+      {/* ── Creation wizard ── */}
+      <PlanWizardDialog
+        open={wizardOpen}
+        step={wizardStep}
+        draft={draft}
+        error={wizardError}
+        expectedInterestPreview={expectedInterestPreview}
+        suggestedInstallment={suggestedInstallment}
+        onChange={(patch) => setDraft((d) => ({ ...d, ...patch }))}
+        onNext={goNext}
+        onBack={goBack}
+        onClose={closeWizard}
+        onFund={proceedToFunding}
+      />
+
+      {/* ── Shared funding flow (new plan + top-ups) ── */}
+      <FundingFlow
+        state={funding}
+        onChangeAmount={(amount) => setFunding((f) => ({ ...f, amount }))}
+        onSubmitAmount={submitFundingAmount}
+        onProceedToVerify={() => setFunding((f) => ({ ...f, step: 'verify', transactionId: '', verifyError: '' }))}
+        onChangeTransactionId={(transactionId) => setFunding((f) => ({ ...f, transactionId }))}
+        onSubmitVerify={submitVerify}
+        onSubmitConfirm={submitConfirm}
+        onClose={closeFunding}
+        onFinish={finishFunding}
+      />
+
+      {/* ── Pause / Resume / Cancel confirmation ─�� */}
+      <PlanActionDialog state={actionConfirm} onClose={closeActionConfirm} onConfirm={applyAction} />
+    </Box>
+  );
+}
+
+// ─── Dashboard (templates + plan list) ─────────────────────────────────────
+function DashboardView({
+  plans,
+  totalSavings,
+  totalInterest,
+  onStartWizard,
+  onOpenPlan,
+  defaultPlans,
+  defaultPlansLoading,
+}: {
+  plans: SavingsPlan[];
+  totalSavings: number;
+  totalInterest: number;
+  onStartWizard: (template?: PlanTemplate) => void;
+  onOpenPlan: (planId: string) => void;
+  defaultPlans?: any[];
+  defaultPlansLoading?: boolean;
+}) {
+  return (
+    <Box>
+      {/* Header */}
+      <Box sx={{ mb: 3 }}>
+        <Typography sx={{ fontWeight: 800, fontSize: '1.15rem', color: ink }}>Savings</Typography>
+        <Typography sx={{ fontSize: '0.78rem', color: faint, mt: 0.3 }}>
+          Track balances, goals, and account activity
+        </Typography>
+      </Box>
+
+      {/* ── Hero balance card ── */}
+      <Box
+        sx={{
+          mb: 3,
+          p: { xs: 2.5, sm: 3 },
+          borderRadius: '20px',
+          background: `linear-gradient(135deg, ${brand}, ${brandDark})`,
+          color: '#fff',
+          position: 'relative',
+          overflow: 'hidden',
+          boxShadow: '0 10px 28px rgba(250,81,15,0.28)',
+        }}
+      >
+        <Box sx={{ position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.1)' }} />
+        <Box sx={{ position: 'relative', zIndex: 1 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+            <Box>
+              <Typography sx={{ fontSize: '0.72rem', opacity: 0.85, fontWeight: 600, mb: 0.5 }}>Total Savings</Typography>
+              <Typography sx={{ fontSize: { xs: '1.7rem', sm: '2.1rem' }, fontWeight: 900, lineHeight: 1 }}>
+                <AnimatedNumber value={totalSavings} />
+              </Typography>
+            </Box>
+            <Box sx={{ width: 44, height: 44, borderRadius: '12px', bgcolor: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <SavingsIcon sx={{ fontSize: '1.35rem' }} />
+            </Box>
+          </Box>
+
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
+            {[
+              { label: 'Active Plans', value: String(plans.filter((p) => p.status === 'active').length) },
+              { label: 'Interest Earned', value: currency(totalInterest) },
+              { label: 'Total Plans', value: String(plans.length) },
+            ].map((item) => (
+              <Box key={item.label}>
+                <Typography sx={{ fontSize: '0.62rem', opacity: 0.75, mb: 0.3, fontWeight: 600 }}>{item.label}</Typography>
+                <Typography sx={{ fontSize: '0.8rem', fontWeight: 700 }}>{item.value}</Typography>
+              </Box>
+            ))}
+          </Box>
+        </Box>
+      </Box>
+
+      {/* ── Quick start templates ── */}
+      <Box sx={{ mb: 3.5 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+          <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: ink }}>Start a New Plan</Typography>
+          <Button
+            onClick={() => onStartWizard()}
+            startIcon={<AddIcon sx={{ fontSize: '1rem !important' }} />}
+            sx={{
+              textTransform: 'none',
+              fontWeight: 700,
+              fontSize: '0.78rem',
+              color: brand,
+              '&:hover': { bgcolor: orangeBg },
+            }}
+          >
+            Custom Plan
+          </Button>
+        </Box>
+        {defaultPlansLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+            <CircularProgress size={24} />
+          </Box>
+        ) : (
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4,1fr)' }, gap: { xs: 1.5, sm: 2 } }}>
+            {defaultPlans && defaultPlans.length > 0 ? (
+              defaultPlans.map((t: any) => (
+                <Box
+                  key={t.planName}
+                  onClick={() => onStartWizard(t)}
+                  sx={{
+                    p: 2,
+                    borderRadius: '16px',
+                    bgcolor: '#fff',
+                    border: `1px solid ${border}`,
+                    boxShadow: shadow,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    '&:hover': { boxShadow: '0 4px 20px rgba(0,0,0,0.1)', transform: 'translateY(-2px)' },
+                  }}
+                >
+                  <Box sx={{ mb: 1 }}>
+                    <Chip label={t.category || 'Personal'} size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, bgcolor: orangeBg, color: brand }} />
+                  </Box>
+                  <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: ink, mb: 0.5 }}>{t.planName}</Typography>
+                  <Typography sx={{ fontSize: '0.7rem', color: faint, lineHeight: 1.3 }}>
+                    {t.description || 'Start a new savings plan with this template'}
+                  </Typography>
+                </Box>
+              ))
+            ) : (
+              <Typography sx={{ fontSize: '0.8rem', color: faint, gridColumn: '1 / -1' }}>No templates available</Typography>
+            )}
+          </Box>
+        )}
+      </Box>
+
+      {/* ── Plans list ── */}
+      <Box>
+        <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: ink, mb: 1.5 }}>Your Savings Plans</Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {plans.length === 0 ? (
+            <Box sx={{ p: 3, borderRadius: '16px', bgcolor: '#fff', border: `1px solid ${border}`, textAlign: 'center' }}>
+              <Typography sx={{ fontSize: '0.85rem', color: faint }}>No savings plans yet. Create one to get started!</Typography>
+            </Box>
+          ) : (
+            plans.map((plan) => {
+              const progress = Math.min(100, (plan.currentAmount / plan.targetAmount) * 100 || 0);
+              const meta = STATUS_META[plan.status] || STATUS_META['active'];
+              const categoryMeta = CATEGORY_META[plan.category] || CATEGORY_META['personal'];
+              return (
+                <Box
+                  key={plan.planId}
+                  onClick={() => onOpenPlan(plan.planId)}
+                  sx={{
+                    p: 2,
+                    borderRadius: '16px',
+                    bgcolor: '#fff',
+                    border: `1px solid ${border}`,
+                    boxShadow: shadow,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    '&:hover': { bgcolor: '#FAFBFC' },
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0, flex: 1 }}>
+                    <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: `${brand}12`, color: brand, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {categoryMeta.icon}
+                    </Box>
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography sx={{ fontWeight: 700, fontSize: '0.88rem', color: ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {plan.planName}
+                        </Typography>
+                        <Chip label={meta.label} size="small" sx={{ height: 18, fontSize: '0.62rem', fontWeight: 700, bgcolor: meta.bg, color: meta.color }} />
+                      </Box>
+                      <Typography sx={{ fontSize: '0.7rem', color: faint, mt: 0.2 }}>
+                        {currency(plan.currentAmount)} of {currency(plan.targetAmount)}
+                      </Typography>
+                      <LinearProgress
+                        variant="determinate"
+                        value={progress}
+                        sx={{ mt: 0.7, height: 5, borderRadius: 3, bgcolor: '#F1F5F9', maxWidth: 220, '& .MuiLinearProgress-bar': { bgcolor: brand, borderRadius: 3 } }}
+                      />
+                    </Box>
+                  </Box>
+                  <Typography sx={{ fontWeight: 800, fontSize: '0.85rem', color: ink, whiteSpace: 'nowrap', flexShrink: 0, ml: 2 }}>
+                    {progress.toFixed(0)}%
+                  </Typography>
+                </Box>
+              );
+            })
+          )}
+        </Box>
+      </Box>
+    </Box>
+  );
+}
+
+// ─── Plan detail view ────────────────────────────────────────────────────────
+function PlanDetailView({
+  plan,
+  onBack,
+  onAddFunds,
+  onPause,
+  onResume,
+  onCancel,
+}: {
+  plan: SavingsPlan;
+  onBack: () => void;
+  onAddFunds: () => void;
+  onPause: () => void;
+  onResume: () => void;
+  onCancel: () => void;
+}) {
+  const progress = Math.min(100, (plan.currentAmount / plan.targetAmount) * 100 || 0);
+  const remaining = Math.max(0, plan.targetAmount - plan.currentAmount);
+  const interestEarned = plan.transactions.filter((t) => t.type === 'interest').reduce((s, t) => s + t.amount, 0);
+  const expectedInterest = expectedInterestFor(plan.targetAmount, plan.apy, plan.duration, plan.earnsInterest);
+  const meta = STATUS_META[plan.status] || STATUS_META['active'];
+  const categoryMeta = CATEGORY_META[plan.category] || CATEGORY_META['personal'];
+  const isLocked = plan.status === 'cancelled' || plan.status === 'completed';
+
+  const detailRows = [
+    { label: 'Savings Category', value: categoryMeta.label, icon: <AccountTypeIcon sx={{ fontSize: '1.1rem' }} /> },
+    { label: 'Frequency', value: plan.frequency.charAt(0).toUpperCase() + plan.frequency.slice(1), icon: <HistoryIcon sx={{ fontSize: '1.1rem' }} /> },
+    { label: 'Duration', value: `${plan.duration} months`, icon: <TargetIcon sx={{ fontSize: '1.1rem' }} /> },
+    { label: 'Annual Percentage Yield', value: plan.earnsInterest ? `${plan.apy}%` : 'Not earning interest', icon: <ApyIcon sx={{ fontSize: '1.1rem' }} /> },
+    { label: 'Start Date', value: formatDate(plan.startDate), icon: <StatusIcon sx={{ fontSize: '1.1rem' }} /> },
+    { label: plan.status === 'active' ? 'Next Deposit Due' : 'End Date', value: formatDate(plan.status === 'active' ? plan.nextDepositDue : plan.endDate), icon: <StatusIcon sx={{ fontSize: '1.1rem' }} /> },
+  ];
+
+  return (
+    <Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+        <IconButton size="small" onClick={onBack} sx={{ bgcolor: '#F5F6FA' }} aria-label="Back to plans">
+          <BackIcon sx={{ fontSize: '1rem' }} />
+        </IconButton>
+        <Box>
+          <Typography sx={{ fontWeight: 800, fontSize: '1.1rem', color: ink }}>{plan.planName}</Typography>
+          <Typography sx={{ fontSize: '0.76rem', color: faint }}>{plan.description || 'Savings plan'}</Typography>
+        </Box>
+        <Chip label={meta.label} size="small" sx={{ ml: 'auto', fontWeight: 700, fontSize: '0.7rem', bgcolor: meta.bg, color: meta.color }} />
+      </Box>
+
+      {/* Hero */}
+      <Box
+        sx={{
+          mb: 3,
+          p: { xs: 2.5, sm: 3 },
+          borderRadius: '20px',
+          background: `linear-gradient(135deg, ${brand}, ${brandDark})`,
+          color: '#fff',
+          position: 'relative',
+          overflow: 'hidden',
+          boxShadow: '0 10px 28px rgba(250,81,15,0.28)',
+        }}
+      >
+        <Box sx={{ position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.1)' }} />
+        <Box sx={{ position: 'relative', zIndex: 1 }}>
+          <Typography sx={{ fontSize: '0.72rem', opacity: 0.85, fontWeight: 600, mb: 0.5 }}>Current Balance</Typography>
+          <Typography sx={{ fontSize: { xs: '1.7rem', sm: '2.1rem' }, fontWeight: 900, lineHeight: 1, mb: 2 }}>
+            <AnimatedNumber value={plan.currentAmount} />
+          </Typography>
+          <LinearProgress
+            variant="determinate"
+            value={progress}
+            sx={{ height: 8, borderRadius: 4, bgcolor: 'rgba(255,255,255,0.25)', mb: 1.2, '& .MuiLinearProgress-bar': { bgcolor: '#fff', borderRadius: 4 } }}
+          />
+          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Typography sx={{ fontSize: '0.72rem', opacity: 0.85 }}>{progress.toFixed(1)}% of {currency(plan.targetAmount)}</Typography>
+            <Typography sx={{ fontSize: '0.72rem', opacity: 0.85 }}>{currency(remaining)} remaining</Typography>
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Stat cards */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(3,1fr)' }, gap: { xs: 1.5, sm: 2 }, mb: 3.5 }}>
+        <Box sx={{ p: { xs: 1.5, sm: 2.5 }, borderRadius: '16px', bgcolor: greenBg, position: 'relative', overflow: 'hidden', minWidth: 0 }}>
+          <Box sx={{ position: 'absolute', top: -16, right: -16, width: 60, height: 60, borderRadius: '50%', bgcolor: `${green}1a` }} />
+          <Box sx={{ width: { xs: 28, sm: 36 }, height: { xs: 28, sm: 36 }, borderRadius: '10px', bgcolor: `${green}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
+            <TrendIcon sx={{ color: green, fontSize: { xs: '0.9rem', sm: '1.1rem' } }} />
+          </Box>
+          <Typography sx={{ fontSize: { xs: '0.6rem', sm: '0.68rem' }, color: faint, fontWeight: 600, mb: 0.3 }}>Interest Earned</Typography>
+          <Typography sx={{ fontSize: { xs: '0.88rem', sm: '1.15rem' }, fontWeight: 800, color: ink, lineHeight: 1.1 }}>
+            <AnimatedNumber value={interestEarned} />
+          </Typography>
+          <Typography sx={{ fontSize: '0.68rem', color: faint, mt: 0.5 }}>
+            {plan.earnsInterest ? `Projected ${currency(expectedInterest)} at maturity` : 'This plan does not earn interest'}
+          </Typography>
+        </Box>
+
+        <Box sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: '16px', bgcolor: '#fff', border: `1px solid ${border}`, boxShadow: shadow, display: 'flex', flexDirection: 'column', gap: 1, justifyContent: 'center' }}>
+          {!isLocked && (
+            <Button
+              variant="contained"
+              onClick={onAddFunds}
+              startIcon={<AddIcon sx={{ fontSize: '1rem !important' }} />}
+              sx={{
+                background: `linear-gradient(135deg, ${brand}, ${brandDark})`,
+                borderRadius: '12px',
+                textTransform: 'none',
+                fontWeight: 700,
+                fontSize: '0.78rem',
+                py: 1,
+                boxShadow: '0 4px 14px rgba(250,81,15,0.3)',
+                '&:hover': { background: `linear-gradient(135deg, ${brandDark}, #B33000)` },
+              }}
+            >
+              Add Funds
+            </Button>
+          )}
+          {plan.status === 'active' && (
+            <Button onClick={onPause} startIcon={<PauseIcon sx={{ fontSize: '1rem !important' }} />} sx={{ color: '#B45309', fontWeight: 700, textTransform: 'none', fontSize: '0.78rem', bgcolor: '#FFFBEB', borderRadius: '12px', py: 1, '&:hover': { bgcolor: '#FEF3C7' } }}>
+              Pause Plan
+            </Button>
+          )}
+          {plan.status === 'paused' && (
+            <Button onClick={onResume} startIcon={<ResumeIcon sx={{ fontSize: '1rem !important' }} />} sx={{ color: green, fontWeight: 700, textTransform: 'none', fontSize: '0.78rem', bgcolor: greenBg, borderRadius: '12px', py: 1, '&:hover': { bgcolor: '#D1FAE5' } }}>
+              Resume Plan
+            </Button>
+          )}
+          {!isLocked && (
+            <Button onClick={onCancel} startIcon={<CancelPlanIcon sx={{ fontSize: '1rem !important' }} />} sx={{ color: red, fontWeight: 700, textTransform: 'none', fontSize: '0.78rem', bgcolor: redBg, borderRadius: '12px', py: 1, '&:hover': { bgcolor: '#FEE2E2' } }}>
+              Cancel Plan
+            </Button>
+          )}
+          {isLocked && (
+            <Typography sx={{ fontSize: '0.78rem', color: faint, textAlign: 'center', fontWeight: 600 }}>
+              This plan is {plan.status} and can no longer be edited.
+            </Typography>
+          )}
+        </Box>
+      </Box>
+
+      {/* Details */}
+      <Box sx={{ p: { xs: 2, sm: 3 }, borderRadius: '20px', bgcolor: '#fff', border: `1px solid ${border}`, boxShadow: shadow, mb: 3.5 }}>
+        <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: ink, mb: 2 }}>Plan Details</Typography>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
+          {detailRows.map((detail) => (
+            <Box key={detail.label} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.75, borderRadius: '12px', bgcolor: '#FAFBFC', border: `1px solid ${border}` }}>
+              <Box sx={{ width: 34, height: 34, borderRadius: '10px', bgcolor: `${brand}12`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: brand, flexShrink: 0 }}>
+                {detail.icon}
+              </Box>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography sx={{ fontSize: '0.68rem', color: faint, fontWeight: 600, mb: 0.2 }}>{detail.label}</Typography>
+                <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: ink }}>{detail.value}</Typography>
+              </Box>
+            </Box>
+          ))}
+        </Box>
+      </Box>
+
+      {/* Transaction history */}
+      <Box sx={{ borderRadius: '20px', bgcolor: '#fff', border: `1px solid ${border}`, boxShadow: shadow, overflow: 'hidden' }}>
+        <Box sx={{ px: 3, py: 2, borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <HistoryIcon sx={{ color: faint, fontSize: '1.1rem' }} />
+            <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: ink }}>Transaction History</Typography>
+          </Box>
+          <Box sx={{ px: 1.2, py: 0.3, borderRadius: '8px', bgcolor: '#F1F5F9', fontSize: '0.72rem', fontWeight: 700, color: '#64748B' }}>
+            {plan.transactions.length} results
+          </Box>
+        </Box>
+
+        {plan.transactions.length === 0 ? (
+          <Box sx={{ py: 8, textAlign: 'center' }}>
+            <ReceiptIcon sx={{ fontSize: '2.5rem', color: '#E5E7EB', mb: 1 }} />
+            <Typography sx={{ fontWeight: 700, color: faint }}>No transactions yet</Typography>
+            <Typography sx={{ fontSize: '0.8rem', color: '#C4C9D4', mt: 0.5 }}>Deposits and interest credits will appear here</Typography>
+          </Box>
+        ) : (
+          plan.transactions.map((tx, idx) => {
+            const isWithdrawal = tx.type === 'withdrawal';
+            const Icon = isWithdrawal ? WithdrawIcon : tx.type === 'interest' ? TrendIcon : SavingsIcon;
+            const iconColor = isWithdrawal ? brand : green;
+            const iconBg = isWithdrawal ? orangeBg : greenBg;
+            return (
+              <Box
+                key={tx.id}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  px: 3,
+                  py: 1.75,
+                  borderBottom: idx < plan.transactions.length - 1 ? `1px solid ${rowBorder}` : 'none',
+                  transition: 'background 0.15s',
+                  '&:hover': { bgcolor: '#FAFBFC' },
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+                  <Box sx={{ width: 40, height: 40, borderRadius: '12px', bgcolor: iconBg, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon sx={{ color: iconColor, fontSize: '1.1rem' }} />
+                  </Box>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography sx={{ fontWeight: 700, fontSize: '0.88rem', color: ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {tx.description}
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.7rem', color: faint, mt: 0.2 }}>{formatDate(tx.date)}</Typography>
+                  </Box>
+                </Box>
+                <Typography sx={{ fontWeight: 800, fontSize: '0.9rem', color: isWithdrawal ? brand : green, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  {isWithdrawal ? '-' : '+'}
+                  {currency(Math.abs(tx.amount))}
+                </Typography>
+              </Box>
+            );
+          })
+        )}
+      </Box>
+    </Box>
+  );
+}
+
+// ─── Plan creation wizard (7 steps + funding hand-off) ──────────────────────
+const WIZARD_STEP_LABELS = ['Name', 'Interest', 'Category', 'Target', 'Duration', 'Frequency', 'Review'];
+
+function PlanWizardDialog({
+  open,
+  step,
+  draft,
+  error,
+  expectedInterestPreview,
+  suggestedInstallment,
+  onChange,
+  onNext,
+  onBack,
+  onClose,
+  onFund,
+}: {
+  open: boolean;
+  step: number;
+  draft: PlanDraft;
+  error: string;
+  expectedInterestPreview: number;
+  suggestedInstallment: number;
+  onChange: (patch: Partial<PlanDraft>) => void;
+  onNext: () => void;
+  onBack: () => void;
+  onClose: () => void;
+  onFund: () => void;
+}) {
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth slotProps={{ paper: { sx: { borderRadius: '24px', m: { xs: 1.5, sm: 3 } } } }}>
       <Box sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A' }}>Add New Card</Typography>
-          <IconButton size="small" onClick={onClose} sx={{ bgcolor: '#F5F6FA' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+          <Typography sx={{ fontWeight: 800, fontSize: '1.05rem', color: ink }}>New Savings Plan</Typography>
+          <IconButton size="small" onClick={onClose} sx={{ bgcolor: '#F5F6FA' }} aria-label="Close">
             <CloseIcon fontSize="small" />
           </IconButton>
         </Box>
 
-        {done ? (
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Box sx={{
-              width: 68, height: 68, borderRadius: '50%', bgcolor: '#ECFDF5',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2,
-              animation: 'popIn 0.4s cubic-bezier(0.34,1.56,0.64,1)',
-              '@keyframes popIn': { '0%': { transform: 'scale(0)' }, '100%': { transform: 'scale(1)' } },
-            }}>
-              <CheckIcon sx={{ color: '#059669', fontSize: '2.2rem' }} />
+        {/* Step indicator */}
+        <Box sx={{ display: 'flex', gap: 0.6, mb: 2.5 }}>
+          {WIZARD_STEP_LABELS.map((label, i) => (
+            <Box key={label} sx={{ flex: 1, height: 4, borderRadius: 2, bgcolor: i + 1 <= step ? brand : '#EEF0F3' }} />
+          ))}
+        </Box>
+        <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: faint, mb: 2, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          Step {step} of 7 · {WIZARD_STEP_LABELS[step - 1]}
+        </Typography>
+
+        <Box sx={{ minHeight: 220, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {step === 1 && (
+            <>
+              <TextField
+                label="Plan name"
+                placeholder="My Dream Vacation"
+                value={draft.planName}
+                onChange={(e) => onChange({ planName: e.target.value })}
+                fullWidth
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+              />
+              <TextField
+                label="Description (optional)"
+                placeholder="Saving for a trip to Bali"
+                value={draft.description}
+                onChange={(e) => onChange({ description: e.target.value })}
+                fullWidth
+                multiline
+                rows={3}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+              />
+            </>
+          )}
+
+          {step === 2 && (
+            <Box sx={{ p: 2, borderRadius: '14px', bgcolor: '#FAFBFC', border: `1px solid ${border}` }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: ink }}>Earn interest on this plan</Typography>
+                  <Typography sx={{ fontSize: '0.76rem', color: faint, mt: 0.3 }}>Grow your savings automatically while you save</Typography>
+                </Box>
+                <Switch
+                  checked={draft.earnsInterest}
+                  onChange={(e) => onChange({ earnsInterest: e.target.checked })}
+                  sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: brand }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: brand } }}
+                />
+              </Box>
+              {draft.earnsInterest && (
+                <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1, p: 1.5, borderRadius: '10px', bgcolor: orangeBg }}>
+                  <ApyIcon sx={{ color: brand, fontSize: '1.1rem' }} />
+                  <Typography sx={{ fontSize: '0.82rem', color: ink }}>
+                    This plan earns <strong>{draft.apy}% APY</strong>, our standard rate for savings plans.
+                  </Typography>
+                </Box>
+              )}
             </Box>
-            <Typography sx={{ fontWeight: 800, fontSize: '1rem', color: '#0F172A' }}>Card Added!</Typography>
-            <Typography sx={{ fontSize: '0.78rem', color: '#9CA3AF', mt: 0.5 }}>Your card is now linked to your account.</Typography>
-          </Box>
-        ) : (
+          )}
+
+          {step === 3 && (
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, maxHeight: 300, overflowY: 'auto', pr: 0.5 }}>
+              {CATEGORY_OPTIONS.map((cat) => {
+                const selected = draft.category === cat;
+                const catMeta = CATEGORY_META[cat] || CATEGORY_META['personal'];
+                return (
+                  <Box
+                    key={cat}
+                    onClick={() => onChange({ category: cat })}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      p: 1.3,
+                      borderRadius: '12px',
+                      border: `1.5px solid ${selected ? brand : border}`,
+                      bgcolor: selected ? orangeBg : '#fff',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <Box sx={{ color: selected ? brand : faint, display: 'flex' }}>{catMeta.icon}</Box>
+                    <Typography sx={{ fontSize: '0.76rem', fontWeight: 700, color: selected ? brand : ink }}>{catMeta.label}</Typography>
+                  </Box>
+                );
+              })}
+            </Box>
+          )}
+
+          {step === 4 && (
+            <Box>
+              <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: faint, mb: 1, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Target Amount
+              </Typography>
+              <TextField
+                fullWidth
+                placeholder="0.00"
+                value={draft.targetAmount}
+                onChange={(e) => onChange({ targetAmount: e.target.value })}
+                type="number"
+                slotProps={{
+                  htmlInput: { 'aria-label': 'Target amount in dollars', step: 0.01, min: 0 },
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Typography sx={{ fontSize: '1.5rem', fontWeight: 700, color: ink }}>$</Typography>
+                      </InputAdornment>
+                    ),
+                    sx: { borderRadius: '12px', bgcolor: '#F8F9FA' },
+                  },
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    fontSize: '1.5rem',
+                    fontWeight: 700,
+                    color: ink,
+                    borderRadius: '12px',
+                    '& fieldset': { border: 'none' },
+                    '&.Mui-focused fieldset': { border: `2px solid ${brand}` },
+                  },
+                }}
+              />
+            </Box>
+          )}
+
+          {step === 5 && (
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.2 }}>
+              {DURATION_OPTIONS.map((d) => {
+                const selected = draft.duration === d;
+                return (
+                  <Box
+                    key={d}
+                    onClick={() => onChange({ duration: d })}
+                    sx={{
+                      textAlign: 'center',
+                      p: 2,
+                      borderRadius: '14px',
+                      border: `1.5px solid ${selected ? brand : border}`,
+                      bgcolor: selected ? orangeBg : '#fff',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Typography sx={{ fontWeight: 800, fontSize: '1.1rem', color: selected ? brand : ink }}>{d}</Typography>
+                    <Typography sx={{ fontSize: '0.7rem', color: faint, fontWeight: 600 }}>months</Typography>
+                  </Box>
+                );
+              })}
+            </Box>
+          )}
+
+          {step === 6 && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2 }}>
+              {FREQUENCY_OPTIONS.map((f) => {
+                const selected = draft.frequency === f.value;
+                return (
+                  <Box
+                    key={f.value}
+                    onClick={() => onChange({ frequency: f.value })}
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      p: 1.75,
+                      borderRadius: '14px',
+                      border: `1.5px solid ${selected ? brand : border}`,
+                      bgcolor: selected ? orangeBg : '#fff',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Box>
+                      <Typography sx={{ fontWeight: 700, fontSize: '0.88rem', color: selected ? brand : ink }}>{f.label}</Typography>
+                      <Typography sx={{ fontSize: '0.72rem', color: faint }}>{f.helper}</Typography>
+                    </Box>
+                    {selected && <SuccessIcon sx={{ color: brand, fontSize: '1.2rem' }} />}
+                  </Box>
+                );
+              })}
+            </Box>
+          )}
+
+          {step === 7 && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <Box sx={{ bgcolor: orangeBg, p: 2.5, borderRadius: '14px' }}>
+                <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: ink, mb: 0.3 }}>{draft.planName}</Typography>
+                <Typography sx={{ fontSize: '0.76rem', color: grey, mb: 1.5 }}>{draft.description || 'No description added'}</Typography>
+                {[
+                  { label: 'Category', value: draft.category ? (CATEGORY_META[draft.category as Category] || CATEGORY_META['personal']).label : '—' },
+                  { label: 'Target amount', value: currency(parseFloat(draft.targetAmount) || 0) },
+                  { label: 'Duration', value: `${draft.duration} months` },
+                  { label: 'Frequency', value: draft.frequency ? draft.frequency.charAt(0).toUpperCase() + draft.frequency.slice(1) : '—' },
+                  { label: 'Interest', value: draft.earnsInterest ? `${draft.apy}% APY` : 'Not earning interest' },
+                  { label: 'Expected interest', value: draft.earnsInterest ? currency(expectedInterestPreview) : '—' },
+                  { label: 'Suggested deposit', value: `${currency(suggestedInstallment)} / ${draft.frequency || 'period'}` },
+                ].map((row) => (
+                  <Box key={row.label} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.6 }}>
+                    <Typography sx={{ fontSize: '0.78rem', color: grey }}>{row.label}</Typography>
+                    <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: ink }}>{row.value}</Typography>
+                  </Box>
+                ))}
+              </Box>
+              <Typography sx={{ fontSize: '0.74rem', color: faint, textAlign: 'center' }}>
+                Next, you&apos;ll fund your plan&apos;s first deposit with Bitcoin.
+              </Typography>
+            </Box>
+          )}
+        </Box>
+
+        {error && (
+          <Alert severity="error" sx={{ borderRadius: '12px', mt: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        <Box sx={{ display: 'flex', gap: 1.5, mt: 3 }}>
+          {step > 1 && (
+            <Button
+              onClick={onBack}
+              fullWidth
+              sx={{ color: grey, fontWeight: 700, textTransform: 'none', fontSize: '0.85rem', borderRadius: '12px', py: 1.2, bgcolor: '#F5F6FA', '&:hover': { bgcolor: '#EDEFF5' } }}
+            >
+              Back
+            </Button>
+          )}
+          <Button
+            onClick={step === 7 ? onFund : onNext}
+            fullWidth
+            variant="contained"
+            endIcon={step === 7 ? undefined : <ArrowForwardIcon sx={{ fontSize: '1rem !important' }} />}
+            sx={{
+              background: `linear-gradient(135deg, ${brand}, ${brandDark})`,
+              color: '#fff',
+              fontWeight: 700,
+              textTransform: 'none',
+              fontSize: '0.85rem',
+              borderRadius: '12px',
+              py: 1.2,
+              boxShadow: '0 4px 14px rgba(250,81,15,0.3)',
+              '&:hover': { background: `linear-gradient(135deg, ${brandDark}, #B33000)` },
+            }}
+          >
+            {step === 7 ? 'Create Plan and Fund' : 'Continue'}
+          </Button>
+        </Box>
+      </Box>
+    </Dialog>
+  );
+}
+
+// ─── Shared bitcoin funding flow (new plan first deposit + top-ups) ─────────
+function FundingFlow({
+  state,
+  onChangeAmount,
+  onSubmitAmount,
+  onProceedToVerify,
+  onChangeTransactionId,
+  onSubmitVerify,
+  onSubmitConfirm,
+  onClose,
+  onFinish,
+}: {
+  state: FundingState;
+  onChangeAmount: (amount: string) => void;
+  onSubmitAmount: () => void;
+  onProceedToVerify: () => void;
+  onChangeTransactionId: (id: string) => void;
+  onSubmitVerify: () => void;
+  onSubmitConfirm: () => void;
+  onClose: () => void;
+  onFinish: () => void;
+}) {
+  const title = state.mode === 'create' ? (state.draft?.planName || 'Fund Plan') : 'Add Funds';
+  const parsedAmount = parseFloat(state.amount || '0') || 0;
+
+  return (
+    <Dialog open={state.open} onClose={state.loading ? undefined : onClose} maxWidth="xs" fullWidth slotProps={{ paper: { sx: { borderRadius: '24px', m: { xs: 1.5, sm: 3 } } } }}>
+      <Box sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography sx={{ fontWeight: 800, fontSize: '1.05rem', color: ink }}>
+            {state.step === 'amount' && title}
+            {state.step === 'details' && 'Payment Initiated'}
+            {state.step === 'verify' && 'Verify Payment'}
+            {state.step === 'confirm' && 'Confirm Payment'}
+            {state.step === 'success' && 'Payment Successful!'}
+          </Typography>
+          {state.step !== 'success' && (
+            <IconButton size="small" onClick={onClose} disabled={state.loading} sx={{ bgcolor: '#F5F6FA' }} aria-label="Close">
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          )}
+        </Box>
+
+        {/* Step 1: amount */}
+        {state.step === 'amount' && (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField size="small" fullWidth label="Card Nickname" placeholder="e.g. My Visa" sx={inputSx}
-              value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-            <TextField size="small" fullWidth label="Card Number" placeholder="1234 5678 9012 3456" sx={inputSx}
-              value={form.number} onChange={e => setForm(f => ({ ...f, number: e.target.value }))} />
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
-              <TextField size="small" fullWidth label="Expiry (MM/YY)" placeholder="03/29" sx={inputSx}
-                value={form.expiry} onChange={e => setForm(f => ({ ...f, expiry: e.target.value }))} />
-              <TextField size="small" fullWidth label="CVV" placeholder="•••" type="password" sx={inputSx}
-                value={form.cvv} onChange={e => setForm(f => ({ ...f, cvv: e.target.value }))} />
+            <Box>
+              <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: faint, mb: 1, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                {state.mode === 'create' ? 'First Deposit Amount' : 'Deposit Amount'}
+              </Typography>
+              <TextField
+                fullWidth
+                placeholder="0.00"
+                value={state.amount}
+                onChange={(e) => onChangeAmount(e.target.value)}
+                disabled={state.loading}
+                error={!!state.amountError}
+                type="number"
+                slotProps={{
+                  htmlInput: { 'aria-label': 'Deposit amount in dollars', step: 0.01, min: 0, max: 100000 },
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Typography sx={{ fontSize: '1.5rem', fontWeight: 700, color: ink }}>$</Typography>
+                      </InputAdornment>
+                    ),
+                    sx: { borderRadius: '12px', bgcolor: '#F8F9FA' },
+                  },
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    fontSize: '1.5rem',
+                    fontWeight: 700,
+                    color: ink,
+                    borderRadius: '12px',
+                    '& fieldset': { border: 'none' },
+                    '&.Mui-focused fieldset': { border: `2px solid ${brand}` },
+                  },
+                }}
+              />
             </Box>
-            <TextField size="small" fullWidth label="Cardholder Name" placeholder="JOHN DOE" sx={inputSx}
-              value={form.holder} onChange={e => setForm(f => ({ ...f, holder: e.target.value }))} />
-            <Button fullWidth variant="contained" onClick={handleSubmit}
+
+            {state.amountError && (
+              <Alert severity="error" sx={{ borderRadius: '12px' }}>
+                {state.amountError}
+              </Alert>
+            )}
+
+            <Box sx={{ p: 1.75, borderRadius: '12px', bgcolor: '#FAFBFC', border: `1px solid ${border}` }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                <Typography sx={{ fontSize: '0.8rem', color: grey }}>Amount</Typography>
+                <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: ink }}>{currency(parsedAmount)}</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1, borderTop: `1px solid ${border}` }}>
+                <Typography sx={{ fontSize: '0.8rem', color: grey, fontWeight: 700 }}>Total</Typography>
+                <Typography sx={{ fontSize: '0.95rem', fontWeight: 800, color: ink }}>{currency(parsedAmount)}</Typography>
+              </Box>
+            </Box>
+
+            <Box sx={{ display: 'flex', gap: 1.5, mt: 1 }}>
+              <Button onClick={onClose} disabled={state.loading} fullWidth sx={{ color: grey, fontWeight: 700, textTransform: 'none', fontSize: '0.85rem', borderRadius: '12px', py: 1.2, bgcolor: '#F5F6FA', '&:hover': { bgcolor: '#EDEFF5' } }}>
+                Cancel
+              </Button>
+              <Button
+                onClick={onSubmitAmount}
+                disabled={state.loading || !state.amount}
+                fullWidth
+                variant="contained"
+                sx={{
+                  background: `linear-gradient(135deg, ${brand}, ${brandDark})`,
+                  color: '#fff',
+                  fontWeight: 700,
+                  textTransform: 'none',
+                  fontSize: '0.85rem',
+                  borderRadius: '12px',
+                  py: 1.2,
+                  boxShadow: '0 4px 14px rgba(250,81,15,0.3)',
+                  '&:hover': { background: `linear-gradient(135deg, ${brandDark}, #B33000)` },
+                  '&:disabled': { background: '#E5E7EB', color: faint, boxShadow: 'none' },
+                }}
+              >
+                {state.loading ? <CircularProgress size={18} sx={{ mr: 1, color: 'inherit' }} /> : null}
+                {state.loading ? 'Processing…' : 'Continue'}
+              </Button>
+            </Box>
+          </Box>
+        )}
+
+        {/* Step 2: bitcoin payment details */}
+        {state.step === 'details' && (
+          <Box sx={{ textAlign: 'center', py: 1 }}>
+            <Box sx={{ width: 64, height: 64, borderRadius: '18px', bgcolor: greenBg, display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2, boxShadow: `0 8px 24px ${green}25` }}>
+              <SuccessIcon sx={{ fontSize: '1.8rem', color: green }} />
+            </Box>
+            <Typography sx={{ fontWeight: 800, fontSize: '1rem', color: ink, mb: 0.5 }}>Payment Initiated</Typography>
+            <Typography sx={{ fontSize: '0.85rem', color: grey, mb: 1.5 }}>{currency(parsedAmount)} deposit initiated</Typography>
+            <Box sx={{ bgcolor: orangeBg, p: 2, borderRadius: '12px', textAlign: 'left', mb: 1.5 }}>
+              <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: brand, mb: 1, textTransform: 'uppercase' }}>Bitcoin Payment Details</Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography sx={{ fontSize: '0.72rem', color: grey }}>Reference:</Typography>
+                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: ink }}>{state.paymentReference}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography sx={{ fontSize: '0.72rem', color: grey }}>Amount BTC:</Typography>
+                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: ink }}>{state.amountBTC}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography sx={{ fontSize: '0.72rem', color: grey }}>Exchange Rate:</Typography>
+                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: ink }}>${state.exchangeRate.toLocaleString('en-US')}</Typography>
+                </Box>
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1.5, mt: 2.5 }}>
+              <Button onClick={onClose} fullWidth sx={{ color: grey, fontWeight: 700, textTransform: 'none', fontSize: '0.85rem', borderRadius: '12px', py: 1.2, bgcolor: '#F5F6FA', '&:hover': { bgcolor: '#EDEFF5' } }}>
+                Cancel
+              </Button>
+              <Button
+                onClick={onProceedToVerify}
+                fullWidth
+                variant="contained"
+                sx={{
+                  background: `linear-gradient(135deg, ${brand}, ${brandDark})`,
+                  color: '#fff',
+                  fontWeight: 700,
+                  textTransform: 'none',
+                  fontSize: '0.85rem',
+                  borderRadius: '12px',
+                  py: 1.2,
+                  boxShadow: '0 4px 14px rgba(250,81,15,0.3)',
+                  '&:hover': { background: `linear-gradient(135deg, ${brandDark}, #B33000)` },
+                }}
+              >
+                Verify
+              </Button>
+            </Box>
+          </Box>
+        )}
+
+        {/* Step 3: verify */}
+        {state.step === 'verify' && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ bgcolor: greenBg, p: 2, borderRadius: '12px', mb: 1 }}>
+              <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: grey, mb: 0.5, textTransform: 'uppercase' }}>Payment Reference</Typography>
+              <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: ink }}>{state.paymentReference}</Typography>
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: faint, mb: 1, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Transaction ID / Hash
+              </Typography>
+              <TextField
+                fullWidth
+                placeholder="Enter your Bitcoin transaction hash"
+                value={state.transactionId}
+                onChange={(e) => onChangeTransactionId(e.target.value)}
+                error={!!state.verifyError}
+                multiline
+                rows={3}
+                slotProps={{ input: { sx: { borderRadius: '12px', bgcolor: '#F8F9FA' } } }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    fontSize: '0.9rem',
+                    fontFamily: 'monospace',
+                    borderRadius: '12px',
+                    '& fieldset': { border: 'none' },
+                    '&.Mui-focused fieldset': { border: `2px solid ${brand}` },
+                  },
+                }}
+              />
+            </Box>
+            {state.verifyError && (
+              <Alert severity="error" sx={{ borderRadius: '12px' }}>
+                {state.verifyError}
+              </Alert>
+            )}
+            <Box sx={{ display: 'flex', gap: 1.5, mt: 1 }}>
+              <Button onClick={onClose} fullWidth sx={{ color: grey, fontWeight: 700, textTransform: 'none', fontSize: '0.85rem', borderRadius: '12px', py: 1.2, bgcolor: '#F5F6FA', '&:hover': { bgcolor: '#EDEFF5' } }}>
+                Cancel
+              </Button>
+              <Button
+                onClick={onSubmitVerify}
+                disabled={!state.transactionId.trim() || state.loading}
+                fullWidth
+                variant="contained"
+                sx={{
+                  background: `linear-gradient(135deg, ${brand}, ${brandDark})`,
+                  color: '#fff',
+                  fontWeight: 700,
+                  textTransform: 'none',
+                  fontSize: '0.85rem',
+                  borderRadius: '12px',
+                  py: 1.2,
+                  boxShadow: '0 4px 14px rgba(250,81,15,0.3)',
+                  '&:hover': { background: `linear-gradient(135deg, ${brandDark}, #B33000)` },
+                  '&:disabled': { background: '#E5E7EB', color: faint, boxShadow: 'none' },
+                }}
+              >
+                {state.loading ? <CircularProgress size={20} sx={{ color: faint }} /> : 'Verify Payment'}
+              </Button>
+            </Box>
+          </Box>
+        )}
+
+        {/* Step 4: confirm */}
+        {state.step === 'confirm' && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+            <Box sx={{ bgcolor: greenBg, p: 2.5, borderRadius: '12px' }}>
+              <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: faint, mb: 1.5, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Payment Summary
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography sx={{ fontSize: '0.85rem', color: grey }}>Amount</Typography>
+                  <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: ink }}>{currency(parsedAmount)}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pt: 1, borderTop: `1px solid ${border}` }}>
+                  <Typography sx={{ fontSize: '0.85rem', color: grey }}>Payment Reference</Typography>
+                  <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: brand, fontFamily: 'monospace' }}>{state.paymentReference}</Typography>
+                </Box>
+              </Box>
+            </Box>
+            <Box sx={{ bgcolor: orangeBg, p: 2, borderRadius: '12px', border: `1px solid ${border}` }}>
+              <Typography sx={{ fontSize: '0.8rem', color: ink, lineHeight: 1.5 }}>
+                Please confirm that you have sent the Bitcoin payment and the transaction ID has been verified. This action will
+                {state.mode === 'create' ? ' create your savings plan.' : ' complete your deposit.'}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1.5, mt: 2 }}>
+              <Button onClick={onClose} disabled={state.loading} fullWidth sx={{ color: grey, fontWeight: 700, textTransform: 'none', fontSize: '0.85rem', borderRadius: '12px', py: 1.2, bgcolor: '#F5F6FA', '&:hover': { bgcolor: '#EDEFF5' }, '&:disabled': { bgcolor: '#E5E7EB', color: faint } }}>
+                Cancel
+              </Button>
+              <Button
+                onClick={onSubmitConfirm}
+                disabled={state.loading}
+                fullWidth
+                variant="contained"
+                sx={{
+                  background: `linear-gradient(135deg, ${brand}, ${brandDark})`,
+                  color: '#fff',
+                  fontWeight: 700,
+                  textTransform: 'none',
+                  fontSize: '0.85rem',
+                  borderRadius: '12px',
+                  py: 1.2,
+                  boxShadow: '0 4px 14px rgba(250,81,15,0.3)',
+                  '&:hover': { background: `linear-gradient(135deg, ${brandDark}, #B33000)` },
+                  '&:disabled': { background: '#E5E7EB', color: faint, boxShadow: 'none' },
+                }}
+              >
+                {state.loading ? <CircularProgress size={20} sx={{ color: faint }} /> : 'Confirm Payment'}
+              </Button>
+            </Box>
+          </Box>
+        )}
+
+        {/* Step 5: success */}
+        {state.step === 'success' && (
+          <Box sx={{ textAlign: 'center' }}>
+            <Box
               sx={{
-                background: 'linear-gradient(135deg,#FA510F,#D94309)',
-                borderRadius: '12px', py: 1.4, fontWeight: 700, textTransform: 'none', mt: 0.5,
-                boxShadow: '0 6px 20px rgba(250,81,15,0.35)',
-                '&:hover': { background: 'linear-gradient(135deg,#D94309,#B33000)' },
-              }}>
-              Add Card
+                width: 80,
+                height: 80,
+                borderRadius: '20px',
+                bgcolor: greenBg,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mx: 'auto',
+                mb: 2,
+                boxShadow: `0 12px 32px ${green}20`,
+              }}
+            >
+              <SuccessIcon sx={{ fontSize: '2.2rem', color: green }} />
+            </Box>
+            <Typography sx={{ fontWeight: 800, fontSize: '1.15rem', color: ink, mb: 1 }}>
+              {state.mode === 'create' ? 'Plan Created!' : 'Payment Successful!'}
+            </Typography>
+            <Typography sx={{ fontSize: '0.9rem', color: grey, mb: 3, lineHeight: 1.6 }}>
+              {state.mode === 'create'
+                ? 'Your Bitcoin payment has been verified and your new savings plan is now active.'
+                : 'Your Bitcoin payment has been verified and your savings plan has been credited.'}
+            </Typography>
+            <Button
+              onClick={onFinish}
+              fullWidth
+              variant="contained"
+              sx={{
+                background: `linear-gradient(135deg, ${brand}, ${brandDark})`,
+                color: '#fff',
+                fontWeight: 700,
+                textTransform: 'none',
+                fontSize: '0.85rem',
+                borderRadius: '12px',
+                py: 1.2,
+                boxShadow: '0 4px 14px rgba(250,81,15,0.3)',
+                '&:hover': { background: `linear-gradient(135deg, ${brandDark}, #B33000)` },
+              }}
+            >
+              Done
             </Button>
           </Box>
         )}
@@ -549,358 +1816,45 @@ function AddCardDialog({ open, onClose }: { open: boolean; onClose: () => void }
   );
 }
 
-// ─── Card Detail Dialog ───────────────────────────────────────────────────────
-function CardDetailDialog({
-  card, open, onClose, onToggleLock,
+// ─── Pause / Resume / Cancel confirmation dialog ────────────────────────────
+function PlanActionDialog({
+  state,
+  onClose,
+  onConfirm,
 }: {
-  card: typeof INITIAL_CARDS[0] | null;
-  open: boolean;
+  state: { open: boolean; kind: 'pause' | 'resume' | 'cancel' | null; planId: string | null };
   onClose: () => void;
-  onToggleLock: (id: number) => void;
+  onConfirm: () => void;
 }) {
-  const [showNum, setShowNum] = useState(false);
-  const [showCVV, setShowCVV] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const copy = {
+    pause: { title: 'Pause this plan?', body: 'You can resume this plan at any time. Scheduled deposits will stop until you resume.', confirmLabel: 'Pause Plan', color: '#B45309', bg: '#FFFBEB' },
+    resume: { title: 'Resume this plan?', body: 'Your plan will become active again and scheduled deposits will continue.', confirmLabel: 'Resume Plan', color: green, bg: greenBg },
+    cancel: { title: 'Cancel this plan?', body: 'This cannot be undone. Your saved balance stays in your account, but this plan will be closed.', confirmLabel: 'Cancel Plan', color: red, bg: redBg },
+  } as const;
 
-  if (!card) return null;
-
-  const handleCopy = () => {
-    navigator.clipboard?.writeText(card.number).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const active = state.kind ? copy[state.kind] : null;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth
-      slotProps={{ paper: { sx: { borderRadius: '24px', m: { xs: 1.5, sm: 3 } } } }}>
-      <Box sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
-          <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A' }}>{card.name}</Typography>
-          <IconButton size="small" onClick={onClose} sx={{ bgcolor: '#F5F6FA' }}>
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        </Box>
-
-        <Box sx={{ mb: 2.5 }}>
-          <CardFace card={card} showNumber={showNum} size="full" />
-        </Box>
-
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 2.5 }}>
-          <Box sx={{ p: 1.5, borderRadius: '12px', bgcolor: '#F8F9FA', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Box>
-              <Typography sx={{ fontSize: '0.65rem', color: '#9CA3AF', mb: 0.2 }}>Card Number</Typography>
-              <Typography sx={{ fontSize: '0.88rem', fontWeight: 700, color: '#0F172A', fontFamily: 'monospace', letterSpacing: '0.08em' }}>
-                {showNum ? card.number : card.number.split(' ').map((g, i) => i < 3 ? '••••' : g).join('  ')}
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex' }}>
-              <IconButton size="small" onClick={() => setShowNum(v => !v)} sx={{ color: '#9CA3AF' }}>
-                {showNum ? <EyeOffIcon fontSize="small" /> : <EyeIcon fontSize="small" />}
-              </IconButton>
-              <IconButton size="small" onClick={handleCopy} sx={{ color: copied ? '#059669' : '#9CA3AF' }}>
-                {copied ? <CheckIcon fontSize="small" /> : <CopyIcon fontSize="small" />}
-              </IconButton>
-            </Box>
-          </Box>
-
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
-            <Box sx={{ p: 1.5, borderRadius: '12px', bgcolor: '#F8F9FA' }}>
-              <Typography sx={{ fontSize: '0.65rem', color: '#9CA3AF', mb: 0.2 }}>Expiry Date</Typography>
-              <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: '#0F172A' }}>{card.expiry}</Typography>
-            </Box>
-            <Box sx={{ p: 1.5, borderRadius: '12px', bgcolor: '#F8F9FA', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Box>
-                <Typography sx={{ fontSize: '0.65rem', color: '#9CA3AF', mb: 0.2 }}>CVV</Typography>
-                <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: '#0F172A' }}>
-                  {showCVV ? card.cvv : '•••'}
-                </Typography>
-              </Box>
-              <IconButton size="small" onClick={() => setShowCVV(v => !v)} sx={{ color: '#9CA3AF' }}>
-                {showCVV ? <EyeOffIcon fontSize="small" /> : <EyeIcon fontSize="small" />}
-              </IconButton>
-            </Box>
-          </Box>
-
-          <Box sx={{ p: 1.8, borderRadius: '12px', background: 'linear-gradient(135deg,#FFF4F0,#FEE8DF)' }}>
-            <Typography sx={{ fontSize: '0.65rem', color: '#FA510F', mb: 0.3, fontWeight: 700 }}>Available Balance</Typography>
-            <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, color: '#FA510F' }}>${card.balance.toLocaleString()}</Typography>
+    <Dialog open={state.open} onClose={onClose} maxWidth="xs" fullWidth slotProps={{ paper: { sx: { borderRadius: '24px', m: { xs: 1.5, sm: 3 } } } }}>
+      {active && (
+        <Box sx={{ p: 3 }}>
+          <Typography sx={{ fontWeight: 800, fontSize: '1.05rem', color: ink, mb: 1 }}>{active.title}</Typography>
+          <Typography sx={{ fontSize: '0.85rem', color: grey, mb: 3, lineHeight: 1.6 }}>{active.body}</Typography>
+          <Box sx={{ display: 'flex', gap: 1.5 }}>
+            <Button onClick={onClose} fullWidth sx={{ color: grey, fontWeight: 700, textTransform: 'none', fontSize: '0.85rem', borderRadius: '12px', py: 1.2, bgcolor: '#F5F6FA', '&:hover': { bgcolor: '#EDEFF5' } }}>
+              Go Back
+            </Button>
+            <Button
+              onClick={onConfirm}
+              fullWidth
+              variant="contained"
+              sx={{ bgcolor: active.color, color: '#fff', fontWeight: 700, textTransform: 'none', fontSize: '0.85rem', borderRadius: '12px', py: 1.2, boxShadow: 'none', '&:hover': { bgcolor: active.color, opacity: 0.9 } }}
+            >
+              {active.confirmLabel}
+            </Button>
           </Box>
         </Box>
-
-        <Box sx={{ mb: 2.5 }}>
-          <SpendBar spent={card.spent} limit={card.limit} />
-        </Box>
-
-        <Typography sx={{ fontSize: '0.82rem', fontWeight: 700, color: '#374151', mb: 1.2 }}>Recent Transactions</Typography>
-        <Box sx={{ mb: 2.5 }}>
-          {card.transactions.map((tx, i) => (
-            <Box key={i} sx={{
-              display: 'flex', justifyContent: 'space-between', py: 1.1,
-              borderBottom: i < card.transactions.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none',
-            }}>
-              <Box>
-                <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: '#0F172A' }}>{tx.name}</Typography>
-                <Typography sx={{ fontSize: '0.68rem', color: '#9CA3AF' }}>{tx.date}</Typography>
-              </Box>
-              <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: tx.amount > 0 ? '#059669' : '#0F172A' }}>
-                {tx.amount > 0 ? '+' : ''}${Math.abs(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
-          <Button fullWidth variant="contained"
-            onClick={() => onToggleLock(card.id)}
-            startIcon={card.status === 'active' ? <LockIcon /> : <UnlockIcon />}
-            sx={{
-              background: card.status === 'active'
-                ? 'linear-gradient(135deg,#FA510F,#D94309)'
-                : 'linear-gradient(135deg,#059669,#047857)',
-              borderRadius: '12px', py: 1.2, fontWeight: 700, textTransform: 'none', fontSize: '0.82rem',
-              boxShadow: card.status === 'active' ? '0 4px 14px rgba(250,81,15,0.3)' : '0 4px 14px rgba(5,150,105,0.3)',
-              '&:hover': { opacity: 0.9 },
-            }}>
-            {card.status === 'active' ? 'Lock Card' : 'Unlock Card'}
-          </Button>
-          <Button fullWidth variant="outlined"
-            sx={{
-              borderColor: 'rgba(0,0,0,0.12)', color: '#374151',
-              borderRadius: '12px', py: 1.2, fontWeight: 700, textTransform: 'none', fontSize: '0.82rem',
-              '&:hover': { bgcolor: '#F8F9FA', borderColor: 'rgba(0,0,0,0.2)' },
-            }}>
-            Settings
-          </Button>
-        </Box>
-      </Box>
+      )}
     </Dialog>
-  );
-}
-
-// ─── Main Page ────────────────────────────────────────────────────────────────
-export default function Cards() {
-  const [cards, setCards] = useState(INITIAL_CARDS);
-  const [addOpen, setAddOpen] = useState(false);
-  const [detailCard, setDetailCard] = useState<typeof INITIAL_CARDS[0] | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'all' | 'active' | 'inactive'>('all');
-
-  const toggleLock = (id: number) => {
-    setCards(prev => prev.map(c =>
-      c.id === id ? { ...c, status: c.status === 'active' ? 'inactive' : 'active' } : c
-    ));
-    setDetailCard(prev => prev?.id === id
-      ? { ...prev, status: prev.status === 'active' ? 'inactive' : 'active' }
-      : prev
-    );
-  };
-
-  const filtered = cards.filter(c =>
-    activeTab === 'all' ? true :
-    activeTab === 'active' ? c.status === 'active' : c.status === 'inactive'
-  );
-
-  return (
-    <Box>
-      {/* ── Top bar ── */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
-        <Button
-          variant="contained" startIcon={<AddIcon />}
-          onClick={() => setAddOpen(true)}
-          sx={{
-            background: 'linear-gradient(135deg,#FA510F,#D94309)',
-            borderRadius: '12px', py: 1.2, px: 2.5,
-            textTransform: 'none', fontWeight: 700,
-            boxShadow: '0 6px 20px rgba(250,81,15,0.35)',
-            '&:hover': { background: 'linear-gradient(135deg,#D94309,#B33000)' },
-          }}
-        >
-          Add New Card
-        </Button>
-      </Box>
-
-      {/* ── Stats ── */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4,1fr)' }, gap: 2, mb: 4 }}>
-        {QUICK_STATS.map(s => (
-          <Box key={s.label} sx={{
-            p: { xs: 1.8, sm: 2.2 }, borderRadius: '16px', bgcolor: s.bg,
-            position: 'relative', overflow: 'hidden',
-            transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-2px)' },
-          }}>
-            <Box sx={{ position: 'absolute', top: -16, right: -16, width: 56, height: 56,
-              borderRadius: '50%', bgcolor: s.color + '18' }} />
-            <Typography sx={{ fontSize: '0.65rem', color: '#9CA3AF', fontWeight: 600, mb: 0.3 }}>{s.label}</Typography>
-            <Typography sx={{ fontSize: { xs: '1rem', sm: '1.2rem' }, fontWeight: 800, color: '#0F172A', lineHeight: 1.1 }}>
-              {s.value}
-            </Typography>
-            <Typography sx={{ fontSize: '0.67rem', color: s.color, fontWeight: 700, mt: 0.4 }}>{s.change}</Typography>
-          </Box>
-        ))}
-      </Box>
-
-      {/* ── Filter tabs ── */}
-      <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
-        {(['all', 'active', 'inactive'] as const).map(tab => (
-          <Box key={tab} onClick={() => setActiveTab(tab)} sx={{
-            px: { xs: 1.5, sm: 2 }, py: 0.8, borderRadius: '10px', cursor: 'pointer',
-            fontWeight: 700, fontSize: '0.8rem', textTransform: 'capitalize',
-            bgcolor: activeTab === tab ? '#FA510F' : '#F8F9FA',
-            color: activeTab === tab ? '#fff' : '#6B7280',
-            boxShadow: activeTab === tab ? '0 4px 12px rgba(250,81,15,0.3)' : 'none',
-            transition: 'all 0.2s ease',
-            userSelect: 'none',
-          }}>
-            {tab === 'all' ? `All (${cards.length})` :
-             tab === 'active' ? `Active (${cards.filter(c => c.status === 'active').length})` :
-             `Inactive (${cards.filter(c => c.status === 'inactive').length})`}
-          </Box>
-        ))}
-      </Box>
-
-      {/* ── Cards grid ── */}
-      <Box sx={{
-        display: 'grid',
-        gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,1fr)', xl: 'repeat(3,1fr)' },
-        gap: 3, mb: 4,
-      }}>
-        {filtered.map(card => (
-          <Box key={card.id} sx={{
-            borderRadius: '20px', bgcolor: '#FFFFFF',
-            border: '1px solid rgba(0,0,0,0.07)',
-            boxShadow: '0 2px 16px rgba(0,0,0,0.07)',
-            overflow: 'hidden',
-            transition: 'all 0.3s cubic-bezier(0.34,1.56,0.64,1)',
-            '&:hover': { transform: 'translateY(-5px)', boxShadow: '0 20px 50px rgba(0,0,0,0.13)' },
-          }}>
-            <Box sx={{ p: 2.5, pb: 2 }}>
-              <CardFace card={card} showNumber={false} />
-            </Box>
-
-            <Box sx={{ px: 2.5, pb: 2.5 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
-                <Box>
-                  <Typography sx={{ fontSize: '1rem', fontWeight: 800, color: '#0F172A' }}>{card.name}</Typography>
-                  <Typography sx={{ fontSize: '0.72rem', color: '#9CA3AF' }}>
-                    {card.type} •••• {card.number.slice(-4)}
-                  </Typography>
-                </Box>
-                <Box sx={{
-                  px: 1.2, py: 0.4, borderRadius: '8px',
-                  bgcolor: card.status === 'active' ? '#ECFDF5' : '#FEF2F2',
-                  color: card.status === 'active' ? '#059669' : '#DC2626',
-                  fontSize: '0.68rem', fontWeight: 700,
-                  display: 'flex', alignItems: 'center', gap: 0.4,
-                }}>
-                  {card.status === 'active'
-                    ? <><CheckIcon sx={{ fontSize: '0.72rem' }} />Active</>
-                    : <><BlockIcon sx={{ fontSize: '0.72rem' }} />Locked</>
-                  }
-                </Box>
-              </Box>
-
-              <Box sx={{ mb: 2, p: 1.5, borderRadius: '12px',
-                background: 'linear-gradient(135deg,#FFF4F0,#FEE8DF)' }}>
-                <Typography sx={{ fontSize: '0.63rem', color: '#FA510F', fontWeight: 700, mb: 0.2 }}>
-                  Available Balance
-                </Typography>
-                <Typography sx={{ fontSize: '1.35rem', fontWeight: 800, color: '#FA510F' }}>
-                  ${card.balance.toLocaleString()}
-                </Typography>
-              </Box>
-
-              <Box sx={{ mb: 2 }}>
-                <SpendBar spent={card.spent} limit={card.limit} />
-              </Box>
-
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1 }}>
-                {[
-                  { label: 'Details', icon: <EyeIcon sx={{ fontSize: '1rem' }} />, color: '#FA510F', bg: '#FFF4F0', hbg: '#FFE8DC', action: () => { setDetailCard(card); setDetailOpen(true); } },
-                  {
-                    label: card.status === 'active' ? 'Lock' : 'Unlock',
-                    icon: card.status === 'active' ? <LockIcon sx={{ fontSize: '1rem' }} /> : <UnlockIcon sx={{ fontSize: '1rem' }} />,
-                    color: card.status === 'active' ? '#374151' : '#059669',
-                    bg: card.status === 'active' ? '#F8F9FA' : '#ECFDF5',
-                    hbg: card.status === 'active' ? '#EDEFF5' : '#D1FAE5',
-                    action: () => toggleLock(card.id),
-                  },
-                  { label: 'Settings', icon: <SettingsIcon sx={{ fontSize: '1rem' }} />, color: '#374151', bg: '#F8F9FA', hbg: '#EDEFF5', action: () => {} },
-                ].map(btn => (
-                  <Box key={btn.label} onClick={btn.action} sx={{
-                    py: 1, borderRadius: '10px', cursor: 'pointer',
-                    bgcolor: btn.bg, color: btn.color,
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.4,
-                    transition: 'all 0.18s ease',
-                    '&:hover': { bgcolor: btn.hbg, transform: 'scale(1.04)' },
-                  }}>
-                    {btn.icon}
-                    <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: btn.color }}>{btn.label}</Typography>
-                  </Box>
-                ))}
-              </Box>
-            </Box>
-          </Box>
-        ))}
-
-        {/* Add card placeholder */}
-        <Box onClick={() => setAddOpen(true)} sx={{
-          borderRadius: '20px', border: '2px dashed rgba(250,81,15,0.3)',
-          bgcolor: '#FFFBF9', minHeight: 300,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          gap: 1.5, cursor: 'pointer',
-          transition: 'all 0.25s ease',
-          '&:hover': { border: '2px dashed #FA510F', bgcolor: '#FFF4F0', transform: 'translateY(-5px)' },
-        }}>
-          <Box sx={{
-            width: 54, height: 54, borderRadius: '16px',
-            background: 'linear-gradient(135deg,#FA510F,#D94309)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 6px 20px rgba(250,81,15,0.35)',
-          }}>
-            <AddIcon sx={{ color: '#fff', fontSize: '1.6rem' }} />
-          </Box>
-          <Typography sx={{ fontSize: '0.92rem', fontWeight: 700, color: '#374151' }}>Add New Card</Typography>
-          <Typography sx={{ fontSize: '0.75rem', color: '#9CA3AF', textAlign: 'center', px: 3, lineHeight: 1.5 }}>
-            Link a debit or credit card to your account
-          </Typography>
-        </Box>
-      </Box>
-
-      {/* ── Card Actions strip ── */}
-      <Box sx={{ p: 3, borderRadius: '20px', bgcolor: '#FFFFFF',
-        border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
-        <Typography sx={{ fontSize: '1rem', fontWeight: 800, color: '#0F172A', mb: 2 }}>Card Actions</Typography>
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2,1fr)', sm: 'repeat(4,1fr)' }, gap: 1.5 }}>
-          {[
-            { label: 'Send Money',  icon: SendIcon,       color: '#FA510F', bg: '#FFF4F0' },
-            { label: 'Transfer',    icon: TransferIcon,   color: '#6C63FF', bg: '#F3F2FF' },
-            { label: 'Top Up',      icon: NorthEastIcon,  color: '#059669', bg: '#ECFDF5' },
-            { label: 'Withdraw',    icon: SouthWestIcon,  color: '#D97706', bg: '#FFFBEB' },
-          ].map(a => (
-            <Box key={a.label} sx={{
-              p: 2, borderRadius: '14px', bgcolor: a.bg, cursor: 'pointer',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
-              transition: 'all 0.2s',
-              '&:hover': { transform: 'translateY(-2px)', boxShadow: `0 6px 20px ${a.color}22` },
-            }}>
-              <Box sx={{
-                width: 44, height: 44, borderRadius: '12px', bgcolor: a.color + '20',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <a.icon sx={{ color: a.color, fontSize: '1.25rem' }} />
-              </Box>
-              <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#374151' }}>{a.label}</Typography>
-            </Box>
-          ))}
-        </Box>
-      </Box>
-
-      {/* Dialogs */}
-      <AddCardDialog open={addOpen} onClose={() => setAddOpen(false)} />
-      <CardDetailDialog
-        card={detailCard} open={detailOpen}
-        onClose={() => setDetailOpen(false)}
-        onToggleLock={toggleLock}
-      />
-    </Box>
   );
 }

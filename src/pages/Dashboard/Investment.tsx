@@ -1,3 +1,7 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+'use client';
+
 import { useState, useEffect, useRef } from 'react';
 import {
   Box,
@@ -6,7 +10,9 @@ import {
   Dialog,
   DialogContent,
   IconButton,
+  CircularProgress,
 } from '@mui/material';
+import { useInvestmentPlans, useInitializePayment, useVerifyBitcoinPayment, useCompletePayment, useCurrentUser } from '../../hooks/useAuth';
 import {
   Add as AddIcon,
   TrendingUp as TrendingUpIcon,
@@ -18,142 +24,51 @@ import {
   Diamond as PremiumIcon,
   WorkspacePremium as ExclusiveIcon,
   Stars as SupremeIcon,
-  CheckCircleOutlined as CheckIcon,
   EmojiEvents as TrophyIcon,
 } from '@mui/icons-material';
 import { Chart, registerables } from 'chart.js';
+import agric from "../../assets/agric.jpg"
+import real from "../../assets/real.jpg"
+import supreme from "../../assets/supreme.jpg"
+import investment from "../../assets/investment.jpg"
+import premium from "../../assets/premium.jpg"
+
 
 Chart.register(...registerables);
 
-// ─── Data ─────────────────────────────────────────────────────────────────────
+// ─── Icon and color mappings ────────────────────────────────────────────────
 
-const growthLabels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const growthValues = [23000,25500,24800,27200,29800,32100,30900,34600,36200,39500,41800,45050];
+const iconMap: Record<string, any> = {
+  'Premium Plan': PremiumIcon,
+  'Exclusive Plan': ExclusiveIcon,
+  'Supreme Plan': SupremeIcon,
+  'Real Estate Plan': RealEstateIcon,
+  'Agricultural Plan': AgricIcon,
+};
 
-const allocationData = [
-  { name: 'Equities',    value: 42, color: '#FA510F' },
-  { name: 'Real Estate', value: 28, color: '#6C63FF' },
-  { name: 'Agriculture', value: 18, color: '#10B981' },
-  { name: 'Bonds',       value: 12, color: '#3B82F6' },
-];
+const imageMap: Record<string, string> = {
+  'Premium Plan': premium,
+  'Exclusive Plan': investment,
+  'Supreme Plan': supreme,
+  'Real Estate Plan': real,
+  'Agricultural Plan': agric,
+};
 
-const plans = [
-  {
-    id: 'premium',
-    name: 'Premium Plan',
-    tagline: 'Your smart entry into wealth',
-    type: 'Diversified Equity',
-    icon: PremiumIcon,
-    color: '#FA510F',
-    gradient: 'linear-gradient(135deg, #FA510F 0%, #FF8C66 100%)',
-    invested: 15000,
-    currentValue: 18750,
-    growth: 25,
-    risk: 'Medium',
-    duration: '2 years',
-    minInvestment: 5000,
-    features: [
-      'Diversified equity portfolio',
-      'Monthly performance reports',
-      'Dedicated relationship manager',
-      'Capital protection up to 80%',
-    ],
-    coverImage: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600&q=80',
-    trending: false,
-  },
-  {
-    id: 'exclusive',
-    name: 'Exclusive Plan',
-    tagline: 'High growth for bold investors',
-    type: 'Growth Fund',
-    icon: ExclusiveIcon,
-    color: '#6C63FF',
-    gradient: 'linear-gradient(135deg, #6C63FF 0%, #A89CFF 100%)',
-    invested: 30000,
-    currentValue: 39900,
-    growth: 33,
-    risk: 'High',
-    duration: '3 years',
-    minInvestment: 15000,
-    features: [
-      'Tech & innovation sectors',
-      'Weekly market intelligence',
-      'Priority client support 24/7',
-      'Quarterly portfolio rebalancing',
-    ],
-    coverImage: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=600&q=80',
-    trending: true,
-  },
-  {
-    id: 'supreme',
-    name: 'Supreme Plan',
-    tagline: 'The pinnacle of private wealth',
-    type: 'Private Equity',
-    icon: SupremeIcon,
-    color: '#D97706',
-    gradient: 'linear-gradient(135deg, #D97706 0%, #F59E0B 100%)',
-    invested: 100000,
-    currentValue: 142000,
-    growth: 42,
-    risk: 'Very High',
-    duration: '5 years',
-    minInvestment: 50000,
-    features: [
-      'Private equity & pre-IPO deals',
-      'Bespoke portfolio construction',
-      'VIP events & investor roundtables',
-      'Full capital protection guarantee',
-    ],
-    coverImage: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=600&q=80',
-    trending: false,
-  },
-  {
-    id: 'realestate',
-    name: 'Real Estate Plan',
-    tagline: 'Tangible assets, solid returns',
-    type: 'REIT & Property',
-    icon: RealEstateIcon,
-    color: '#0EA5E9',
-    gradient: 'linear-gradient(135deg, #0EA5E9 0%, #38BDF8 100%)',
-    invested: 50000,
-    currentValue: 61500,
-    growth: 23,
-    risk: 'Medium',
-    duration: '4 years',
-    minInvestment: 20000,
-    features: [
-      'Commercial & residential REITs',
-      'Rental income distributions',
-      'Property development projects',
-      'Annual valuation reports',
-    ],
-    coverImage: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=600&q=80',
-    trending: false,
-  },
-  {
-    id: 'agricultural',
-    name: 'Agricultural Plan',
-    tagline: 'Farm the future, harvest returns',
-    type: 'Agri-Finance',
-    icon: AgricIcon,
-    color: '#10B981',
-    gradient: 'linear-gradient(135deg, #10B981 0%, #34D399 100%)',
-    invested: 25000,
-    currentValue: 30750,
-    growth: 23,
-    risk: 'Low',
-    duration: '2.5 years',
-    minInvestment: 10000,
-    features: [
-      'Farmland & commodity exposure',
-      'ESG-compliant portfolio',
-      'Food security sector focus',
-      'Seasonal yield bonuses',
-    ],
-    coverImage: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&q=80',
-    trending: false,
-  },
-];
+const colorMap: Record<string, string> = {
+  'Premium Plan': '#FA510F',
+  'Exclusive Plan': '#6C63FF',
+  'Supreme Plan': '#D97706',
+  'Real Estate Plan': '#0EA5E9',
+  'Agricultural Plan': '#10B981',
+};
+
+const gradientMap: Record<string, string> = {
+  'Premium Plan': 'linear-gradient(135deg, #FA510F 0%, #FF8C66 100%)',
+  'Exclusive Plan': 'linear-gradient(135deg, #6C63FF 0%, #A89CFF 100%)',
+  'Supreme Plan': 'linear-gradient(135deg, #D97706 0%, #F59E0B 100%)',
+  'Real Estate Plan': 'linear-gradient(135deg, #0EA5E9 0%, #38BDF8 100%)',
+  'Agricultural Plan': 'linear-gradient(135deg, #10B981 0%, #34D399 100%)',
+};
 
 // ─── Animated Counter ──────────────────────────────────────────────────────────
 
@@ -185,123 +100,67 @@ function AnimatedNumber({
   }, [value]);
 
   return (
-    <>
+    <span>
       {prefix}
       {display.toLocaleString('en-US', {
         minimumFractionDigits: decimals,
         maximumFractionDigits: decimals,
       })}
       {suffix}
-    </>
+    </span>
   );
 }
 
 // ─── Risk Badge ────────────────────────────────────────────────────────────────
 
 function RiskBadge({ risk }: { risk: string }) {
-  const map: Record<string, { bg: string; color: string }> = {
-    Low:       { bg: '#ECFDF5', color: '#059669' },
-    Medium:    { bg: '#FFF7ED', color: '#D97706' },
-    High:      { bg: '#FEF2F2', color: '#DC2626' },
-    'Very High':{ bg: '#FDF2F8', color: '#9333EA' },
+  const riskColors: Record<string, { bg: string; color: string }> = {
+    Low: { bg: '#ECFDF5', color: '#059669' },
+    Medium: { bg: '#FEF3C7', color: '#D97706' },
+    High: { bg: '#FEE2E2', color: '#DC2626' },
+    'Very High': { bg: '#F3E8FF', color: '#9333EA' },
   };
-  const s = map[risk] ?? map['Medium'];
+
+  const style = riskColors[risk] || riskColors.Medium;
+
   return (
-    <Box sx={{ px: 1.2, py: 0.4, borderRadius: '8px', bgcolor: s.bg, color: s.color,
-               fontSize: '0.7rem', fontWeight: 700, display: 'inline-block' }}>
+    <Box
+      sx={{
+        px: 1,
+        py: 0.4,
+        borderRadius: '8px',
+        bgcolor: style.bg,
+        color: style.color,
+        fontSize: '0.65rem',
+        fontWeight: 700,
+        textTransform: 'capitalize',
+      }}
+    >
       {risk} Risk
     </Box>
   );
 }
 
-// ─── Chart.js: Area (Portfolio Growth) ────────────────────────────────────────
+// ─── Allocation Chart ──────────────────────────────────────────────────────────
 
-function GrowthChart() {
+function AllocationChart({ allocation }: { allocation?: any }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const canvasRef  = useRef<HTMLCanvasElement>(null);
-  const chartRef   = useRef<Chart | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const chartRef = useRef<Chart | null>(null);
 
-  useEffect(() => {
-    if (!canvasRef.current) return;
-    chartRef.current?.destroy();
-    const ctx = canvasRef.current.getContext('2d')!;
-    const gradient = ctx.createLinearGradient(0, 0, 0, 220);
-    gradient.addColorStop(0, 'rgba(250,81,15,0.22)');
-    gradient.addColorStop(1, 'rgba(250,81,15,0)');
-
-    chartRef.current = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: growthLabels,
-        datasets: [{
-          data: growthValues,
-          borderColor: '#FA510F',
-          borderWidth: 2.5,
-          fill: true,
-          backgroundColor: gradient,
-          tension: 0.45,
-          pointRadius: 0,
-          pointHoverRadius: 5,
-          pointHoverBackgroundColor: '#FA510F',
-          pointHoverBorderColor: '#fff',
-          pointHoverBorderWidth: 2,
-        }],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: '#0F172A',
-            titleColor: 'rgba(255,255,255,0.55)',
-            bodyColor: '#fff',
-            bodyFont: { weight: 'bold', size: 14 },
-            padding: 10,
-            cornerRadius: 10,
-            callbacks: {
-              label: (c) => ` $${(c.parsed.y as number).toLocaleString()}`,
-            },
-          },
-        },
-        scales: {
-          x: {
-            grid: { display: false },
-            border: { display: false },
-            ticks: { color: '#9CA3AF', font: { size: 11 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 6 },
-          },
-          y: {
-            grid: { color: 'rgba(0,0,0,0.05)' },
-            border: { display: false, dash: [4, 4] },
-            ticks: {
-              color: '#9CA3AF',
-              font: { size: 11 },
-              maxTicksLimit: 5,
-              callback: (v) => `$${(Number(v) / 1000).toFixed(0)}k`,
-            },
-          },
-        },
-      },
-    });
-
-    const ro = new ResizeObserver(() => { chartRef.current?.resize(); });
-    if (wrapperRef.current) ro.observe(wrapperRef.current);
-    return () => { ro.disconnect(); chartRef.current?.destroy(); };
-  }, []);
-
-  return (
-    <Box ref={wrapperRef} sx={{ position: 'relative', width: '100%', height: 220 }}>
-      <canvas ref={canvasRef} />
-    </Box>
-  );
-}
-
-// ─── Chart.js: Doughnut (Allocation) ──────────────────────────────────────────
-
-function AllocationChart() {
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const canvasRef  = useRef<HTMLCanvasElement>(null);
-  const chartRef   = useRef<Chart | null>(null);
+  const allocationData = allocation
+    ? [
+        { name: 'Equities', value: allocation.equities, color: '#FA510F' },
+        { name: 'Real Estate', value: allocation.realEstate, color: '#6C63FF' },
+        { name: 'Agriculture', value: allocation.agriculture, color: '#10B981' },
+        { name: 'Bonds', value: allocation.bonds, color: '#3B82F6' },
+      ]
+    : [
+        { name: 'Equities', value: 0, color: '#FA510F' },
+        { name: 'Real Estate', value: 0, color: '#6C63FF' },
+        { name: 'Agriculture', value: 0, color: '#10B981' },
+        { name: 'Bonds', value: 0, color: '#3B82F6' },
+      ];
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -311,12 +170,14 @@ function AllocationChart() {
       type: 'doughnut',
       data: {
         labels: allocationData.map((d) => d.name),
-        datasets: [{
-          data: allocationData.map((d) => d.value),
-          backgroundColor: allocationData.map((d) => d.color),
-          borderWidth: 0,
-          hoverOffset: 6,
-        }],
+        datasets: [
+          {
+            data: allocationData.map((d) => d.value),
+            backgroundColor: allocationData.map((d) => d.color),
+            borderWidth: 0,
+            hoverOffset: 6,
+          },
+        ],
       },
       options: {
         responsive: true,
@@ -336,153 +197,20 @@ function AllocationChart() {
         },
       },
     });
-    const ro = new ResizeObserver(() => { chartRef.current?.resize(); });
+    const ro = new ResizeObserver(() => {
+      chartRef.current?.resize();
+    });
     if (wrapperRef.current) ro.observe(wrapperRef.current);
-    return () => { ro.disconnect(); chartRef.current?.destroy(); };
-  }, []);
+    return () => {
+      ro.disconnect();
+      chartRef.current?.destroy();
+    };
+  }, [allocationData]);
 
   return (
     <Box ref={wrapperRef} sx={{ position: 'relative', width: '100%', height: 170 }}>
       <canvas ref={canvasRef} />
     </Box>
-  );
-}
-
-// ─── Plan Detail Dialog ────────────────────────────────────────────────────────
-
-function PlanDialog({
-  plan,
-  open,
-  onClose,
-}: {
-  plan: (typeof plans)[0] | null;
-  open: boolean;
-  onClose: () => void;
-}) {
-  if (!plan) return null;
-  const gain = plan.currentValue - plan.invested;
-
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: '20px',
-            overflow: 'hidden',
-            boxShadow: '0 24px 80px rgba(0,0,0,0.18)',
-          },
-        },
-      }}
-    >
-      {/* Hero image */}
-      <Box sx={{ height: 160, position: 'relative', overflow: 'hidden' }}>
-        <Box
-          component="img"
-          src={plan.coverImage}
-          alt={plan.name}
-          sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
-        />
-        <Box sx={{
-          position: 'absolute', inset: 0,
-          background: 'linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.55))',
-        }} />
-        <Box sx={{ position: 'absolute', bottom: 16, left: 20, color: '#fff' }}>
-          <Typography sx={{ fontSize: '1.3rem', fontWeight: 800, lineHeight: 1 }}>
-            {plan.name}
-          </Typography>
-          <Typography sx={{ fontSize: '0.8rem', opacity: 0.85, mt: 0.3 }}>
-            {plan.tagline}
-          </Typography>
-        </Box>
-        <IconButton
-          onClick={onClose}
-          size="small"
-          sx={{
-            position: 'absolute', top: 12, right: 12,
-            bgcolor: 'rgba(0,0,0,0.35)', color: '#fff',
-            '&:hover': { bgcolor: 'rgba(0,0,0,0.55)' },
-          }}
-        >
-          <CloseIcon fontSize="small" />
-        </IconButton>
-      </Box>
-
-      <DialogContent sx={{ p: 3 }}>
-        {/* Stats */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1.5, mb: 3 }}>
-          {[
-            { label: 'Invested',      value: `$${plan.invested.toLocaleString()}`,    green: false },
-            { label: 'Current Value', value: `$${plan.currentValue.toLocaleString()}`, green: false },
-            { label: 'Total Gain',    value: `+$${gain.toLocaleString()}`,             green: true, sub: `+${plan.growth}%` },
-          ].map((s) => (
-            <Box key={s.label} sx={{ p: 1.5, borderRadius: '12px', bgcolor: '#F8F9FA', textAlign: 'center' }}>
-              <Typography sx={{ fontSize: '0.65rem', color: '#9CA3AF', mb: 0.5, fontWeight: 600 }}>
-                {s.label}
-              </Typography>
-              <Typography sx={{ fontSize: '0.95rem', fontWeight: 800, color: s.green ? '#059669' : '#0F172A' }}>
-                {s.value}
-              </Typography>
-              {s.sub && (
-                <Typography sx={{ fontSize: '0.65rem', color: '#059669', fontWeight: 600 }}>
-                  {s.sub}
-                </Typography>
-              )}
-            </Box>
-          ))}
-        </Box>
-
-        {/* Meta */}
-        <Box sx={{ display: 'flex', gap: 2, mb: 2.5, flexWrap: 'wrap' }}>
-          {[
-            { label: 'Min. Investment', value: `$${plan.minInvestment.toLocaleString()}` },
-            { label: 'Duration',        value: plan.duration },
-          ].map((m) => (
-            <Box key={m.label}>
-              <Typography sx={{ fontSize: '0.7rem', color: '#9CA3AF', mb: 0.3 }}>{m.label}</Typography>
-              <Typography sx={{ fontSize: '0.95rem', fontWeight: 700 }}>{m.value}</Typography>
-            </Box>
-          ))}
-          <Box>
-            <Typography sx={{ fontSize: '0.7rem', color: '#9CA3AF', mb: 0.3 }}>Risk Level</Typography>
-            <RiskBadge risk={plan.risk} />
-          </Box>
-        </Box>
-
-        {/* Features */}
-        <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, mb: 1.2, color: '#374151' }}>
-          What's Included
-        </Typography>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.8, mb: 3 }}>
-          {plan.features.map((f) => (
-            <Box key={f} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CheckIcon sx={{ fontSize: '1rem', color: plan.color }} />
-              <Typography sx={{ fontSize: '0.85rem', color: '#374151' }}>{f}</Typography>
-            </Box>
-          ))}
-        </Box>
-
-        <Button
-          fullWidth
-          variant="contained"
-          sx={{
-            background: plan.gradient,
-            borderRadius: '12px',
-            py: 1.4,
-            fontWeight: 700,
-            textTransform: 'none',
-            fontSize: '0.95rem',
-            boxShadow: `0 6px 20px ${plan.color}40`,
-            '&:hover': { background: plan.gradient, boxShadow: `0 8px 28px ${plan.color}55` },
-          }}
-        >
-          Invest Now
-        </Button>
-      </DialogContent>
-    </Dialog>
   );
 }
 
@@ -492,12 +220,14 @@ function PlanCard({
   plan,
   onViewDetails,
 }: {
-  plan: (typeof plans)[0];
-  onViewDetails: (p: (typeof plans)[0]) => void;
+  plan: any;
+  onViewDetails: (p: any) => void;
 }) {
   const [hovered, setHovered] = useState(false);
-  const gain    = plan.currentValue - plan.invested;
-  const gainPct = ((gain / plan.invested) * 100).toFixed(1);
+  const planColor = colorMap[plan.name] || '#FA510F';
+  const planGradient = gradientMap[plan.name] || 'linear-gradient(135deg, #FA510F 0%, #FF8C66 100%)';
+  const PlanIcon = iconMap[plan.name] || PremiumIcon;
+  const planImage = imageMap[plan.name] || imageMap['Premium Plan'];
 
   return (
     <Box
@@ -509,8 +239,8 @@ function PlanCard({
         overflow: 'hidden',
         bgcolor: '#FFFFFF',
         border: '1px solid',
-        borderColor: hovered ? plan.color + '40' : 'rgba(0,0,0,0.07)',
-        boxShadow: hovered ? `0 16px 48px ${plan.color}20` : '0 2px 12px rgba(0,0,0,0.06)',
+        borderColor: hovered ? planColor + '40' : 'rgba(0,0,0,0.07)',
+        boxShadow: hovered ? `0 16px 48px ${planColor}20` : '0 2px 12px rgba(0,0,0,0.06)',
         transition: 'all 0.3s cubic-bezier(0.34,1.56,0.64,1)',
         transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
         cursor: 'pointer',
@@ -519,230 +249,1066 @@ function PlanCard({
       }}
     >
       {/* Cover */}
-      <Box sx={{ height: 140, position: 'relative', overflow: 'hidden' }}>
+      <Box
+        sx={{
+          height: 140,
+          position: 'relative',
+          overflow: 'hidden',
+          backgroundImage: `url('${planImage}')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        {/* Overlay gradient */}
         <Box
-          component="img"
-          src={plan.coverImage}
-          alt={plan.name}
           sx={{
-            width: '100%', height: '100%', objectFit: 'cover',
-            transition: 'transform 0.4s ease',
-            transform: hovered ? 'scale(1.06)' : 'scale(1)',
+            position: 'absolute',
+            inset: 0,
+            background: `linear-gradient(135deg, ${planColor}99 0%, ${planColor}55 100%)`,
+            opacity: hovered ? 0.6 : 0.7,
+            transition: 'opacity 0.4s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
-        />
-        <Box sx={{
-          position: 'absolute', inset: 0,
-          background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.48))',
-        }} />
-        {plan.trending && (
-          <Box sx={{
-            position: 'absolute', top: 12, right: 12,
-            px: 1.2, py: 0.4, borderRadius: '20px',
-            bgcolor: '#FA510F', color: '#fff',
-            fontSize: '0.65rem', fontWeight: 700,
-            display: 'flex', alignItems: 'center', gap: 0.4,
-          }}>
-            <TrophyIcon sx={{ fontSize: '0.75rem' }} />
-            POPULAR
-          </Box>
-        )}
-        <Box sx={{
-          position: 'absolute', bottom: 12, right: 12,
-          px: 1.2, py: 0.5, borderRadius: '10px',
-          bgcolor: 'rgba(255,255,255,0.15)',
-          backdropFilter: 'blur(8px)',
-          color: '#fff', fontSize: '0.8rem', fontWeight: 700,
-          border: '1px solid rgba(255,255,255,0.2)',
-        }}>
-          +{gainPct}%
+        >
+          <PlanIcon sx={{ color: '#fff', fontSize: '3.5rem', opacity: 0.3 }} />
         </Box>
       </Box>
 
       {/* Body */}
       <Box sx={{ p: 2.5, flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.5 }}>
-          <Box>
-            <Typography sx={{ fontSize: '1rem', fontWeight: 800, color: '#0F172A', mb: 0.2 }}>
+        {/* Header with icon and title */}
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 2 }}>
+          <Box
+            sx={{
+              width: 38,
+              height: 38,
+              borderRadius: '10px',
+              background: planGradient,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: `0 4px 12px ${planColor}35`,
+              flexShrink: 0,
+            }}
+          >
+            <PlanIcon sx={{ color: '#fff', fontSize: '1.1rem' }} />
+          </Box>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#0F172A' }}>
               {plan.name}
             </Typography>
-            <Typography sx={{ fontSize: '0.72rem', color: '#9CA3AF' }}>{plan.type}</Typography>
-          </Box>
-          <Box sx={{
-            width: 38, height: 38, borderRadius: '10px', background: plan.gradient,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: `0 4px 12px ${plan.color}35`, flexShrink: 0,
-          }}>
-            <plan.icon sx={{ color: '#fff', fontSize: '1.1rem' }} />
+            <Typography sx={{ fontSize: '0.7rem', color: '#9CA3AF', mt: 0.2 }}>
+              {plan.description}
+            </Typography>
           </Box>
         </Box>
 
-        {/* Progress */}
+        {/* Expected Return Progress */}
         <Box sx={{ mb: 1.5 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.6 }}>
-            <Typography sx={{ fontSize: '0.72rem', color: '#9CA3AF' }}>Performance</Typography>
-            <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: plan.color }}>
-              {plan.growth}%
+            <Typography sx={{ fontSize: '0.72rem', color: '#9CA3AF' }}>Expected Return</Typography>
+            <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: planColor }}>
+              {plan.expectedReturn}%
             </Typography>
           </Box>
           <Box sx={{ height: 6, borderRadius: '99px', bgcolor: '#F1F3F9', overflow: 'hidden' }}>
-            <Box sx={{
-              height: '100%', width: `${plan.growth}%`, background: plan.gradient,
-              borderRadius: '99px', transition: 'width 1s ease',
-            }} />
+            <Box
+              sx={{
+                height: '100%',
+                width: `${Math.min(plan.expectedReturn, 100)}%`,
+                background: planGradient,
+                borderRadius: '99px',
+                transition: 'width 1s ease',
+              }}
+            />
           </Box>
         </Box>
 
-        {/* Figures */}
+        {/* Info Grid */}
         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, mb: 2 }}>
           <Box sx={{ p: 1.2, borderRadius: '10px', bgcolor: '#F8F9FA' }}>
-            <Typography sx={{ fontSize: '0.65rem', color: '#9CA3AF', mb: 0.3 }}>Invested</Typography>
+            <Typography sx={{ fontSize: '0.65rem', color: '#9CA3AF', mb: 0.3 }}>
+              Min Investment
+            </Typography>
             <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#0F172A' }}>
-              ${plan.invested.toLocaleString()}
+              ${plan.minInvestment}
             </Typography>
           </Box>
-          <Box sx={{ p: 1.2, borderRadius: '10px', bgcolor: '#F0FDF4' }}>
-            <Typography sx={{ fontSize: '0.65rem', color: '#6EE7B7', mb: 0.3, fontWeight: 600 }}>
-              Current Value
+          <Box sx={{ p: 1.2, borderRadius: '10px', bgcolor: '#FFF7ED' }}>
+            <Typography sx={{ fontSize: '0.65rem', color: planColor, mb: 0.3, fontWeight: 600 }}>
+              Duration
             </Typography>
-            <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#059669' }}>
-              ${plan.currentValue.toLocaleString()}
+            <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#0F172A' }}>
+              {plan.duration} months
             </Typography>
           </Box>
         </Box>
 
-        <Box sx={{ mt: 'auto', display: 'flex', alignItems: 'center', gap: 1 }}>
-          <RiskBadge risk={plan.risk} />
-          <Typography sx={{ fontSize: '0.7rem', color: '#9CA3AF', ml: 'auto' }}>
-            {plan.duration}
+        {/* Footer with risk and status */}
+        <Box sx={{ mt: 'auto', display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'space-between' }}>
+          <RiskBadge risk={plan.riskLevel} />
+          <Typography sx={{ fontSize: '0.7rem', color: '#9CA3AF', textTransform: 'capitalize' }}>
+            {plan.status}
           </Typography>
         </Box>
       </Box>
 
       {/* CTA strip */}
-      <Box sx={{
-        mx: 2.5, mb: 2.5, py: 1.2, borderRadius: '12px',
-        background: hovered ? plan.gradient : '#F8F9FA',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.6,
-        transition: 'all 0.3s ease',
-      }}>
-        <Typography sx={{ fontSize: '0.82rem', fontWeight: 700, color: hovered ? '#fff' : '#374151', transition: 'color 0.3s' }}>
-          View Details
+      <Box
+        sx={{
+          mx: 2.5,
+          mb: 2.5,
+          py: 1.2,
+          borderRadius: '12px',
+          background: hovered ? planGradient : '#F8F9FA',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 0.6,
+          transition: 'all 0.3s ease',
+        }}
+      >
+        <AddIcon sx={{ fontSize: '1rem', color: hovered ? '#fff' : planColor }} />
+        <Typography
+          sx={{
+            fontSize: '0.75rem',
+            fontWeight: 700,
+            color: hovered ? '#fff' : planColor,
+          }}
+        >
+          Invest Now
         </Typography>
-        <TrendingUpIcon sx={{ fontSize: '0.9rem', color: hovered ? '#fff' : '#374151', transition: 'color 0.3s' }} />
       </Box>
     </Box>
   );
 }
 
-// ─── Page ──────────────────────────────────────────────────────────────────────
+// ─── Plan Details Dialog ────────────────────────────────────────────────────────
 
-export default function Investments() {
-  const [selectedPlan, setSelectedPlan] = useState<(typeof plans)[0] | null>(null);
-  const [dialogOpen, setDialogOpen]     = useState(false);
+function PlanDialog({
+  open,
+  plan,
+  onClose,
+  onInvest,
+}: {
+  open: boolean;
+  plan: any | null;
+  onClose: () => void;
+  onInvest: (plan: any) => void;
+}) {
+  if (!plan) return null;
 
-  const totalInvested = plans.reduce((s, p) => s + p.invested, 0);
-  const totalValue    = plans.reduce((s, p) => s + p.currentValue, 0);
-  const totalGain     = totalValue - totalInvested;
-  const avgReturn     = ((totalGain / totalInvested) * 100).toFixed(1);
-
-  const ytd = (((growthValues[11] - growthValues[0]) / growthValues[0]) * 100).toFixed(1);
+  const planColor = colorMap[plan.name] || '#FA510F';
 
   return (
-    <Box>
-      {/* Action row */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: '20px',
+            bgcolor: '#FFFFFF',
+          },
+        },
+      }}
+    >
+      <DialogContent sx={{ p: 3 }}>
+        {/* Header */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
+          <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A' }}>
+            {plan.name}
+          </Typography>
+          <IconButton onClick={onClose} size="small">
+            <CloseIcon sx={{ fontSize: '1.2rem' }} />
+          </IconButton>
+        </Box>
+
+        {/* Description */}
+        <Typography sx={{ fontSize: '0.85rem', color: '#6B7280', mb: 2.5, lineHeight: 1.5 }}>
+          {plan.description}
+        </Typography>
+
+        {/* Allocation Chart */}
+        <Box sx={{ mb: 2.5 }}>
+          <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A', mb: 1 }}>
+            Asset Allocation
+          </Typography>
+          <AllocationChart allocation={plan.assetAllocation} />
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.8, mt: 1.5 }}>
+            {Object.entries(plan.assetAllocation || {}).map(([key, value]: [string, any]) => {
+              const colorMap: Record<string, string> = {
+                equities: '#FA510F',
+                realEstate: '#6C63FF',
+                agriculture: '#10B981',
+                bonds: '#3B82F6',
+              };
+              const labelMap: Record<string, string> = {
+                equities: 'Equities',
+                realEstate: 'Real Estate',
+                agriculture: 'Agriculture',
+                bonds: 'Bonds',
+              };
+              return (
+                <Box key={key} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box
+                      sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '2px',
+                        bgcolor: colorMap[key],
+                        flexShrink: 0,
+                      }}
+                    />
+                    <Typography sx={{ fontSize: '0.78rem', color: '#6B7280' }}>
+                      {labelMap[key]}
+                    </Typography>
+                  </Box>
+                  <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#0F172A' }}>
+                    {String(value)}%
+                  </Typography>
+                </Box>
+              );
+            })}
+          </Box>
+        </Box>
+
+        {/* Details Grid */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5, mb: 2.5 }}>
+          {[
+            { label: 'Min Investment', value: `$${plan.minInvestment}`, color: '#FA510F' },
+            { label: 'Duration', value: `${plan.duration} months`, color: '#6C63FF' },
+            { label: 'Expected Return', value: `${plan.expectedReturn}%`, color: '#10B981' },
+            { label: 'Risk Level', value: plan.riskLevel, color: '#D97706' },
+          ].map((item, idx) => (
+            <Box key={idx} sx={{ p: 1.5, borderRadius: '12px', bgcolor: '#F8F9FA' }}>
+              <Typography sx={{ fontSize: '0.65rem', color: '#9CA3AF', mb: 0.5 }}>
+                {item.label}
+              </Typography>
+              <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: item.color }}>
+                {item.value}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+
+        {/* CTA Button */}
         <Button
           variant="contained"
-          startIcon={<AddIcon />}
+          fullWidth
+          onClick={() => onInvest(plan)}
           sx={{
-            background: 'linear-gradient(135deg, #FA510F 0%, #D94309 100%)',
-            borderRadius: '12px', py: 1.2, px: 2.5,
-            textTransform: 'none', fontWeight: 700,
-            boxShadow: '0 6px 20px rgba(250,81,15,0.35)',
-            '&:hover': { background: 'linear-gradient(135deg, #D94309 0%, #B33000 100%)' },
+            bgcolor: planColor,
+            color: '#fff',
+            py: 1.5,
+            borderRadius: '12px',
+            fontWeight: 700,
+            textTransform: 'none',
+            fontSize: '0.9rem',
+            '&:hover': {
+              bgcolor: planColor,
+              opacity: 0.9,
+            },
           }}
         >
-          New Investment
+          Invest in {plan.name}
         </Button>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Payment Modal ─────────────────────────────────────────────────────────────
+
+interface PaymentData {
+  paymentId: string;
+  paymentReference: string;
+  paymentMethod: string;
+  paymentType: string;
+  bitcoinAddress?: string;
+  amountUSD: number;
+  amountBTC?: string;
+  exchangeRate?: number;
+  planName: string;
+  instructions: string;
+  message: string;
+}
+
+function PaymentModal({
+  open,
+  paymentData,
+  onClose,
+  isLoading,
+  onVerifyClick,
+}: {
+  open: boolean;
+  paymentData: PaymentData | null;
+  onClose: () => void;
+  isLoading?: boolean;
+  onVerifyClick?: () => void;
+}) {
+  if (!paymentData) return null;
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: '20px',
+            bgcolor: '#FFFFFF',
+          },
+        },
+      }}
+    >
+      <DialogContent sx={{ p: 3 }}>
+        {/* Header */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
+          <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A' }}>
+            Payment Details
+          </Typography>
+          <IconButton onClick={onClose} size="small" disabled={isLoading}>
+            <CloseIcon sx={{ fontSize: '1.2rem' }} />
+          </IconButton>
+        </Box>
+
+        {/* Payment Info */}
+        <Box sx={{ mb: 3 }}>
+          {/* Plan Name */}
+          <Box sx={{ mb: 2, p: 1.5, borderRadius: '12px', bgcolor: '#F8F9FA' }}>
+            <Typography sx={{ fontSize: '0.65rem', color: '#9CA3AF', mb: 0.5 }}>
+              Plan Name
+            </Typography>
+            <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: '#0F172A' }}>
+              {paymentData.planName}
+            </Typography>
+          </Box>
+
+          {/* Payment Reference */}
+          <Box sx={{ mb: 2, p: 1.5, borderRadius: '12px', bgcolor: '#F8F9FA' }}>
+            <Typography sx={{ fontSize: '0.65rem', color: '#9CA3AF', mb: 0.5 }}>
+              Payment Reference
+            </Typography>
+            <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: '#0F172A', wordBreak: 'break-all' }}>
+              {paymentData.paymentReference}
+            </Typography>
+          </Box>
+
+          {/* Payment Method */}
+          <Box sx={{ mb: 2, p: 1.5, borderRadius: '12px', bgcolor: '#F8F9FA' }}>
+            <Typography sx={{ fontSize: '0.65rem', color: '#9CA3AF', mb: 0.5 }}>
+              Payment Method
+            </Typography>
+            <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: '#0F172A', textTransform: 'uppercase' }}>
+              {paymentData.paymentMethod}
+            </Typography>
+          </Box>
+
+          {/* USD Amount */}
+          <Box sx={{ mb: 2, p: 1.5, borderRadius: '12px', bgcolor: '#F8F9FA' }}>
+            <Typography sx={{ fontSize: '0.65rem', color: '#9CA3AF', mb: 0.5 }}>
+              Amount (USD)
+            </Typography>
+            <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: '#FA510F' }}>
+              ${paymentData.amountUSD}
+            </Typography>
+          </Box>
+
+          {/* BTC Amount if available */}
+          {paymentData.amountBTC && (
+            <Box sx={{ mb: 2, p: 1.5, borderRadius: '12px', bgcolor: '#F8F9FA' }}>
+              <Typography sx={{ fontSize: '0.65rem', color: '#9CA3AF', mb: 0.5 }}>
+                Amount (BTC)
+              </Typography>
+              <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: '#0F172A' }}>
+                {paymentData.amountBTC}
+              </Typography>
+            </Box>
+          )}
+
+          {/* Bitcoin Address if available */}
+          {paymentData.bitcoinAddress && (
+            <Box sx={{ mb: 2, p: 1.5, borderRadius: '12px', bgcolor: '#F8F9FA' }}>
+              <Typography sx={{ fontSize: '0.65rem', color: '#9CA3AF', mb: 0.5 }}>
+                Bitcoin Address
+              </Typography>
+              <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: '#0F172A', wordBreak: 'break-all', fontFamily: 'monospace' }}>
+                {paymentData.bitcoinAddress}
+              </Typography>
+            </Box>
+          )}
+
+          {/* Instructions */}
+          <Box sx={{ mb: 2, p: 1.5, borderRadius: '12px', bgcolor: '#FEF3C7' }}>
+            <Typography sx={{ fontSize: '0.65rem', color: '#92400E', fontWeight: 600, mb: 0.5 }}>
+              Instructions
+            </Typography>
+            <Typography sx={{ fontSize: '0.8rem', color: '#78350F', lineHeight: 1.5 }}>
+              {paymentData.instructions}
+            </Typography>
+          </Box>
+
+          {/* Message */}
+          <Box sx={{ mb: 2, p: 1.5, borderRadius: '12px', bgcolor: '#ECFDF5' }}>
+            <Typography sx={{ fontSize: '0.8rem', color: '#065F46', lineHeight: 1.5 }}>
+              {paymentData.message}
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Verify Payment Button */}
+        <Button
+          variant="contained"
+          fullWidth
+          onClick={onVerifyClick}
+          disabled={isLoading}
+          sx={{
+            bgcolor: '#FA510F',
+            color: '#fff',
+            py: 1.5,
+            borderRadius: '12px',
+            fontWeight: 700,
+            textTransform: 'none',
+            fontSize: '0.9rem',
+            '&:hover': {
+              bgcolor: '#FA510F',
+              opacity: 0.9,
+            },
+            '&:disabled': {
+              opacity: 0.6,
+            },
+          }}
+        >
+          {isLoading ? 'Processing...' : 'Verify Payment'}
+        </Button>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Verify Payment Modal ───────────────────────────────────────────────────────
+
+interface VerifyPaymentModalProps {
+  open: boolean;
+  paymentReference: string;
+  amountBTC: string;
+  onClose: () => void;
+  onVerify: (hash: string) => void;
+  isLoading?: boolean;
+}
+
+function VerifyPaymentModal({
+  open,
+  paymentReference,
+  amountBTC,
+  onClose,
+  onVerify,
+  isLoading,
+}: VerifyPaymentModalProps) {
+  const [transactionHash, setTransactionHash] = useState('');
+
+  const handleVerify = () => {
+    if (!transactionHash.trim()) {
+      alert('Please enter the Bitcoin transaction hash');
+      return;
+    }
+    onVerify(transactionHash);
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: '20px',
+            bgcolor: '#FFFFFF',
+          },
+        },
+      }}
+    >
+      <DialogContent sx={{ p: 3 }}>
+        {/* Header */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
+          <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A' }}>
+            Verify Bitcoin Payment
+          </Typography>
+          <IconButton onClick={onClose} size="small" disabled={isLoading}>
+            <CloseIcon sx={{ fontSize: '1.2rem' }} />
+          </IconButton>
+        </Box>
+
+        {/* Payment Reference */}
+        <Box sx={{ mb: 2, p: 1.5, borderRadius: '12px', bgcolor: '#F8F9FA' }}>
+          <Typography sx={{ fontSize: '0.65rem', color: '#9CA3AF', mb: 0.5 }}>
+            Payment Reference
+          </Typography>
+          <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: '#0F172A', wordBreak: 'break-all' }}>
+            {paymentReference}
+          </Typography>
+        </Box>
+
+        {/* Amount BTC */}
+        <Box sx={{ mb: 2, p: 1.5, borderRadius: '12px', bgcolor: '#F8F9FA' }}>
+          <Typography sx={{ fontSize: '0.65rem', color: '#9CA3AF', mb: 0.5 }}>
+            Amount (BTC)
+          </Typography>
+          <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: '#FA510F' }}>
+            {amountBTC}
+          </Typography>
+        </Box>
+
+        {/* Bitcoin Transaction Hash Input */}
+        <Box sx={{ mb: 2.5 }}>
+          <Typography sx={{ fontSize: '0.65rem', color: '#9CA3AF', mb: 0.8, fontWeight: 600 }}>
+            Bitcoin Transaction Hash
+          </Typography>
+          <input
+            type="text"
+            value={transactionHash}
+            onChange={(e) => setTransactionHash(e.target.value)}
+            placeholder="Enter your transaction hash (e.g., 4d9315506e2b4a8f...)"
+            disabled={isLoading}
+            style={{
+              width: '100%',
+              padding: '12px',
+              borderRadius: '12px',
+              border: '1px solid #E5E7EB',
+              fontSize: '0.9rem',
+              fontFamily: 'monospace',
+              backgroundColor: '#FFFFFF',
+              color: '#0F172A',
+              boxSizing: 'border-box',
+              transition: 'border-color 0.2s',
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = '#FA510F';
+              e.currentTarget.style.outline = 'none';
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = '#E5E7EB';
+            }}
+          />
+          <Typography sx={{ fontSize: '0.7rem', color: '#9CA3AF', mt: 0.8 }}>
+            Enter the transaction hash from your Bitcoin wallet to confirm payment
+          </Typography>
+        </Box>
+
+        {/* Verify Button */}
+        <Button
+          variant="contained"
+          fullWidth
+          onClick={handleVerify}
+          disabled={isLoading || !transactionHash.trim()}
+          sx={{
+            bgcolor: '#FA510F',
+            color: '#fff',
+            py: 1.5,
+            borderRadius: '12px',
+            fontWeight: 700,
+            textTransform: 'none',
+            fontSize: '0.9rem',
+            '&:hover': {
+              bgcolor: '#FA510F',
+              opacity: 0.9,
+            },
+            '&:disabled': {
+              opacity: 0.6,
+              cursor: 'not-allowed',
+            },
+          }}
+        >
+          {isLoading ? 'Verifying...' : 'Verify Payment'}
+        </Button>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Success Modal ──────────────────────────────────────────────────────────────
+
+interface SuccessData {
+  message: string;
+  data: {
+    planName: string;
+    amountInvested: number;
+    status: string;
+    maturityDate: string;
+  };
+}
+
+function SuccessModal({
+  open,
+  successData,
+  onClose,
+}: {
+  open: boolean;
+  successData: SuccessData | null;
+  onClose: () => void;
+}) {
+  if (!successData) return null;
+
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: '20px',
+            bgcolor: '#FFFFFF',
+          },
+        },
+      }}
+    >
+      <DialogContent sx={{ p: 3, textAlign: 'center' }}>
+        {/* Success Icon */}
+        <Box sx={{ mb: 2 }}>
+          <Box
+            sx={{
+              width: '60px',
+              height: '60px',
+              borderRadius: '50%',
+              bgcolor: '#ECFDF5',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto',
+            }}
+          >
+            <Typography sx={{ fontSize: '2rem' }}>✓</Typography>
+          </Box>
+        </Box>
+
+        {/* Success Message */}
+        <Typography
+          sx={{
+            fontSize: '1.2rem',
+            fontWeight: 800,
+            color: '#0F172A',
+            mb: 1,
+          }}
+        >
+          Investment Created Successfully!
+        </Typography>
+
+        <Typography
+          sx={{
+            fontSize: '0.9rem',
+            color: '#6B7280',
+            mb: 3,
+          }}
+        >
+          {successData.message}
+        </Typography>
+
+        {/* Investment Details */}
+        <Box sx={{ mb: 3, textAlign: 'left' }}>
+          {/* Plan Name */}
+          <Box sx={{ mb: 1.5, p: 1.5, borderRadius: '12px', bgcolor: '#F8F9FA' }}>
+            <Typography sx={{ fontSize: '0.65rem', color: '#9CA3AF', mb: 0.5 }}>
+              Plan Name
+            </Typography>
+            <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: '#0F172A' }}>
+              {successData.data.planName}
+            </Typography>
+          </Box>
+
+          {/* Amount Invested */}
+          <Box sx={{ mb: 1.5, p: 1.5, borderRadius: '12px', bgcolor: '#F8F9FA' }}>
+            <Typography sx={{ fontSize: '0.65rem', color: '#9CA3AF', mb: 0.5 }}>
+              Amount Invested
+            </Typography>
+            <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: '#FA510F' }}>
+              ${successData.data.amountInvested}
+            </Typography>
+          </Box>
+
+          {/* Status */}
+          <Box sx={{ mb: 1.5, p: 1.5, borderRadius: '12px', bgcolor: '#F8F9FA' }}>
+            <Typography sx={{ fontSize: '0.65rem', color: '#9CA3AF', mb: 0.5 }}>
+              Status
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: '0.95rem',
+                fontWeight: 700,
+                color: '#10B981',
+                textTransform: 'capitalize',
+              }}
+            >
+              {successData.data.status}
+            </Typography>
+          </Box>
+
+          {/* Maturity Date */}
+          <Box sx={{ mb: 0, p: 1.5, borderRadius: '12px', bgcolor: '#F8F9FA' }}>
+            <Typography sx={{ fontSize: '0.65rem', color: '#9CA3AF', mb: 0.5 }}>
+              Maturity Date
+            </Typography>
+            <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: '#0F172A' }}>
+              {formatDate(successData.data.maturityDate)}
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Close Button */}
+        <Button
+          variant="contained"
+          fullWidth
+          onClick={onClose}
+          sx={{
+            bgcolor: '#FA510F',
+            color: '#fff',
+            py: 1.5,
+            borderRadius: '12px',
+            fontWeight: 700,
+            textTransform: 'none',
+            fontSize: '0.9rem',
+            '&:hover': {
+              bgcolor: '#FA510F',
+              opacity: 0.9,
+            },
+          }}
+        >
+          Done
+        </Button>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Main Component ─────────────────────────────────────────────────────────────
+
+export default function Investments() {
+  const { data: plans, isLoading } = useInvestmentPlans();
+  const { mutate: initializePayment, isPending: isPaymentLoading } = useInitializePayment();
+  const { mutate: verifyPayment, isPending: isVerifyLoading } = useVerifyBitcoinPayment();
+  const { mutate: completePayment, isPending: isCompleteLoading } = useCompletePayment();
+  const currentUser = useCurrentUser();
+  
+  const [selectedPlan, setSelectedPlan] = useState<any | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [verifyModalOpen, setVerifyModalOpen] = useState(false);
+  const [successData, setSuccessData] = useState<SuccessData | null>(null);
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!plans || plans.length === 0) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Typography>No investment plans available</Typography>
+      </Box>
+    );
+  }
+
+  // Calculate statistics from plans
+  const avgReturn = plans.reduce((sum: number, p: any) => sum + (p.expectedReturn || 0), 0) / plans.length;
+  const minInvestment = Math.min(...plans.map((p: any) => p.minInvestment));
+  const maxReturn = Math.max(...plans.map((p: any) => p.expectedReturn));
+
+  // Handle invest click
+  const handleInvest = (plan: any) => {
+    if (!currentUser) {
+      console.error('User not found');
+      return;
+    }
+
+    // Call the payment initialization API with default values
+    initializePayment(
+      {
+        userId: currentUser.userId,
+        planId: plan._id,
+        amount: plan.minInvestment, // Using min investment as default
+        paymentMethod: 'bitcoin', // Default payment method
+      },
+      {
+        onSuccess: (data) => {
+          setPaymentData(data as PaymentData);
+          setPaymentModalOpen(true);
+          setDialogOpen(false); // Close plan details modal
+        },
+        onError: (error) => {
+          console.error('Payment initialization failed:', error);
+          alert('Failed to initialize payment. Please try again.');
+        },
+      }
+    );
+  };
+
+  // Handle verify payment click
+  const handleVerifyPayment = (transactionHash: string) => {
+    if (!paymentData) return;
+
+    verifyPayment(
+      {
+        paymentReference: paymentData.paymentReference,
+        bitcoinTransactionHash: transactionHash,
+        transactionAmountBTC: parseFloat(paymentData.amountBTC || '0'),
+      },
+      {
+        onSuccess: () => {
+          console.log('[v0] Payment verified successfully, completing payment');
+          // Call complete payment API
+          completePayment(
+            {
+              paymentReference: paymentData.paymentReference,
+            },
+            {
+              onSuccess: (completionData) => {
+                console.log('[v0] Payment completed successfully:', completionData);
+                setSuccessData({
+                  message: completionData.message,
+                  data: completionData.data,
+                });
+                setSuccessModalOpen(true);
+                setVerifyModalOpen(false);
+                setPaymentModalOpen(false);
+              },
+              onError: (error) => {
+                console.error('[v0] Payment completion failed:', error);
+                alert('Payment completion failed. Please try again.');
+              },
+            }
+          );
+        },
+        onError: (error) => {
+          console.error('[v0] Payment verification failed:', error);
+          alert('Payment verification failed. Please check your transaction hash and try again.');
+        },
+      }
+    );
+  };
+
+  return (
+    <Box sx={{ p: 0 }}>
+      {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: '#0F172A', mb: 0.5 }}>
+          Investment Plans
+        </Typography>
+        <Typography sx={{ fontSize: '0.95rem', color: '#6B7280' }}>
+          Choose from our curated portfolio of investment opportunities
+        </Typography>
       </Box>
 
-      {/* Summary cards */}
+      {/* Stats */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4,1fr)' }, gap: 2, mb: 4 }}>
         {[
-          { label: 'Total Invested',  value: totalInvested,          prefix: '$',  suffix: '',  color: '#FA510F', bg: '#FFF4F0', icon: BankIcon,       sub: `${plans.length} active plans` },
-          { label: 'Portfolio Value', value: totalValue,             prefix: '$',  suffix: '',  color: '#6C63FF', bg: '#F3F2FF', icon: TrendingUpIcon,  sub: 'Updated today' },
-          { label: 'Total Gains',     value: totalGain,              prefix: '+$', suffix: '',  color: '#059669', bg: '#ECFDF5', icon: ArrowUpIcon,     sub: 'All time profit' },
-          { label: 'Avg. Return',     value: parseFloat(avgReturn),  prefix: '',   suffix: '%', color: '#D97706', bg: '#FFFBEB', icon: TrophyIcon,      sub: 'Across all plans' },
-        ].map((stat) => (
-          <Box key={stat.label} sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: '16px', bgcolor: stat.bg, position: 'relative', overflow: 'hidden' }}>
-            <Box sx={{ position: 'absolute', top: -10, right: -10, width: 60, height: 60, borderRadius: '50%', bgcolor: stat.color + '18' }} />
-            <Box sx={{ width: 34, height: 34, borderRadius: '10px', bgcolor: stat.color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1.5 }}>
-              <stat.icon sx={{ color: stat.color, fontSize: '1.1rem' }} />
+          {
+            label: 'Active Plans',
+            value: plans?.length || 0,
+            prefix: '',
+            suffix: '',
+            color: '#FA510F',
+            bg: '#FFF4F0',
+            icon: BankIcon,
+            sub: 'Available plans',
+          },
+          {
+            label: 'Min Investment',
+            value: minInvestment,
+            prefix: '$',
+            suffix: '',
+            color: '#6C63FF',
+            bg: '#F3F2FF',
+            icon: TrendingUpIcon,
+            sub: 'Starting amount',
+          },
+          {
+            label: 'Max Return',
+            value: maxReturn,
+            prefix: '',
+            suffix: '%',
+            color: '#059669',
+            bg: '#ECFDF5',
+            icon: ArrowUpIcon,
+            sub: 'Highest expected',
+          },
+          {
+            label: 'Avg. Return',
+            value: avgReturn,
+            prefix: '',
+            suffix: '%',
+            color: '#D97706',
+            bg: '#FFFBEB',
+            icon: TrophyIcon,
+            sub: 'Across all plans',
+          },
+        ].map((stat, idx) => (
+          <Box
+            key={idx}
+            sx={{
+              p: 2,
+              borderRadius: '16px',
+              bgcolor: stat.bg,
+              border: '1px solid rgba(0,0,0,0.05)',
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.5 }}>
+              <Typography sx={{ fontSize: '0.78rem', color: '#9CA3AF', fontWeight: 600 }}>
+                {stat.label}
+              </Typography>
+              <stat.icon sx={{ fontSize: '1.2rem', color: stat.color, opacity: 0.6 }} />
             </Box>
-            <Typography sx={{ fontSize: '0.7rem', color: '#9CA3AF', mb: 0.3, fontWeight: 600 }}>{stat.label}</Typography>
-            <Typography sx={{ fontSize: { xs: '1.1rem', sm: '1.3rem' }, fontWeight: 800, color: '#0F172A', lineHeight: 1.1 }}>
-              <AnimatedNumber value={stat.value} prefix={stat.prefix} suffix={stat.suffix} decimals={stat.suffix === '%' ? 1 : 0} />
+            <Typography sx={{ fontSize: '1.6rem', fontWeight: 800, color: stat.color, mb: 0.5 }}>
+              <AnimatedNumber value={stat.value} prefix={stat.prefix} suffix={stat.suffix} decimals={0} />
             </Typography>
-            <Typography sx={{ fontSize: '0.68rem', color: '#9CA3AF', mt: 0.4 }}>{stat.sub}</Typography>
+            <Typography sx={{ fontSize: '0.7rem', color: '#9CA3AF' }}>{stat.sub}</Typography>
           </Box>
         ))}
       </Box>
 
-      {/* Charts */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 2.5, mb: 4 }}>
-        {/* Growth */}
-        <Box sx={{ p: 3, borderRadius: '20px', bgcolor: '#FFFFFF', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', minWidth: 0, overflow: 'hidden' }}>
+      {/* Allocation Chart */}
+      <Box sx={{ mb: 4 }}>
+        <Box
+          sx={{
+            p: 3,
+            borderRadius: '20px',
+            bgcolor: '#FFFFFF',
+            border: '1px solid rgba(0,0,0,0.06)',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
+          }}
+        >
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
             <Box>
-              <Typography sx={{ fontSize: '1rem', fontWeight: 800, color: '#0F172A' }}>Portfolio Growth</Typography>
-              <Typography sx={{ fontSize: '0.72rem', color: '#9CA3AF' }}>12-month performance</Typography>
-            </Box>
-            <Box sx={{ px: 1.5, py: 0.5, borderRadius: '8px', bgcolor: '#ECFDF5', color: '#059669', fontSize: '0.75rem', fontWeight: 700 }}>
-              +{ytd}% YTD
+              <Typography sx={{ fontSize: '1rem', fontWeight: 800, color: '#0F172A' }}>
+                Allocation
+              </Typography>
+              <Typography sx={{ fontSize: '0.72rem', color: '#9CA3AF', mt: 0.3 }}>
+                Current portfolio
+              </Typography>
             </Box>
           </Box>
-          <GrowthChart />
-        </Box>
-
-        {/* Allocation */}
-        <Box sx={{ p: 3, borderRadius: '20px', bgcolor: '#FFFFFF', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', minWidth: 0, overflow: 'hidden' }}>
-          <Typography sx={{ fontSize: '1rem', fontWeight: 800, color: '#0F172A', mb: 0.5 }}>Allocation</Typography>
-          <Typography sx={{ fontSize: '0.72rem', color: '#9CA3AF', mb: 2 }}>Asset distribution</Typography>
-          <AllocationChart />
+          <AllocationChart allocation={plans?.[0]?.assetAllocation} />
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1.5 }}>
-            {allocationData.map((item) => (
-              <Box key={item.name} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: item.color, flexShrink: 0 }} />
-                  <Typography sx={{ fontSize: '0.78rem', color: '#6B7280' }}>{item.name}</Typography>
-                </Box>
-                <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#0F172A' }}>{item.value}%</Typography>
-              </Box>
-            ))}
+            {plans?.[0]?.assetAllocation &&
+              Object.entries(plans[0].assetAllocation).map(([key, value]: any) => {
+                const colorMap: Record<string, string> = {
+                  equities: '#FA510F',
+                  realEstate: '#6C63FF',
+                  agriculture: '#10B981',
+                  bonds: '#3B82F6',
+                };
+                const labelMap: Record<string, string> = {
+                  equities: 'Equities',
+                  realEstate: 'Real Estate',
+                  agriculture: 'Agriculture',
+                  bonds: 'Bonds',
+                };
+                return (
+                  <Box key={key} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '2px',
+                          bgcolor: colorMap[key],
+                          flexShrink: 0,
+                        }}
+                      />
+                      <Typography sx={{ fontSize: '0.78rem', color: '#6B7280' }}>
+                        {labelMap[key]}
+                      </Typography>
+                    </Box>
+                    <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#0F172A' }}>
+                      {value}%
+                    </Typography>
+                  </Box>
+                );
+              })}
           </Box>
         </Box>
       </Box>
 
-      {/* Plans heading */}
-      <Box sx={{ mb: 2.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A' }}>Your Investment Plans</Typography>
-        <Box sx={{ px: 1.2, py: 0.3, borderRadius: '8px', bgcolor: '#F1F5F9', fontSize: '0.72rem', fontWeight: 700, color: '#64748B' }}>
-          {plans.length} plans
-        </Box>
-      </Box>
-
-      {/* Plans grid */}
+      {/* Plans Grid */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,1fr)', lg: 'repeat(3,1fr)' }, gap: 2.5 }}>
-        {plans.map((plan) => (
+        {plans.map((plan: any) => (
           <PlanCard
-            key={plan.id}
+            key={plan._id}
             plan={plan}
-            onViewDetails={(p) => { setSelectedPlan(p); setDialogOpen(true); }}
+            onViewDetails={(p) => {
+              setSelectedPlan(p);
+              setDialogOpen(true);
+            }}
           />
         ))}
       </Box>
 
-      <PlanDialog plan={selectedPlan} open={dialogOpen} onClose={() => setDialogOpen(false)} />
+      {/* Plan Details Dialog */}
+      <PlanDialog 
+        open={dialogOpen} 
+        plan={selectedPlan} 
+        onClose={() => setDialogOpen(false)} 
+        onInvest={handleInvest}
+      />
+
+      {/* Payment Modal */}
+      <PaymentModal
+        open={paymentModalOpen}
+        paymentData={paymentData}
+        onClose={() => setPaymentModalOpen(false)}
+        isLoading={isPaymentLoading}
+        onVerifyClick={() => setVerifyModalOpen(true)}
+      />
+
+      {/* Verify Payment Modal */}
+      <VerifyPaymentModal
+        open={verifyModalOpen}
+        paymentReference={paymentData?.paymentReference || ''}
+        amountBTC={paymentData?.amountBTC || ''}
+        onClose={() => setVerifyModalOpen(false)}
+        onVerify={handleVerifyPayment}
+        isLoading={isVerifyLoading || isCompleteLoading}
+      />
+
+      {/* Success Modal */}
+      <SuccessModal
+        open={successModalOpen}
+        successData={successData}
+        onClose={() => {
+          setSuccessModalOpen(false);
+          // Reset all payment states
+          setPaymentData(null);
+          setSuccessData(null);
+        }}
+      />
     </Box>
   );
 }

@@ -1,19 +1,19 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Typography,
-  Button,
+  // Button,
   TextField,
-//   MenuItem,
   IconButton,
   Dialog,
   InputAdornment,
+  CircularProgress,
 } from '@mui/material';
 import {
-  ArrowDownward as IncomeIcon,
+  // ArrowDownward as IncomeIcon,
   ArrowUpward as ExpenseIcon,
-  Download as DownloadIcon,
+  ChevronLeft as ChevronIcon,
+  // Download as DownloadIcon,
   Search as SearchIcon,
   Close as CloseIcon,
   CheckCircle as CheckIcon,
@@ -21,30 +21,29 @@ import {
   CreditCard as CardIcon,
   FilterList as FilterIcon,
   Receipt as ReceiptIcon,
-  ShoppingBag as ShoppingIcon,
-  LocalCafe as CafeIcon,
-  FitnessCenter as GymIcon,
-  LocalGasStation as GasIcon,
-  Restaurant as RestaurantIcon,
-  SwapHoriz as TransferIcon,
-  Subscriptions as SubsIcon,
+  // ShoppingBag as ShoppingIcon,
+  // LocalCafe as CafeIcon,
+  // FitnessCenter as GymIcon,
+  // LocalGasStation as GasIcon,
+  // Restaurant as RestaurantIcon,
+  // SwapHoriz as TransferIcon,
+  // Subscriptions as SubsIcon,
   AccountBalanceWallet as WalletIcon,
-  Bolt as BoltIcon,
-  MedicalServices as MedIcon,
-  Flight as TravelIcon,
-  Home as RentIcon,
-  ArrowForwardIos as ChevronIcon,
+  // Bolt as BoltIcon,
+  // MedicalServices as MedIcon,
+  // Flight as TravelIcon,
+  // Home as RentIcon,
+  TrendingUp as GainIcon,
+  AccountBalance as SavingsIcon,
 } from '@mui/icons-material';
-import { Chart, registerables } from 'chart.js';
-
-Chart.register(...registerables);
+import { useInvestmentTransactions, useSavingsTransactions } from '../../hooks/useAuth';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type TxStatus = 'completed' | 'pending' | 'failed';
-type TxType   = 'income' | 'expense';
+type TxType   = 'income' | 'expense' | 'investment' | 'savings';
 
-interface Transaction {
-  id: number;
+interface TransactionDisplay {
+  id: string;
   name: string;
   category: string;
   amount: number;
@@ -58,32 +57,11 @@ interface Transaction {
   iconBg: string;
 }
 
-// ─── Data ─────────────────────────────────────────────────────────────────────
-const ALL_TRANSACTIONS: Transaction[] = [
-  { id:  1, name: 'Salary Deposit',      category: 'Income',         amount:  8500.00, date: '2024-12-23', status: 'completed', type: 'income',  card: 'Primary ••4210', Icon: WalletIcon,    iconColor: '#059669', iconBg: '#ECFDF5', note: 'Monthly salary - December' },
-  { id:  2, name: 'Netflix',             category: 'Entertainment',  amount:   -15.99, date: '2024-12-22', status: 'completed', type: 'expense', card: 'Primary ••4210', Icon: SubsIcon,      iconColor: '#DC2626', iconBg: '#FEF2F2', note: 'Monthly subscription' },
-  { id:  3, name: 'Apple Store',         category: 'Shopping',       amount:  -299.00, date: '2024-12-22', status: 'completed', type: 'expense', card: 'Primary ••4210', Icon: ShoppingIcon,  iconColor: '#FA510F', iconBg: '#FFF4F0' },
-  { id:  4, name: 'Starbucks',           category: 'Food & Drink',   amount:    -6.50, date: '2024-12-21', status: 'completed', type: 'expense', card: 'Savings ••0986', Icon: CafeIcon,      iconColor: '#92400E', iconBg: '#FEF3C7' },
-  { id:  5, name: 'Freelance Payment',   category: 'Income',         amount:  2200.00, date: '2024-12-20', status: 'completed', type: 'income',  card: 'Primary ••4210', Icon: WalletIcon,    iconColor: '#059669', iconBg: '#ECFDF5', note: 'Web design project' },
-  { id:  6, name: 'Gym Membership',      category: 'Health',         amount:   -50.00, date: '2024-12-19', status: 'completed', type: 'expense', card: 'Savings ••0986', Icon: GymIcon,       iconColor: '#7C3AED', iconBg: '#EDE9FE' },
-  { id:  7, name: 'Shell Gas Station',   category: 'Transport',      amount:   -62.00, date: '2024-12-18', status: 'completed', type: 'expense', card: 'Travel ••2023',  Icon: GasIcon,       iconColor: '#0EA5E9', iconBg: '#F0F9FF' },
-  { id:  8, name: 'Amazon',             category: 'Shopping',       amount:   -89.99, date: '2024-12-17', status: 'pending',   type: 'expense', card: 'Primary ••4210', Icon: ShoppingIcon,  iconColor: '#FA510F', iconBg: '#FFF4F0' },
-  { id:  9, name: 'Chipotle',           category: 'Food & Drink',   amount:   -24.50, date: '2024-12-16', status: 'completed', type: 'expense', card: 'Travel ••2023',  Icon: RestaurantIcon,iconColor: '#D97706', iconBg: '#FFFBEB' },
-  { id: 10, name: 'Transfer to Savings', category: 'Transfer',       amount:  -500.00, date: '2024-12-15', status: 'completed', type: 'expense', card: 'Primary ••4210', Icon: TransferIcon,  iconColor: '#6C63FF', iconBg: '#F3F2FF' },
-  { id: 11, name: 'Electricity Bill',   category: 'Utilities',      amount:   -95.00, date: '2024-12-14', status: 'completed', type: 'expense', card: 'Savings ••0986', Icon: BoltIcon,      iconColor: '#D97706', iconBg: '#FFFBEB' },
-  { id: 12, name: 'Doctor Visit',       category: 'Health',         amount:  -120.00, date: '2024-12-13', status: 'failed',    type: 'expense', card: 'Primary ••4210', Icon: MedIcon,       iconColor: '#DC2626', iconBg: '#FEF2F2', note: 'Payment declined' },
-  { id: 13, name: 'Emirates Air',       category: 'Travel',         amount: -1200.00, date: '2024-12-10', status: 'completed', type: 'expense', card: 'Travel ••2023',  Icon: TravelIcon,    iconColor: '#0EA5E9', iconBg: '#F0F9FF', note: 'Round trip Lagos-Dubai' },
-  { id: 14, name: 'Rent Payment',       category: 'Housing',        amount:  -850.00, date: '2024-12-05', status: 'completed', type: 'expense', card: 'Savings ••0986', Icon: RentIcon,      iconColor: '#374151', iconBg: '#F9FAFB' },
-  { id: 15, name: 'Dividend Income',    category: 'Income',         amount:   340.00, date: '2024-12-03', status: 'completed', type: 'income',  card: 'Savings ••0986', Icon: WalletIcon,    iconColor: '#059669', iconBg: '#ECFDF5', note: 'Q4 dividend payout' },
-];
-
-const CATEGORIES = ['All', 'Income', 'Shopping', 'Food & Drink', 'Health', 'Transport', 'Entertainment', 'Transfer', 'Utilities', 'Travel', 'Housing'];
-
 // ─── Animated number ──────────────────────────────────────────────────────────
 function AnimatedNumber({ value, prefix = '$' }: { value: number; prefix?: string }) {
   const [display, setDisplay] = useState(0);
-  const ref = useRef<number | null>(null);
-  useEffect(() => {
+  const ref = React.useRef<number | null>(null);
+  React.useEffect(() => {
     ref.current = null;
     const step = (ts: number) => {
       if (!ref.current) ref.current = ts;
@@ -96,120 +74,12 @@ function AnimatedNumber({ value, prefix = '$' }: { value: number; prefix?: strin
   return <>{prefix}{display.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</>;
 }
 
-// ─── Donut chart ──────────────────────────────────────────────────────────────
-function SpendingDonut({ data }: { data: { label: string; value: number; color: string }[] }) {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const chartRef  = useRef<Chart | null>(null);
-
-  useEffect(() => {
-    if (!canvasRef.current) return;
-    chartRef.current?.destroy();
-    chartRef.current = new Chart(canvasRef.current, {
-      type: 'doughnut',
-      data: {
-        labels: data.map(d => d.label),
-        datasets: [{ data: data.map(d => d.value), backgroundColor: data.map(d => d.color), borderWidth: 0, hoverOffset: 8 }],
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false, cutout: '70%',
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: '#0F172A', titleColor: 'rgba(255,255,255,0.5)',
-            bodyColor: '#fff', bodyFont: { weight: 'bold', size: 13 },
-            padding: 10, cornerRadius: 10,
-            callbacks: { label: c => ` $${(c.parsed as number).toLocaleString()}` },
-          },
-        },
-      },
-    });
-    const ro = new ResizeObserver(() => chartRef.current?.resize());
-    if (wrapRef.current) ro.observe(wrapRef.current);
-    return () => { ro.disconnect(); chartRef.current?.destroy(); };
-  }, [data]);
-
-  return (
-    <Box ref={wrapRef} sx={{ position: 'relative', width: '100%', height: { xs: 180, sm: 160 } }}>
-      <canvas ref={canvasRef} />
-    </Box>
-  );
-}
-
-// ─── Bar chart (monthly) ──────────────────────────────────────────────────────
-function MonthlyBar() {
-  const wrapRef  = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const chartRef  = useRef<Chart | null>(null);
-
-  const labels = ['Jul','Aug','Sep','Oct','Nov','Dec'];
-  const income  = [6200, 7100, 6800, 8200, 7500, 11040];
-  const expense = [3800, 4200, 3600, 5100, 4400, 3313];
-
-  useEffect(() => {
-    if (!canvasRef.current) return;
-    chartRef.current?.destroy();
-    chartRef.current = new Chart(canvasRef.current, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [
-          { label: 'Income',  data: income,  backgroundColor: 'rgba(5,150,105,0.85)',  borderRadius: 6, borderSkipped: false },
-          { label: 'Expense', data: expense, backgroundColor: 'rgba(250,81,15,0.85)',  borderRadius: 6, borderSkipped: false },
-        ],
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        layout: { padding: { left: 0, right: 0, top: 4, bottom: 0 } },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: '#0F172A', titleColor: 'rgba(255,255,255,0.5)',
-            bodyColor: '#fff', bodyFont: { weight: 'bold' },
-            padding: 10, cornerRadius: 10,
-            callbacks: { label: c => ` $${(c.parsed.y as number).toLocaleString()}` },
-          },
-        },
-        scales: {
-          x: {
-            grid: { display: false },
-            border: { display: false },
-            ticks: {
-              color: '#9CA3AF',
-              font: { size: 10 },
-              maxRotation: 0,
-              autoSkip: true,
-              maxTicksLimit: 6,
-            },
-          },
-          y: {
-            grid: { color: 'rgba(0,0,0,0.04)' },
-            border: { display: false },
-            ticks: {
-              color: '#9CA3AF',
-              font: { size: 10 },
-              maxTicksLimit: 4,
-              callback: v => `$${(Number(v)/1000).toFixed(0)}k`,
-            },
-          },
-        },
-      },
-    });
-    const ro = new ResizeObserver(() => chartRef.current?.resize());
-    if (wrapRef.current) ro.observe(wrapRef.current);
-    return () => { ro.disconnect(); chartRef.current?.destroy(); };
-  }, []);
-
-  return (
-    <Box ref={wrapRef} sx={{ position: 'relative', width: '100%', height: 180 }}>
-      <canvas ref={canvasRef} />
-    </Box>
-  );
-}
-
 // ─── Transaction Detail Dialog ────────────────────────────────────────────────
-function TxDetail({ tx, open, onClose }: { tx: Transaction | null; open: boolean; onClose: () => void }) {
+function TxDetail({ tx, open, onClose }: { tx: TransactionDisplay | null; open: boolean; onClose: () => void }) {
   if (!tx) return null;
+  
+  const isPositive = tx.amount >= 0;
+  
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth
       slotProps={{ paper: { sx: { borderRadius: '24px', m: { xs: 1.5, sm: 3 } } } }}>
@@ -229,8 +99,8 @@ function TxDetail({ tx, open, onClose }: { tx: Transaction | null; open: boolean
           <Typography sx={{ fontWeight: 800, fontSize: '1rem', color: '#0F172A' }}>{tx.name}</Typography>
           <Typography sx={{ fontSize: '0.75rem', color: '#9CA3AF', mt: 0.3 }}>{tx.category}</Typography>
           <Typography sx={{ fontSize: '1.9rem', fontWeight: 900, mt: 1.5,
-            color: tx.type === 'income' ? '#059669' : '#0F172A' }}>
-            {tx.type === 'income' ? '+' : '-'}${Math.abs(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            color: isPositive ? '#059669' : '#0F172A' }}>
+            {isPositive ? '+' : '-'}${Math.abs(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </Typography>
         </Box>
 
@@ -289,56 +159,107 @@ function StatusPill({ status }: { status: TxStatus }) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function Transactions() {
   const [search, setSearch]       = useState('');
-  const [statusFilter, setStatus] = useState('all');
-  const [categoryFilter, setCat]  = useState('All');
+  // const [statusFilter, setStatus] = useState('all');
   const [typeFilter, setType]     = useState('all');
-  const [selectedTx, setSelected] = useState<Transaction | null>(null);
+  const [selectedTx, setSelected] = useState<TransactionDisplay | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+
+  // Fetch investment and savings transactions
+  const { data: investmentData, isLoading: investmentLoading } = useInvestmentTransactions();
+  const { data: savingsData, isLoading: savingsLoading } = useSavingsTransactions();
+
+  // Transform API data to display format
+  const ALL_TRANSACTIONS = useMemo(() => {
+    const transactions: TransactionDisplay[] = [];
+
+    // Add investment transactions
+    if (investmentData?.transactions) {
+      investmentData.transactions.forEach((tx) => {
+        const typeMap: Record<string, { Icon: React.ElementType; color: string; bg: string; displayType: TxType }> = {
+          buy: { Icon: WalletIcon, color: '#0EA5E9', bg: '#F0F9FF', displayType: 'investment' },
+          sell: { Icon: ExpenseIcon, color: '#FA510F', bg: '#FFF4F0', displayType: 'investment' },
+          dividend: { Icon: GainIcon, color: '#059669', bg: '#ECFDF5', displayType: 'investment' },
+          gain_update: { Icon: GainIcon, color: '#7C3AED', bg: '#EDE9FE', displayType: 'investment' },
+        };
+        
+        const typeInfo = typeMap[tx.type] || typeMap.buy;
+        
+        transactions.push({
+          id: tx._id,
+          name: tx.description,
+          category: 'Investment',
+          amount: tx.type === 'buy' || tx.type === 'dividend' ? tx.amount : -tx.amount,
+          date: new Date(tx.timestamp).toISOString().split('T')[0],
+          status: 'completed',
+          type: typeInfo.displayType,
+          card: 'Investment Account',
+          Icon: typeInfo.Icon,
+          iconColor: typeInfo.color,
+          iconBg: typeInfo.bg,
+        });
+      });
+    }
+
+    // Add savings transactions
+    if (savingsData?.transactions) {
+      savingsData.transactions.forEach((tx) => {
+        const typeMap: Record<string, { Icon: React.ElementType; color: string; bg: string }> = {
+          deposit: { Icon: SavingsIcon, color: '#059669', bg: '#ECFDF5' },
+          withdrawal: { Icon: ExpenseIcon, color: '#FA510F', bg: '#FFF4F0' },
+          interest: { Icon: GainIcon, color: '#7C3AED', bg: '#EDE9FE' },
+        };
+        
+        const typeInfo = typeMap[tx.type] || typeMap.deposit;
+        
+        transactions.push({
+          id: tx._id,
+          name: tx.description,
+          category: 'Savings',
+          amount: tx.type === 'withdrawal' ? -tx.amount : tx.amount,
+          date: new Date(tx.timestamp).toISOString().split('T')[0],
+          status: 'completed',
+          type: 'savings',
+          card: 'Savings Account',
+          Icon: typeInfo.Icon,
+          iconColor: typeInfo.color,
+          iconBg: typeInfo.bg,
+        });
+      });
+    }
+
+    return transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [investmentData, savingsData]);
 
   const filtered = useMemo(() => ALL_TRANSACTIONS.filter(tx => {
     if (search && !tx.name.toLowerCase().includes(search.toLowerCase()) &&
         !tx.category.toLowerCase().includes(search.toLowerCase())) return false;
-    if (statusFilter !== 'all' && tx.status !== statusFilter) return false;
-    if (categoryFilter !== 'All' && tx.category !== categoryFilter) return false;
     if (typeFilter !== 'all' && tx.type !== typeFilter) return false;
     return true;
-  }), [search, statusFilter, categoryFilter, typeFilter]);
+  }), [search, typeFilter, ALL_TRANSACTIONS]);
 
-  const totalIncome  = ALL_TRANSACTIONS.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const totalExpense = Math.abs(ALL_TRANSACTIONS.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0));
-  const pending      = ALL_TRANSACTIONS.filter(t => t.status === 'pending').length;
-  const net          = totalIncome - totalExpense;
+  const isLoading = investmentLoading || savingsLoading;
+  const totalInvestment = ALL_TRANSACTIONS.filter(t => t.type === 'investment').reduce((s, t) => s + t.amount, 0);
+  const totalSavings    = ALL_TRANSACTIONS.filter(t => t.type === 'savings').reduce((s, t) => s + t.amount, 0);
+  const totalAll        = totalInvestment + totalSavings;
 
-  // Spending by category (for donut)
-  const categoryTotals = useMemo(() => {
-    const map: Record<string, number> = {};
-    ALL_TRANSACTIONS.filter(t => t.type === 'expense').forEach(t => {
-      map[t.category] = (map[t.category] || 0) + Math.abs(t.amount);
-    });
-    const colors = ['#FA510F','#D97706','#059669','#0EA5E9','#6C63FF','#DC2626','#374151','#10B981'];
-    return Object.entries(map).map(([label, value], i) => ({ label, value, color: colors[i % colors.length] }))
-      .sort((a, b) => b.value - a.value).slice(0, 6);
-  }, []);
-
-  const handleExport = () => {
-    const rows = ['Name,Category,Amount,Date,Status',
-      ...filtered.map(t => `${t.name},${t.category},${t.amount},${t.date},${t.status}`)];
-    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a'); a.href = url; a.download = 'transactions.csv'; a.click();
-    URL.revokeObjectURL(url);
-  };
+  // const handleExport = () => {
+  //   const rows = ['Name,Category,Amount,Date,Status',
+  //     ...filtered.map(t => `${t.name},${t.category},${t.amount},${t.date},${t.status}`)];
+  //   const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+  //   const url  = URL.createObjectURL(blob);
+  //   const a    = document.createElement('a'); a.href = url; a.download = 'transactions.csv'; a.click();
+  //   URL.revokeObjectURL(url);
+  // };
 
   return (
     <Box>
       {/* ── Summary cards ── */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4,1fr)' }, gap: { xs: 1.5, sm: 2 }, mb: 3.5 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(3,1fr)' }, gap: { xs: 1.5, sm: 2 }, mb: 3.5 }}>
         {[
-          { label: 'Total Income',   value: totalIncome,  Icon: IncomeIcon,  color: '#059669', bg: '#ECFDF5', prefix: '+$' },
-          { label: 'Total Expenses', value: totalExpense, Icon: ExpenseIcon, color: '#FA510F', bg: '#FFF4F0', prefix: '-$' },
-          { label: 'Net Balance',    value: net,          Icon: CardIcon,    color: '#6C63FF', bg: '#F3F2FF', prefix: '$' },
-          { label: 'Pending',        value: pending,      Icon: PendingIcon, color: '#D97706', bg: '#FFFBEB', prefix: '', isCount: true },
+          { label: 'Total Investments', value: totalInvestment, Icon: GainIcon, color: '#0EA5E9', bg: '#F0F9FF', prefix: '$' },
+          { label: 'Total Savings',     value: totalSavings,    Icon: SavingsIcon, color: '#059669', bg: '#ECFDF5', prefix: '$' },
+          { label: 'Combined Total',    value: totalAll,        Icon: CardIcon, color: '#6C63FF', bg: '#F3F2FF', prefix: '$' },
         ].map(s => (
           <Box key={s.label} sx={{
             p: { xs: 1.5, sm: 2.5 }, borderRadius: '16px', bgcolor: s.bg,
@@ -355,54 +276,10 @@ export default function Transactions() {
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.label}</Typography>
             <Typography sx={{ fontSize: { xs: '0.88rem', sm: '1.15rem' }, fontWeight: 800, color: '#0F172A', lineHeight: 1.1,
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {s.isCount ? `${s.value} pending` : <AnimatedNumber value={s.value as number} prefix={s.prefix} />}
+              <AnimatedNumber value={s.value as number} prefix={s.prefix} />
             </Typography>
           </Box>
         ))}
-      </Box>
-
-      {/* ── Charts row ── */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2.5, mb: 3.5 }}>
-        {/* Monthly bar */}
-        <Box sx={{ p: { xs: 2, sm: 3 }, borderRadius: '20px', bgcolor: '#fff',
-          border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', minWidth: 0, overflow: 'hidden' }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2, flexWrap: 'wrap', gap: 1 }}>
-            <Box>
-              <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: '#0F172A' }}>Monthly Overview</Typography>
-              <Typography sx={{ fontSize: '0.72rem', color: '#9CA3AF', mt: 0.3 }}>Income vs Expenses</Typography>
-            </Box>
-            <Box sx={{ display: 'flex', gap: 1.5 }}>
-              {[{ color: '#059669', label: 'Income' }, { color: '#FA510F', label: 'Expense' }].map(l => (
-                <Box key={l.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: l.color }} />
-                  <Typography sx={{ fontSize: '0.68rem', color: '#6B7280' }}>{l.label}</Typography>
-                </Box>
-              ))}
-            </Box>
-          </Box>
-          <MonthlyBar />
-        </Box>
-
-        {/* Spending donut */}
-        <Box sx={{ p: { xs: 2, sm: 3 }, borderRadius: '20px', bgcolor: '#fff',
-          border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', minWidth: 0, overflow: 'hidden' }}>
-          <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: '#0F172A', mb: 0.5 }}>Spending Breakdown</Typography>
-          <Typography sx={{ fontSize: '0.72rem', color: '#9CA3AF', mb: 2 }}>By category this month</Typography>
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, alignItems: 'center' }}>
-            <SpendingDonut data={categoryTotals} />
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.9 }}>
-              {categoryTotals.map(c => (
-                <Box key={c.label} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7, minWidth: 0 }}>
-                    <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: c.color, flexShrink: 0 }} />
-                    <Typography sx={{ fontSize: '0.72rem', color: '#6B7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.label}</Typography>
-                  </Box>
-                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#0F172A', flexShrink: 0 }}>${c.value.toFixed(0)}</Typography>
-                </Box>
-              ))}
-            </Box>
-          </Box>
-        </Box>
       </Box>
 
       {/* ── Filter bar ── */}
@@ -434,7 +311,7 @@ export default function Transactions() {
           >
             <FilterIcon fontSize="small" />
           </IconButton>
-          <Button
+          {/* <Button
             variant="contained" onClick={handleExport}
             startIcon={<DownloadIcon sx={{ fontSize: '1rem !important' }} />}
             sx={{
@@ -448,32 +325,17 @@ export default function Transactions() {
             }}
           >
             <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Export CSV</Box>
-          </Button>
+          </Button> */}
         </Box>
 
         {/* Expandable filter chips */}
         {showFilters && (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-            {/* Status */}
-            <Box>
-              <Typography sx={{ fontSize: '0.7rem', color: '#9CA3AF', fontWeight: 700, mb: 0.8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Status</Typography>
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                {['all','completed','pending','failed'].map(s => (
-                  <Box key={s} onClick={() => setStatus(s)} sx={{
-                    px: 1.5, py: 0.5, borderRadius: '8px', cursor: 'pointer',
-                    fontWeight: 700, fontSize: '0.75rem', textTransform: 'capitalize',
-                    bgcolor: statusFilter === s ? '#FA510F' : '#F8F9FA',
-                    color:  statusFilter === s ? '#fff' : '#6B7280',
-                    transition: 'all 0.15s',
-                  }}>{s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}</Box>
-                ))}
-              </Box>
-            </Box>
             {/* Type */}
             <Box>
               <Typography sx={{ fontSize: '0.7rem', color: '#9CA3AF', fontWeight: 700, mb: 0.8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Type</Typography>
               <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                {['all','income','expense'].map(t => (
+                {['all','investment','savings'].map(t => (
                   <Box key={t} onClick={() => setType(t)} sx={{
                     px: 1.5, py: 0.5, borderRadius: '8px', cursor: 'pointer',
                     fontWeight: 700, fontSize: '0.75rem', textTransform: 'capitalize',
@@ -481,21 +343,6 @@ export default function Transactions() {
                     color:  typeFilter === t ? '#fff' : '#6B7280',
                     transition: 'all 0.15s',
                   }}>{t === 'all' ? 'All' : t.charAt(0).toUpperCase() + t.slice(1)}</Box>
-                ))}
-              </Box>
-            </Box>
-            {/* Category */}
-            <Box>
-              <Typography sx={{ fontSize: '0.7rem', color: '#9CA3AF', fontWeight: 700, mb: 0.8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Category</Typography>
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                {CATEGORIES.map(c => (
-                  <Box key={c} onClick={() => setCat(c)} sx={{
-                    px: 1.5, py: 0.5, borderRadius: '8px', cursor: 'pointer',
-                    fontWeight: 700, fontSize: '0.75rem',
-                    bgcolor: categoryFilter === c ? '#FA510F' : '#F8F9FA',
-                    color:  categoryFilter === c ? '#fff' : '#6B7280',
-                    transition: 'all 0.15s',
-                  }}>{c}</Box>
                 ))}
               </Box>
             </Box>
@@ -533,7 +380,12 @@ export default function Transactions() {
         </Box>
 
         {/* Rows */}
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <Box sx={{ py: 8, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <CircularProgress sx={{ mb: 2, color: '#FA510F' }} />
+            <Typography sx={{ fontWeight: 700, color: '#9CA3AF' }}>Loading transactions...</Typography>
+          </Box>
+        ) : filtered.length === 0 ? (
           <Box sx={{ py: 8, textAlign: 'center' }}>
             <ReceiptIcon sx={{ fontSize: '2.5rem', color: '#E5E7EB', mb: 1 }} />
             <Typography sx={{ fontWeight: 700, color: '#9CA3AF' }}>No transactions found</Typography>

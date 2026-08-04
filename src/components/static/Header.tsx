@@ -34,7 +34,6 @@ import {
   ArrowForward as ArrowForwardIcon,
 } from '@mui/icons-material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-// import { useI18n, Language } from './i18n';
 import { useI18n } from '../../context/l18n';
 import type { Language } from '../../context/l18n';
 import img from "../../assets/crown.png"
@@ -43,6 +42,15 @@ import img from "../../assets/crown.png"
 const BRAND = '#FA510F';
 const BRAND_DARK = '#D94309';
 const BRAND_LIGHT = 'rgba(250,81,15,0.08)';
+
+// ─── Scroll helper ────────────────────────────────────────────────────────────
+// Central place for smooth-scrolling to a section id on the one-page layout.
+function scrollToSection(id: string) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
 const headerTheme = createTheme({
@@ -108,6 +116,7 @@ interface ServiceItem {
   icon: React.ReactNode;
   color: string;
   bgColor: string;
+  sectionId: string; // NEW — where this service item scrolls to
 }
 
 const SERVICE_DEFS: ServiceItem[] = [
@@ -117,6 +126,7 @@ const SERVICE_DEFS: ServiceItem[] = [
     icon: <PersonalBankingIcon sx={{ fontSize: 20 }} />,
     color: '#1D4ED8',
     bgColor: '#EFF6FF',
+    sectionId: 'personal-banking',
   },
   {
     labelKey: 'service_business_label',
@@ -124,6 +134,7 @@ const SERVICE_DEFS: ServiceItem[] = [
     icon: <BusinessBankingIcon sx={{ fontSize: 20 }} />,
     color: '#065F46',
     bgColor: '#ECFDF5',
+    sectionId: 'business-banking',
   },
   {
     labelKey: 'service_investments_label',
@@ -131,6 +142,7 @@ const SERVICE_DEFS: ServiceItem[] = [
     icon: <InvestmentsIcon sx={{ fontSize: 20 }} />,
     color: '#92400E',
     bgColor: '#FFFBEB',
+    sectionId: 'investments',
   },
   {
     labelKey: 'service_card_label',
@@ -138,18 +150,27 @@ const SERVICE_DEFS: ServiceItem[] = [
     icon: <CardIcon sx={{ fontSize: 20 }} />,
     color: '#6B21A8',
     bgColor: '#FAF5FF',
+    sectionId: 'cards',
   },
 ];
 
-// NAV_LINKS are now derived from translation keys
+// NAV_LINK_KEYS are now derived from translation keys
 const NAV_LINK_KEYS = ['nav_home', 'nav_about', 'nav_services', 'nav_contact'] as const;
 type NavLinkKey = (typeof NAV_LINK_KEYS)[number];
 
+// Maps plain nav links (everything except the services dropdown) to section ids
+const NAV_SECTION_IDS: Partial<Record<NavLinkKey, string>> = {
+  nav_home: 'home',
+  nav_about: 'about',
+  nav_contact: 'contact',
+};
+
 // ─── Logo ─────────────────────────────────────────────────────────────────────
-function Logo() {
+function Logo({ onClick }: { onClick?: () => void }) {
   const { t } = useI18n();
   return (
     <Box
+      onClick={onClick}
       sx={{
         display: 'flex',
         alignItems: 'center',
@@ -236,6 +257,12 @@ function ServicesDropdown({ open, anchorEl, onClose }: ServicesDropdownProps) {
   if (!anchorEl) return null;
   const rect = anchorEl.getBoundingClientRect();
 
+  const handleServiceClick = (sectionId: string) => {
+    onClose();
+    // wait a tick so the dropdown closes before we scroll
+    requestAnimationFrame(() => scrollToSection(sectionId));
+  };
+
   return (
     <Grow in={open} timeout={180} style={{ transformOrigin: 'top center' }}>
       <Paper
@@ -272,7 +299,7 @@ function ServicesDropdown({ open, anchorEl, onClose }: ServicesDropdownProps) {
         {SERVICE_DEFS.map((service, i) => (
           <Fade in={open} timeout={120 + i * 60} key={service.labelKey}>
             <Box
-              onClick={onClose}
+              onClick={() => handleServiceClick(service.sectionId)}
               sx={{
                 display: 'flex',
                 alignItems: 'center',
@@ -329,6 +356,7 @@ function ServicesDropdown({ open, anchorEl, onClose }: ServicesDropdownProps) {
 
         <Divider sx={{ my: 1.25 }} />
         <Box
+          onClick={() => handleServiceClick('personal-banking')}
           sx={{
             mx: 1.5,
             px: 2,
@@ -433,6 +461,23 @@ function MobileDrawer({ open, onClose }: MobileDrawerProps) {
     onClose();
   };
 
+  const handleNavItemClick = (key: NavLinkKey) => {
+    if (key === 'nav_services') {
+      setServicesExpanded((p) => !p);
+      return;
+    }
+    const sectionId = NAV_SECTION_IDS[key];
+    handleClose();
+    if (sectionId) {
+      requestAnimationFrame(() => scrollToSection(sectionId));
+    }
+  };
+
+  const handleServiceItemClick = (sectionId: string) => {
+    handleClose();
+    requestAnimationFrame(() => scrollToSection(sectionId));
+  };
+
   return (
     <Drawer
       anchor="right"
@@ -462,7 +507,7 @@ function MobileDrawer({ open, onClose }: MobileDrawerProps) {
           flexShrink: 0,
         }}
       >
-        <Logo />
+        <Logo onClick={() => handleNavItemClick('nav_home')} />
         <IconButton
           onClick={handleClose}
           size="small"
@@ -485,13 +530,7 @@ function MobileDrawer({ open, onClose }: MobileDrawerProps) {
             <Fade in={open} timeout={200 + i * 60}>
               <ListItem disablePadding>
                 <ListItemButton
-                  onClick={() => {
-                    if (key === 'nav_services') {
-                      setServicesExpanded((p) => !p);
-                    } else {
-                      handleClose();
-                    }
-                  }}
+                  onClick={() => handleNavItemClick(key)}
                   sx={{
                     borderRadius: 2,
                     mb: 0.5,
@@ -533,7 +572,7 @@ function MobileDrawer({ open, onClose }: MobileDrawerProps) {
                   {SERVICE_DEFS.map((service) => (
                     <ListItem key={service.labelKey} disablePadding>
                       <ListItemButton
-                        onClick={handleClose}
+                        onClick={() => handleServiceItemClick(service.sectionId)}
                         sx={{
                           borderRadius: 2,
                           mb: 0.25,
@@ -690,6 +729,9 @@ const Header = () => {
       setActiveNav(navKey);
       setServicesOpen(false);
       setServicesAnchor(null);
+
+      const sectionId = NAV_SECTION_IDS[navKey];
+      if (sectionId) scrollToSection(sectionId);
     }
   };
 
@@ -724,7 +766,7 @@ const Header = () => {
             }}
           >
             {/* Logo */}
-            <Logo />
+            <Logo onClick={() => scrollToSection('home')} />
 
             {/* Desktop Nav */}
             {!isMobile && (

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -12,27 +12,38 @@ import {
   ListItemText,
   IconButton,
   Avatar,
-  Badge,
+  // Badge,
   Typography,
   useMediaQuery,
   useTheme,
   Skeleton,
+  Menu,
+  MenuItem,
+  Divider,
+  Dialog,
+  DialogContent,
+  Button,
 } from '@mui/material';
 
 import {
   Dashboard as DashboardIcon,
-  History as HistoryIcon,
+  // History as HistoryIcon,
   CreditCard as CardIcon,
   TrendingUp as InvestmentIcon,
   Settings as SettingsIcon,
-  NotificationsOutlined as NotificationsIcon,
+  // NotificationsOutlined as NotificationsIcon,
   Close as CloseIcon,
   Menu as MenuIcon,
+  Logout as LogoutIcon,
+  EmailOutlined as EmailIcon,
+  BadgeOutlined as BadgeIcon,
 } from '@mui/icons-material';
 
 import img from '../../assets/crown.png';
-import ScrollToTop from '../../utils/ScrollToTop';
+// import ScrollToTop from '../../utils/ScrollToTop';
 import { useGetProfile } from '../../hooks/useProfile'; // adjust path as needed
+// import { useAuth } from '../../context/AuthContext'; // adjust path as needed
+import { useAuth } from '../../contexts/AuthContext';
 
 const DRAWER_WIDTH = 280;
 const BRAND = '#FA510F';
@@ -105,22 +116,25 @@ function Logo() {
 
 const navigation = [
   { label: 'Dashboard', path: '/dashboard', icon: DashboardIcon },
-  { label: 'Transactions', path: '/dashboard/transactions', icon: HistoryIcon },
-  { label: 'Cards', path: '/dashboard/cards', icon: CardIcon },
+  // { label: 'Transactions', path: '/dashboard/transactions', icon: HistoryIcon },
+  { label: 'Savings', path: '/dashboard/savings', icon: CardIcon },
   { label: 'Investments', path: '/dashboard/investments', icon: InvestmentIcon },
   { label: 'Settings', path: '/dashboard/settings', icon: SettingsIcon },
 ];
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Overview',
-  '/dashboard/transactions': 'Transactions',
-  '/dashboard/cards': 'Cards',
+  // '/dashboard/transactions': 'Transactions',
+  '/dashboard/savings': 'Savings',
   '/dashboard/investments': 'Investments',
   '/dashboard/settings': 'Settings',
 };
 
 export default function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [profileMenuAnchor, setProfileMenuAnchor] = useState<null | HTMLElement>(null);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const profileMenuOpen = Boolean(profileMenuAnchor);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -129,6 +143,16 @@ export default function DashboardLayout() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const contentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+  contentRef.current?.scrollTo({
+    top: 0,
+    behavior: "smooth",
+  });
+}, [location.pathname]);
+
+  // ── Auth ───────────────────────────────────────────────────────────────────
+  const { logout } = useAuth();
 
   // ── Profile data ───────────────────────────────────────────────────────────
   const { data: profileResponse, isLoading: profileLoading } = useGetProfile();
@@ -151,6 +175,30 @@ export default function DashboardLayout() {
   const handleNavigate = (path: string) => {
     navigate(path);
     setMobileOpen(false);
+  };
+
+  const handleProfileMenuOpen = (e: React.MouseEvent<HTMLElement>) => {
+    setProfileMenuAnchor(e.currentTarget);
+  };
+
+  const handleProfileMenuClose = () => {
+    setProfileMenuAnchor(null);
+  };
+
+  // Clicking "Log Out" in the dropdown just opens the confirmation dialog
+  const handleLogoutClick = () => {
+    handleProfileMenuClose();
+    setLogoutConfirmOpen(true);
+  };
+
+  const handleLogoutCancel = () => {
+    setLogoutConfirmOpen(false);
+  };
+
+  // Confirmed — actually log out via AuthContext
+  const handleLogoutConfirm = () => {
+    setLogoutConfirmOpen(false);
+    logout();
   };
 
   const currentTitle =
@@ -372,7 +420,7 @@ export default function DashboardLayout() {
           height: '100vh',
         }}
       >
-        <ScrollToTop containerRef={contentRef} />
+        {/* <ScrollToTop /> */}
 
         {/* Header */}
         <AppBar
@@ -438,7 +486,7 @@ export default function DashboardLayout() {
             </Box>
 
             {/* Notifications */}
-            <IconButton
+            {/* <IconButton
               sx={{
                 bgcolor: '#F5F6FA',
                 borderRadius: '12px',
@@ -462,11 +510,15 @@ export default function DashboardLayout() {
               >
                 <NotificationsIcon sx={{ color: '#374151', fontSize: '1.3rem' }} />
               </Badge>
-            </IconButton>
+            </IconButton> */}
 
-            {/* Avatar — shows profile photo or initials */}
+            {/* Avatar — shows profile photo or initials, opens profile dropdown */}
             <Avatar
               src={profile?.profilePhoto}
+              onClick={handleProfileMenuOpen}
+              aria-controls={profileMenuOpen ? 'profile-menu' : undefined}
+              aria-haspopup="true"
+              aria-expanded={profileMenuOpen ? 'true' : undefined}
               sx={{
                 width: 42,
                 height: 42,
@@ -480,6 +532,167 @@ export default function DashboardLayout() {
             >
               {profileLoading ? null : displayInitials}
             </Avatar>
+
+            {/* Profile dropdown */}
+            <Menu
+              id="profile-menu"
+              anchorEl={profileMenuAnchor}
+              open={profileMenuOpen}
+              onClose={handleProfileMenuClose}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+              slotProps={{
+                paper: {
+                  sx: {
+                    mt: 1.5,
+                    minWidth: 260,
+                    borderRadius: '16px',
+                    boxShadow: '0 12px 40px rgba(0,0,0,0.12)',
+                    border: '1px solid rgba(0,0,0,0.06)',
+                    overflow: 'hidden',
+                  },
+                },
+              }}
+            >
+              {/* User info header */}
+              <Box sx={{
+                px: 2.5, py: 2,
+                display: 'flex', alignItems: 'center', gap: 1.5,
+                background: 'linear-gradient(135deg, #FFF4F0 0%, #FEE8DF 100%)',
+              }}>
+                <Avatar
+                  src={profile?.profilePhoto}
+                  sx={{
+                    width: 44, height: 44, bgcolor: BRAND,
+                    fontSize: '1rem', fontWeight: 700, flexShrink: 0,
+                    border: '2px solid #fff',
+                  }}
+                >
+                  {profileLoading ? null : displayInitials}
+                </Avatar>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography sx={{
+                    fontSize: '0.9rem', fontWeight: 800, color: '#0F172A',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {displayName || 'John Doe'}
+                  </Typography>
+                  <Typography sx={{
+                    fontSize: '0.72rem', color: '#9CA3AF', mt: 0.1,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {accountTypeLabel || 'Premium Account'}
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Divider />
+
+              {/* Email row */}
+              <MenuItem disableRipple sx={{ py: 1.2, px: 2.5, cursor: 'default', '&:hover': { bgcolor: 'transparent' } }}>
+                <ListItemIcon sx={{ minWidth: 34 }}>
+                  <EmailIcon sx={{ fontSize: '1.1rem', color: '#9CA3AF' }} />
+                </ListItemIcon>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography sx={{ fontSize: '0.65rem', color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Email
+                  </Typography>
+                  <Typography sx={{
+                    fontSize: '0.82rem', fontWeight: 600, color: '#0F172A',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {profile?.email ?? '—'}
+                  </Typography>
+                </Box>
+              </MenuItem>
+
+              {/* Account type row */}
+              <MenuItem disableRipple sx={{ py: 1.2, px: 2.5, cursor: 'default', '&:hover': { bgcolor: 'transparent' } }}>
+                <ListItemIcon sx={{ minWidth: 34 }}>
+                  <BadgeIcon sx={{ fontSize: '1.1rem', color: '#9CA3AF' }} />
+                </ListItemIcon>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography sx={{ fontSize: '0.65rem', color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Account Type
+                  </Typography>
+                  <Typography sx={{
+                    fontSize: '0.82rem', fontWeight: 600, color: '#0F172A',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {accountTypeLabel || '—'}
+                  </Typography>
+                </Box>
+              </MenuItem>
+
+              <Divider />
+
+              {/* Logout — opens confirmation dialog, does not log out immediately */}
+              <MenuItem
+                onClick={handleLogoutClick}
+                sx={{
+                  py: 1.4, px: 2.5,
+                  color: '#DC2626',
+                  '&:hover': { bgcolor: '#FEF2F2' },
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 34 }}>
+                  <LogoutIcon sx={{ fontSize: '1.1rem', color: '#DC2626' }} />
+                </ListItemIcon>
+                <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: '#DC2626' }}>
+                  Log Out
+                </Typography>
+              </MenuItem>
+            </Menu>
+
+            {/* Logout confirmation dialog */}
+            <Dialog
+              open={logoutConfirmOpen}
+              onClose={handleLogoutCancel}
+              maxWidth="xs"
+              fullWidth
+              slotProps={{ paper: { sx: { borderRadius: '20px', m: { xs: 1.5, sm: 3 } } } }}
+            >
+              <DialogContent sx={{ p: 3, textAlign: 'center' }}>
+                <Box sx={{
+                  width: 56, height: 56, borderRadius: '50%',
+                  bgcolor: '#FEF2F2', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', mx: 'auto', mb: 2,
+                }}>
+                  <LogoutIcon sx={{ color: '#DC2626', fontSize: '1.6rem' }} />
+                </Box>
+
+                <Typography sx={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', mb: 0.8 }}>
+                  Log out of your account?
+                </Typography>
+                <Typography sx={{ fontSize: '0.85rem', color: '#6B7280', mb: 3 }}>
+                  You'll need to sign in again to access your dashboard.
+                </Typography>
+
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+                  <Button
+                    fullWidth variant="outlined" onClick={handleLogoutCancel}
+                    sx={{
+                      borderRadius: '12px', textTransform: 'none', fontWeight: 700,
+                      borderColor: 'rgba(0,0,0,0.12)', color: '#374151', py: 1.2,
+                      '&:hover': { bgcolor: '#F8F9FA', borderColor: 'rgba(0,0,0,0.2)' },
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    fullWidth variant="contained" onClick={handleLogoutConfirm}
+                    sx={{
+                      borderRadius: '12px', textTransform: 'none', fontWeight: 700, py: 1.2,
+                      background: 'linear-gradient(135deg,#DC2626,#B91C1C)',
+                      boxShadow: '0 4px 14px rgba(220,38,38,0.25)',
+                      '&:hover': { background: 'linear-gradient(135deg,#B91C1C,#991B1B)' },
+                    }}
+                  >
+                    Log Out
+                  </Button>
+                </Box>
+              </DialogContent>
+            </Dialog>
           </Toolbar>
         </AppBar>
 

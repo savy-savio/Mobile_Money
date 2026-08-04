@@ -74,7 +74,7 @@ export const useGetProfile = () => {
       });
       return response;
     },
-    enabled: typeof window !== 'undefined' && !!localStorage.getItem('loginToken'),
+    enabled: typeof window !== 'undefined' && !!localStorage.getItem('accessToken'),
   });
 };
 

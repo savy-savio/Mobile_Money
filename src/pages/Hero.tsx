@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 // import { useI18n } from './i18n';
 import { useI18n } from '../context/l18n';
 
@@ -6,38 +7,18 @@ import { useI18n } from '../context/l18n';
 const BRAND = '#FA510F';
 const BRAND_DARK = '#D94309';
 
-// ─── Translations (extend your i18n.tsx with these keys) ─────────────────────
-// Add to EN:
-//   hero_eyebrow: 'The future of banking',
-//   hero_heading_1: 'Your money,',
-//   hero_heading_2: 'your rules.',
-//   hero_sub: 'NovaPay gives you full control — instant transfers, zero hidden fees, and smart savings that work for you 24/7.',
-//   hero_cta_primary: 'Open free account',
-//   hero_cta_secondary: 'Watch how it works',
-//   hero_stat_users: 'Active users',
-//   hero_stat_transfers: 'Transfers daily',
-//   hero_stat_rating: 'App rating',
-//   hero_slide_1_caption: 'Lagos · Nigeria',
-//   hero_slide_2_caption: 'Accra · Ghana',
-//   hero_slide_3_caption: 'Nairobi · Kenya',
-//   hero_slide_4_caption: 'Kano · Nigeria',
-// Add to ES: (same keys, translated)
-
 const COPY = {
   en: {
-    eyebrow: 'The future of banking',
+    eyebrow: 'The future of Investments',
     h1: 'Your money,',
     h2: 'your rules.',
-    sub: 'NovaPay gives you full control — instant transfers, zero hidden fees, and smart savings that work for you 24/7.',
+    sub: 'Crown Ledger gives you full control — instant transfers, zero hidden fees, and smart savings that work for you 24/7.',
     cta1: 'Open free account',
-    cta2: 'Watch how it works',
-    // stat1_val: '2.4M+',
     stat1_label: 'Active users',
-    stat2_val: '₦18B+',
+    stat2_val: '$18B+',
     stat2_label: 'Transfers daily',
     stat3_val: '4.9★',
     stat3_label: 'App rating',
-    // captions: ['Lagos · Nigeria', 'Accra · Ghana', 'Nairobi · Kenya', 'Kano · Nigeria'],
   },
   es: {
     eyebrow: 'El futuro de la banca',
@@ -48,7 +29,7 @@ const COPY = {
     cta2: 'Ver cómo funciona',
     stat1_val: '2.4M+',
     stat1_label: 'Usuarios activos',
-    stat2_val: '₦18B+',
+    stat2_val: '$18B+',
     stat2_label: 'Transferencias diarias',
     stat3_val: '4.9★',
     stat3_label: 'Calificación app',
@@ -71,7 +52,7 @@ const FLOAT_CARDS = [
     id: 'transfer',
     icon: '↗',
     label: { en: 'Transfer sent', es: 'Transferencia enviada' },
-    value: '+₦250,000',
+    value: '+$250,000',
     color: '#10B981',
     delay: '0s',
     top: '12%',
@@ -87,16 +68,16 @@ const FLOAT_CARDS = [
     bottom: '14%',
     right: '3%',
   },
-  {
-    id: 'notify',
-    icon: '⚡',
-    label: { en: 'Instant payment', es: 'Pago instantáneo' },
-    value: '0.3s',
-    color: '#6366F1',
-    delay: '0.8s',
-    bottom: '14%',
-    left: '2%',
-  },
+  // {
+  //   id: 'notify',
+  //   icon: '⚡',
+  //   label: { en: 'Instant payment', es: 'Pago instantáneo' },
+  //   value: '0.3s',
+  //   color: '#6366F1',
+  //   delay: '0.8s',
+  //   bottom: '14%',
+  //   left: '2%',
+  // },
 ];
 
 // ─── Slide indicator dots ─────────────────────────────────────────────────────
@@ -123,54 +104,6 @@ function Dots({ count, active, onChange }: { count: number; active: number; onCh
     </div>
   );
 }
-
-// ─── Animated counter ────────────────────────────────────────────────────────
-// function AnimatedStat({ value, label, delay }: { value: string; label: string; delay: number }) {
-//   const [visible, setVisible] = useState(false);
-//   const ref = useRef<HTMLDivElement>(null);
-
-//   useEffect(() => {
-//     const t = setTimeout(() => setVisible(true), delay);
-//     return () => clearTimeout(t);
-//   }, [delay]);
-
-//   return (
-//     <div
-//       ref={ref}
-//       style={{
-//         opacity: visible ? 1 : 0,
-//         transform: visible ? 'translateY(0)' : 'translateY(16px)',
-//         transition: 'opacity 0.6s ease, transform 0.6s ease',
-//         textAlign: 'center',
-//       }}
-//     >
-//       <div
-//         style={{
-//           fontSize: 'clamp(22px, 3vw, 30px)',
-//           fontWeight: 800,
-//           color: '#fff',
-//           fontFamily: '"Clash Display", "Syne", Georgia, serif',
-//           lineHeight: 1,
-//           letterSpacing: '-1px',
-//         }}
-//       >
-//         {value}
-//       </div>
-//       <div
-//         style={{
-//           fontSize: 12,
-//           color: 'rgba(255,255,255,0.55)',
-//           marginTop: 4,
-//           textTransform: 'uppercase',
-//           letterSpacing: '1.2px',
-//           fontWeight: 500,
-//         }}
-//       >
-//         {label}
-//       </div>
-//     </div>
-//   );
-// }
 
 // ─── Floating glass card ─────────────────────────────────────────────────────
 function FloatCard({
@@ -236,6 +169,7 @@ function FloatCard({
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 const Hero = () => {
   const { language } = useI18n();
+  const navigate = useNavigate();
   const copy = COPY[language as keyof typeof COPY] ?? COPY.en;
 
   const [slide, setSlide] = useState(0);
@@ -532,6 +466,7 @@ const Hero = () => {
             >
               <button
                 className="hero-cta-primary"
+                onClick={() => navigate('/open-Account')}
                 style={{
                   background: BRAND,
                   color: '#fff',
@@ -556,54 +491,7 @@ const Hero = () => {
                   <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
-              <button
-                className="hero-cta-secondary"
-                style={{
-                  background: 'rgba(255,255,255,0.08)',
-                  color: '#fff',
-                  border: '1px solid rgba(255,255,255,0.25)',
-                  borderRadius: 12,
-                  padding: 'clamp(12px, 1.5vw, 15px) clamp(18px, 2.5vw, 28px)',
-                  fontSize: 'clamp(13px, 1.4vw, 15px)',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  backdropFilter: 'blur(8px)',
-                  transition: 'all 0.2s ease',
-                  letterSpacing: '-0.2px',
-                  fontFamily: '"DM Sans", sans-serif',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
-                  <circle cx="9" cy="9" r="7.5" stroke="currentColor" strokeWidth="1.4"/>
-                  <path d="M7.5 6.5l4 2.5-4 2.5V6.5z" fill="currentColor"/>
-                </svg>
-                {copy.cta2}
-              </button>
             </div>
-
-            {/* Stats */}
-            {/* <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 'clamp(16px, 3vw, 40px)',
-                marginTop: 40,
-                paddingTop: 24,
-                borderTop: '1px solid rgba(255,255,255,0.1)',
-                opacity: mounted ? 1 : 0,
-                transition: 'opacity 0.65s ease 0.56s',
-              }}
-            >
-              <AnimatedStat value={copy.stat1_val} label={copy.stat1_label} delay={700} />
-              <div style={{ width: 1, background: 'rgba(255,255,255,0.12)', alignSelf: 'stretch', flexShrink: 0 }} />
-              <AnimatedStat value={copy.stat2_val} label={copy.stat2_label} delay={820} />
-              <div style={{ width: 1, background: 'rgba(255,255,255,0.12)', alignSelf: 'stretch', flexShrink: 0 }} />
-              <AnimatedStat value={copy.stat3_val} label={copy.stat3_label} delay={940} />
-            </div> */}
           </div>
         </div>
 
@@ -613,7 +501,7 @@ const Hero = () => {
           if (card.top) posStyle.top = card.top;
           if (card.right) posStyle.right = card.right;
           if (card.bottom) posStyle.bottom = card.bottom;
-          if (card.left) posStyle.left = card.left;
+          // if (card.left) posStyle.left = card.left;
 
           return (
             <FloatCard
@@ -624,7 +512,7 @@ const Hero = () => {
               color={card.color}
               delay={card.delay}
               style={posStyle}
-              isLeft={!!card.left}
+              // isLeft={!!card.left}
             />
           );
         })}
@@ -644,29 +532,6 @@ const Hero = () => {
             justifyContent: 'space-between',
           }}
         >
-          {/* Caption with animated transition */}
-          {/* <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div
-              style={{
-                width: 28,
-                height: 1,
-                background: 'rgba(255,255,255,0.4)',
-              }}
-            />
-            <span
-              key={`${language}-${slide}`}
-              style={{
-                fontSize: 12,
-                color: 'rgba(255,255,255,0.5)',
-                letterSpacing: '1.5px',
-                textTransform: 'uppercase',
-                animation: 'heroTextIn 0.5s ease both',
-              }}
-            >
-              {copy.captions[slide]}
-            </span>
-          </div> */}
-
           <Dots count={SLIDES.length} active={slide} onChange={goTo} />
         </div>
 
