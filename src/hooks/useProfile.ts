@@ -4,6 +4,7 @@ import apiClient from '../utils/apiClientBackend';
 
 // Types
 interface ProfileData {
+  isAdmin: boolean;
   profilePhoto: any;
   firstName: string;
   lastName: string;

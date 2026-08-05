@@ -11,6 +11,7 @@ import {
   DialogContent,
   IconButton,
   CircularProgress,
+  TextField,
 } from '@mui/material';
 import { useInvestmentPlans, useInitializePayment, useVerifyBitcoinPayment, useCompletePayment, useCurrentUser } from '../../hooks/useAuth';
 import {
@@ -32,7 +33,7 @@ import real from "../../assets/real.jpg"
 import supreme from "../../assets/supreme.jpg"
 import investment from "../../assets/investment.jpg"
 import premium from "../../assets/premium.jpg"
-
+import InputAdornment from '@mui/material/InputAdornment';
 
 Chart.register(...registerables);
 
@@ -333,7 +334,7 @@ function PlanCard({
               Min Investment
             </Typography>
             <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#0F172A' }}>
-              ${plan.minInvestment}
+              $50
             </Typography>
           </Box>
           <Box sx={{ p: 1.2, borderRadius: '10px', bgcolor: '#FFF7ED' }}>
@@ -396,11 +397,20 @@ function PlanDialog({
   open: boolean;
   plan: any | null;
   onClose: () => void;
-  onInvest: (plan: any) => void;
+  onInvest: (plan: any, amount: number) => void;
 }) {
+  const minimumInvestment = 50;
+  const [amount, setAmount] = useState('50');
+
+  useEffect(() => {
+    if (plan) setAmount(String(Math.max(minimumInvestment, Number(plan.minInvestment) || 0)));
+  }, [plan]);
+
   if (!plan) return null;
 
   const planColor = colorMap[plan.name] || '#FA510F';
+  const numericAmount = Number(amount);
+  const amountIsValid = Number.isFinite(numericAmount) && numericAmount >= minimumInvestment;
 
   return (
     <Dialog
@@ -478,10 +488,40 @@ function PlanDialog({
           </Box>
         </Box>
 
+        {/* Investment Amount */}
+        <Box sx={{ mb: 2.5 }}>
+          <TextField
+  fullWidth
+  label="Amount to invest"
+  type="number"
+  value={amount}
+  onChange={(event) => setAmount(event.target.value)}
+  slotProps={{
+    htmlInput: {
+      min: minimumInvestment,
+      step: '0.01',
+    },
+    input: {
+      startAdornment: (
+        <InputAdornment position="start">
+          $
+        </InputAdornment>
+      ),
+    },
+  }}
+  error={amount.length > 0 && !amountIsValid}
+  helperText={
+    !amountIsValid
+      ? `Enter an amount of at least $${minimumInvestment}`
+      : `You can invest any amount from $${minimumInvestment} upward.`
+  }
+/>
+        </Box>
+
         {/* Details Grid */}
         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5, mb: 2.5 }}>
           {[
-            { label: 'Min Investment', value: `$${plan.minInvestment}`, color: '#FA510F' },
+            { label: 'Min Investment', value: '$50', color: '#FA510F' },
             { label: 'Duration', value: `${plan.duration} months`, color: '#6C63FF' },
             { label: 'Expected Return', value: `${plan.expectedReturn}%`, color: '#10B981' },
             { label: 'Risk Level', value: plan.riskLevel, color: '#D97706' },
@@ -501,7 +541,8 @@ function PlanDialog({
         <Button
           variant="contained"
           fullWidth
-          onClick={() => onInvest(plan)}
+          onClick={() => amountIsValid && onInvest(plan, numericAmount)}
+          disabled={!amountIsValid}
           sx={{
             bgcolor: planColor,
             color: '#fff',
@@ -1039,22 +1080,22 @@ export default function Investments() {
 
   // Calculate statistics from plans
   const avgReturn = plans.reduce((sum: number, p: any) => sum + (p.expectedReturn || 0), 0) / plans.length;
-  const minInvestment = Math.min(...plans.map((p: any) => p.minInvestment));
+  const minInvestment = 50;
   const maxReturn = Math.max(...plans.map((p: any) => p.expectedReturn));
 
   // Handle invest click
-  const handleInvest = (plan: any) => {
+  const handleInvest = (plan: any, amount: number) => {
     if (!currentUser) {
       console.error('User not found');
       return;
     }
 
-    // Call the payment initialization API with default values
+    // Initialize payment with the amount entered by the user.
     initializePayment(
       {
         userId: currentUser.userId,
         planId: plan._id,
-        amount: plan.minInvestment, // Using min investment as default
+          amount, // User-selected amount; minimum is enforced in the dialog and backend
         paymentMethod: 'bitcoin', // Default payment method
       },
       {

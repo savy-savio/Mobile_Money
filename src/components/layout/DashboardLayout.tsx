@@ -37,6 +37,7 @@ import {
   Logout as LogoutIcon,
   EmailOutlined as EmailIcon,
   BadgeOutlined as BadgeIcon,
+  AdminPanelSettings as AdminPanelSettingsIcon,
 } from '@mui/icons-material';
 
 import img from '../../assets/crown.png';
@@ -157,6 +158,14 @@ export default function DashboardLayout() {
   // ── Profile data ───────────────────────────────────────────────────────────
   const { data: profileResponse, isLoading: profileLoading } = useGetProfile();
   const profile = profileResponse?.data;
+  const storedUser = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || 'null');
+    } catch {
+      return null;
+    }
+  })();
+  const isAdminUser = profile?.isAdmin === true || storedUser?.isAdmin === true;
 
   const displayName = profile
     ? `${profile.firstName} ${profile.lastName}`.trim()
@@ -203,7 +212,7 @@ export default function DashboardLayout() {
 
   const currentTitle =
     PAGE_TITLES[location.pathname] ||
-    (location.pathname === '/' ? 'Overview' : 'FinBank');
+    (location.pathname === '/' ? 'Overview' : 'Admin');
 
   const activeIndex = navigation.findIndex(
     (item) =>
@@ -511,6 +520,26 @@ export default function DashboardLayout() {
                 <NotificationsIcon sx={{ color: '#374151', fontSize: '1.3rem' }} />
               </Badge>
             </IconButton> */}
+
+            {isAdminUser && (
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<AdminPanelSettingsIcon sx={{ fontSize: '1.1rem' }} />}
+                onClick={() => navigate('/admin')}
+                sx={{
+                  borderColor: 'rgba(250,81,15,0.35)',
+                  color: BRAND,
+                  borderRadius: '10px',
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  whiteSpace: 'nowrap',
+                  '&:hover': { borderColor: BRAND, bgcolor: 'rgba(250,81,15,0.06)' },
+                }}
+              >
+                Admin
+              </Button>
+            )}
 
             {/* Avatar — shows profile photo or initials, opens profile dropdown */}
             <Avatar

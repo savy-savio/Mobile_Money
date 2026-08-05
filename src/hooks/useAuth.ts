@@ -60,6 +60,7 @@ interface LoginResponse {
       lastName: string;
       username: string;
       accountType: string;
+      isAdmin: boolean;
     };
   };
 }
@@ -307,7 +308,7 @@ export const useRefreshToken = () => {
   });
 };
 
-// ─── Logout Hook ─────────�����───────────────────────────────────────────────────
+// ─── Logout Hook ───────────────────────────────────────────────────────────────
 export const useLogout = () => {
   const queryClient = useQueryClient();
 
@@ -1500,3 +1501,131 @@ export function startTokenRefreshInterval(intervalMs = 14 * 60 * 1000): () => vo
 
   return () => clearInterval(id);
 }
+
+// ─── Admin User Balances Hook ───────────────────────────────────────────────────
+export interface AdminUserBalance {
+  userId: string;
+  [key: string]: unknown;
+}
+
+interface AdminUsersBalancesResponse {
+  success: boolean;
+  message?: string;
+  data: AdminUserBalance[];
+}
+
+export interface UpdateSavingsBalanceRequest {
+  action: 'add' | 'subtract';
+  amount: number;
+  reason: string;
+}
+
+export interface UpdateSavingsBalanceData {
+  userId: string;
+  planId: string;
+  planName: string;
+  amountChanged: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  status: string;
+  progressPercentage: number;
+  reason: string;
+}
+
+interface UpdateSavingsBalanceResponse {
+  success: boolean;
+  message: string;
+  data: UpdateSavingsBalanceData;
+}
+
+// Small helper so every admin log line is easy to spot and grep for in the
+// console, and so we log the same shape whether the failure came from
+// apiClient throwing (network error / non-2xx / route not found) or from
+// a 200 response with `success: false`.
+function logApiError(label: string, endpoint: string, method: string, err: unknown) {
+  const status = (err as any)?.status ?? (err as any)?.response?.status;
+  const body = (err as any)?.body ?? (err as any)?.response?.data;
+  console.error(`[${label}] request failed`, {
+    method,
+    endpoint,
+    status,
+    message: err instanceof Error ? err.message : err,
+    body,
+    raw: err,
+  });
+}
+
+export const useAdminUsersBalances = () => {
+  return useQuery({
+    queryKey: ['admin-users-balances'],
+    queryFn: async () => {
+      const endpoint = 'admin/users-balances';
+      console.log('[AdminUsersBalances] GET', endpoint);
+
+      let response: AdminUsersBalancesResponse;
+      try {
+        response = (await apiClient(endpoint, {
+          method: 'GET',
+        })) as AdminUsersBalancesResponse;
+      } catch (err) {
+        // This is where a "route not found" / 404 typically surfaces —
+        // apiClient throws before we ever get a `.success` field to check.
+        logApiError('AdminUsersBalances', endpoint, 'GET', err);
+        throw err;
+      }
+
+      console.log('[AdminUsersBalances] response', response);
+
+      if (!response.success) {
+        console.error('[AdminUsersBalances] API returned success: false', response);
+        throw new Error(response.message || 'Failed to fetch user balances');
+      }
+
+      return response.data;
+    },
+  });
+};
+
+export const useUpdateSavingsBalance = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      userId,
+      ...payload
+    }: UpdateSavingsBalanceRequest & { userId: string }) => {
+      const endpoint = `admin/user/${userId}/update-savings-balance`;
+      console.log('[UpdateSavingsBalance] PUT', endpoint, payload);
+
+      let response: UpdateSavingsBalanceResponse;
+      try {
+        response = (await apiClient(endpoint, {
+          method: 'PUT',
+          body: JSON.stringify(payload),
+        })) as UpdateSavingsBalanceResponse;
+      } catch (err) {
+        logApiError('UpdateSavingsBalance', endpoint, 'PUT', err);
+        throw err;
+      }
+
+      console.log('[UpdateSavingsBalance] response', response);
+
+      if (!response.success) {
+        console.error('[UpdateSavingsBalance] API returned success: false', response);
+        throw new Error(response.message || 'Failed to update savings balance');
+      }
+
+      return response.data;
+    },
+    onSuccess: (data) => {
+      console.log('[UpdateSavingsBalance] success, invalidating queries for', data.userId);
+      queryClient.invalidateQueries({ queryKey: ['admin-users-balances'] });
+      queryClient.invalidateQueries({ queryKey: ['savings-balance', data.userId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-overview', data.userId] });
+      queryClient.invalidateQueries({ queryKey: ['savings-transactions', data.userId] });
+    },
+    onError: (err) => {
+      console.error('[UpdateSavingsBalance] mutation error', err);
+    },
+  });
+};
