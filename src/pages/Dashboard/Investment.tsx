@@ -26,6 +26,7 @@ import {
   WorkspacePremium as ExclusiveIcon,
   Stars as SupremeIcon,
   EmojiEvents as TrophyIcon,
+  ContentCopy as ContentCopyIcon,
 } from '@mui/icons-material';
 import { Chart, registerables } from 'chart.js';
 import agric from "../../assets/agric.jpg"
@@ -675,15 +676,31 @@ function PaymentModal({
             </Box>
           )}
 
-          {/* Bitcoin Address if available */}
-          {paymentData.bitcoinAddress && (
-            <Box sx={{ mb: 2, p: 1.5, borderRadius: '12px', bgcolor: '#F8F9FA' }}>
-              <Typography sx={{ fontSize: '0.65rem', color: '#9CA3AF', mb: 0.5 }}>
-                Bitcoin Address
+          {/* Bitcoin Address */}
+          {paymentData.paymentMethod?.toLowerCase() === 'bitcoin' && (
+            <Box sx={{ mb: 2, p: 1.75, borderRadius: '12px', bgcolor: '#FFF7ED', border: '1px solid #FED7AA' }}>
+              <Typography sx={{ fontSize: '0.7rem', color: '#9A3412', mb: 0.6, fontWeight: 800 }}>
+                Send Bitcoin to this address
               </Typography>
-              <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: '#0F172A', wordBreak: 'break-all', fontFamily: 'monospace' }}>
-                {paymentData.bitcoinAddress}
-              </Typography>
+              {paymentData.bitcoinAddress ? (
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                  <Typography sx={{ flex: 1, fontSize: '0.8rem', fontWeight: 700, color: '#0F172A', wordBreak: 'break-all', fontFamily: 'monospace', lineHeight: 1.5 }}>
+                    {paymentData.bitcoinAddress}
+                  </Typography>
+                  <IconButton
+                    size="small"
+                    aria-label="Copy Bitcoin address"
+                    onClick={() => navigator.clipboard?.writeText(paymentData.bitcoinAddress || '')}
+                    sx={{ color: '#EA580C' }}
+                  >
+                    <ContentCopyIcon sx={{ fontSize: '1rem' }} />
+                  </IconButton>
+                </Box>
+              ) : (
+                <Typography sx={{ fontSize: '0.8rem', color: '#9A3412' }}>
+                  Bitcoin address unavailable. Please contact support before sending funds.
+                </Typography>
+              )}
             </Box>
           )}
 
@@ -1099,8 +1116,13 @@ export default function Investments() {
         paymentMethod: 'bitcoin', // Default payment method
       },
       {
-        onSuccess: (data) => {
-          setPaymentData(data as PaymentData);
+        onSuccess: (data: any) => {
+          // Support both direct API responses and responses wrapped in { data }.
+          const payment = data?.data?.data ?? data?.data ?? data;
+          setPaymentData({
+            ...payment,
+            bitcoinAddress: payment?.bitcoinAddress ?? payment?.bitcoin_address,
+          } as PaymentData);
           setPaymentModalOpen(true);
           setDialogOpen(false); // Close plan details modal
         },
