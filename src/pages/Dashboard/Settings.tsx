@@ -10,6 +10,7 @@ import {
   Avatar,
   useMediaQuery,
   Dialog,
+  DialogContent,
   IconButton,
   CircularProgress,
   Skeleton,
@@ -56,6 +57,7 @@ import {
   useUploadProfilePhoto,
 } from '../../hooks/useProfile'; 
 import { useChangePassword, useCreateSupportTicket } from '../../hooks/useAuth';// adjust path as needed
+import { useAuth } from '../../contexts/AuthContext';
 
 // ─── Reusable section wrapper ─────────────────────────────────────────────────
 function Section({ children, label }: { children: React.ReactNode; label: string }) {
@@ -188,7 +190,7 @@ function FieldRowSkeleton() {
   );
 }
 
-// ─── Avatar Upload Dialog ──────────────���──────────────────────────────────────
+// ─── Avatar Upload Dialog ──────────────────────────────────────────────────────
 function AvatarUploadDialog({
   open, onClose, onSave, currentImage, isUploading,
 }: {
@@ -1412,6 +1414,9 @@ function FaqDialog({
 export default function Settings() {
   const isMobile = useMediaQuery('(max-width:600px)');
 
+  // ── Auth ───────────────────────────────────────────────────────────────────
+  const { logout } = useAuth();
+
   // ── API hooks ──────────────────────────────────────────────────────────────
   const { data: profileResponse, isLoading: profileLoading, isError: profileError } = useGetProfile();
   const updateProfileMutation = useUpdateProfileDetails();
@@ -1428,6 +1433,7 @@ export default function Settings() {
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [faqDialogOpen, setFaqDialogOpen] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
 
   // Edit form state — seeded from API data
   const [formData, setFormData] = useState({
@@ -1554,6 +1560,20 @@ export default function Settings() {
     setReportSubmitting(false);
     setReportSent(true);
     setTimeout(() => setReportSent(false), 4000);
+  };
+
+  // ── Logout handlers ────────────────────────────────────────────────────────
+  const handleLogoutClick = () => {
+    setLogoutConfirmOpen(true);
+  };
+
+  const handleLogoutCancel = () => {
+    setLogoutConfirmOpen(false);
+  };
+
+  const handleLogoutConfirm = () => {
+    setLogoutConfirmOpen(false);
+    logout();
   };
 
   const displayName = profile
@@ -1908,7 +1928,11 @@ export default function Settings() {
           <ActionRow
             icon={<LogoutIcon />} title="Sign Out " subtitle="" danger
             action={
-              <Box component="button" sx={{ px: 1.5, py: 0.7, borderRadius: '10px', border: 'none', cursor: 'pointer', bgcolor: '#FEF3C7', color: '#D97706', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.4, transition: 'all 0.15s', whiteSpace: 'nowrap', '&:hover': { bgcolor: '#FDE68A' } }}>
+              <Box
+                component="button"
+                onClick={handleLogoutClick}
+                sx={{ px: 1.5, py: 0.7, borderRadius: '10px', border: 'none', cursor: 'pointer', bgcolor: '#FEF3C7', color: '#D97706', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.4, transition: 'all 0.15s', whiteSpace: 'nowrap', '&:hover': { bgcolor: '#FDE68A' } }}
+              >
                 Sign Out <ArrowIcon sx={{ fontSize: '0.7rem' }} />
               </Box>
             }
@@ -1964,6 +1988,56 @@ export default function Settings() {
         onClose={() => setFaqDialogOpen(false)}
         onContactSupport={() => setContactDialogOpen(true)}
       />
+
+      {/* ── Logout confirmation dialog ── */}
+      <Dialog
+        open={logoutConfirmOpen}
+        onClose={handleLogoutCancel}
+        maxWidth="xs"
+        fullWidth
+        slotProps={{ paper: { sx: { borderRadius: '20px', m: { xs: 1.5, sm: 3 } } } }}
+      >
+        <DialogContent sx={{ p: 3, textAlign: 'center' }}>
+          <Box sx={{
+            width: 56, height: 56, borderRadius: '50%',
+            bgcolor: '#FEF2F2', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', mx: 'auto', mb: 2,
+          }}>
+            <LogoutIcon sx={{ color: '#DC2626', fontSize: '1.6rem' }} />
+          </Box>
+
+          <Typography sx={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', mb: 0.8 }}>
+            Log out of your account?
+          </Typography>
+          <Typography sx={{ fontSize: '0.85rem', color: '#6B7280', mb: 3 }}>
+            You'll need to sign in again to access your dashboard.
+          </Typography>
+
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+            <Button
+              fullWidth variant="outlined" onClick={handleLogoutCancel}
+              sx={{
+                borderRadius: '12px', textTransform: 'none', fontWeight: 700,
+                borderColor: 'rgba(0,0,0,0.12)', color: '#374151', py: 1.2,
+                '&:hover': { bgcolor: '#F8F9FA', borderColor: 'rgba(0,0,0,0.2)' },
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              fullWidth variant="contained" onClick={handleLogoutConfirm}
+              sx={{
+                borderRadius: '12px', textTransform: 'none', fontWeight: 700, py: 1.2,
+                background: 'linear-gradient(135deg,#DC2626,#B91C1C)',
+                boxShadow: '0 4px 14px rgba(220,38,38,0.25)',
+                '&:hover': { background: 'linear-gradient(135deg,#B91C1C,#991B1B)' },
+              }}
+            >
+              Log Out
+            </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }
