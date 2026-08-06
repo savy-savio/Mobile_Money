@@ -12,7 +12,7 @@ interface ApiClientOptions extends RequestInit {
 
 export const buildAuthHeaders = (customHeaders: Record<string, string> = {}, hasBody = false) => {
   const accessToken = localStorage.getItem('accessToken');
-  const refreshToken = localStorage.getItem('refreshToken');
+  const refreshToken = localStorage.getItem('refreshToken')
 
   const headers: Record<string, string> = {
     ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
