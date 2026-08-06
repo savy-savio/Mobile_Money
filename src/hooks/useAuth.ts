@@ -596,6 +596,166 @@ export const useInvestmentDetails = (investmentId?: string) => {
   });
 };
 
+// ─── Get User Balance Details Hook ────────────────────────────────────────────
+interface BalanceDetailsUser {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  username: string;
+  accountType: string;
+  currency: string;
+  createdAt: string;
+}
+
+interface InvestmentDetailItem {
+  investmentId: string;
+  planName: string;
+  amountInvested: number;
+  currentValue: number;
+  totalGain: number;
+  status: string;
+  investmentDate: string;
+  maturityDate: string;
+}
+
+interface SavingsPlanItem {
+  _id: string;
+  userId: string;
+  planName: string;
+  category: string | null;
+  targetAmount: number;
+  currentAmount: number;
+  earnInterest: boolean;
+  interestRate: number;
+  duration: number | null;
+  frequency: string | null;
+  startDate: string;
+  endDate: string | null;
+  nextDepositDueDate: string | null;
+  status: string;
+  totalInterestEarned: number;
+  progressPercentage: number;
+  expectedInterest: number;
+  isDefault: boolean;
+  transactions: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface SavingsDetailItem {
+  planId: string;
+  planName: string;
+  targetAmount: number;
+  currentAmount: number;
+  status: string;
+  earnInterest: boolean;
+  totalInterestEarned: number;
+}
+
+interface UserBalanceDetails {
+  user: BalanceDetailsUser;
+  investments: {
+    summary: {
+      totalInvested: number;
+      activePlans: number;
+      portfolioValue: number;
+      totalGains: number;
+      avgReturn: number;
+      lastUpdated: string;
+    };
+    count: number;
+    details: InvestmentDetailItem[];
+  };
+  savings: {
+    summary: {
+      balance: number;
+      targetAmount: number;
+      totalInterestEarned: number;
+      monthlyInterest: number;
+      apy: number;
+      activePlans: number;
+      completedPlans: number;
+      totalPlans: number;
+      plans: SavingsPlanItem[];
+    };
+    count: number;
+    details: SavingsDetailItem[];
+  };
+}
+
+interface UserBalanceDetailsResponse {
+  success: boolean;
+  data: UserBalanceDetails;
+}
+
+export const useGetUserBalanceDetails = (userId?: string) => {
+  const currentUser = useCurrentUser();
+  const finalUserId = userId || currentUser?.userId;
+
+  return useQuery({
+    queryKey: ['user-balance-details', finalUserId],
+    queryFn: async () => {
+      const response = await apiClient(`admin/user/${finalUserId}/balance-details`, {
+        method: 'GET',
+      }) as UserBalanceDetailsResponse;
+
+      if (!response.success) {
+        throw new Error('Failed to fetch user balance details');
+      }
+
+      return response.data;
+    },
+    enabled: !!finalUserId,
+  });
+};
+
+// ─── Update Investment Balance Hook ───────────────────────────────────────────
+interface UpdateInvestmentBalanceRequest {
+  userId: string;
+  amount: number;
+  reason?: string;
+  action?: 'add' | 'subtract' | 'set';
+  investmentId?: string;
+}
+
+interface UpdateInvestmentBalanceResponse {
+  success: boolean;
+  message: string;
+  data: {
+    userId: string;
+    investmentId?: string;
+    previousBalance: number;
+    newBalance: number;
+    amountChanged: number;
+    timestamp: string;
+  };
+}
+
+export const useUpdateUserInvestmentBalance = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ userId, ...updateData }: UpdateInvestmentBalanceRequest) => {
+      const response = await apiClient(
+        `admin/user/${userId}/update-investment-balance`,
+        { method: 'PUT', body: JSON.stringify(updateData) }
+      ) as UpdateInvestmentBalanceResponse;
+
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to update investment balance');
+      }
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-balance-details'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] });
+      queryClient.invalidateQueries({ queryKey: ['investment-details'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-users-balances'] }); // adjust to your actual key for useAdminUsersBalances
+    },
+  });
+};
+
 // ─── Compare Investments Hook ────────────────────────────────────────────────
 interface CompareInvestment {
   id: string;

@@ -38,14 +38,20 @@ import {
   ErrorOutlined as ErrorOutlineIcon,
   MoreVert as MoreVertIcon,
   People as PeopleIcon,
-//   Remove as RemoveIcon,
+  Remove as RemoveIcon,
   Savings as SavingsIcon,
   Search as SearchIcon,
   SwapVert as SwapVertIcon,
+  Tune as TuneIcon,
   TrendingUp as TrendingUpIcon,
   AccountBalanceWallet as WalletIcon,
 } from '@mui/icons-material';
-import { useAdminUsersBalances, useUpdateSavingsBalance } from '../../hooks/useAuth';
+import {
+  useAdminUsersBalances,
+  useUpdateSavingsBalance,
+  useGetUserBalanceDetails,
+  useUpdateUserInvestmentBalance,
+} from '../../hooks/useAuth';
 
 // ─── Design tokens ───────────────────────────────────────────────────────────
 
@@ -105,8 +111,102 @@ interface AdminUser {
   totalBalance: number;
 }
 
+// ── Balance-details endpoint types (admin/user/:id/balance-details) ─────────
+
+interface BalanceDetailsUser {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  username: string;
+  accountType: string;
+  currency: string;
+  createdAt: string;
+}
+
+interface InvestmentDetailItem {
+  investmentId: string;
+  planName: string;
+  amountInvested: number;
+  currentValue: number;
+  totalGain: number;
+  status: string;
+  investmentDate: string;
+  maturityDate: string;
+}
+
+interface InvestmentsSection {
+  summary: {
+    totalInvested: number;
+    activePlans: number;
+    portfolioValue: number;
+    totalGains: number;
+    avgReturn: number;
+    lastUpdated: string;
+  };
+  count: number;
+  details: InvestmentDetailItem[];
+}
+
+interface SavingsPlanItem {
+  _id: string;
+  userId: string;
+  planName: string;
+  category: string | null;
+  targetAmount: number;
+  currentAmount: number;
+  earnInterest: boolean;
+  interestRate: number;
+  duration: number | null;
+  frequency: string | null;
+  startDate: string;
+  endDate: string | null;
+  nextDepositDueDate: string | null;
+  status: string;
+  totalInterestEarned: number;
+  progressPercentage: number;
+  expectedInterest: number;
+  isDefault: boolean;
+  transactions: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface SavingsDetailItem {
+  planId: string;
+  planName: string;
+  targetAmount: number;
+  currentAmount: number;
+  status: string;
+  earnInterest: boolean;
+  totalInterestEarned: number;
+}
+
+interface SavingsSection {
+  summary: {
+    balance: number;
+    targetAmount: number;
+    totalInterestEarned: number;
+    monthlyInterest: number;
+    apy: number;
+    activePlans: number;
+    completedPlans: number;
+    totalPlans: number;
+    plans: SavingsPlanItem[];
+  };
+  count: number;
+  details: SavingsDetailItem[];
+}
+
+interface UserBalanceDetails {
+  user: BalanceDetailsUser;
+  investments: InvestmentsSection;
+  savings: SavingsSection;
+}
+
 type SortKey = 'name' | 'createdAt' | 'investment' | 'savings' | 'total';
 type SortDirection = 'asc' | 'desc';
+type InvestmentAction = 'add' | 'subtract' | 'set';
 
 const PAGE_SIZE = 20;
 const SKELETON_CARDS = 8;
@@ -121,8 +221,9 @@ const SORT_LABELS: Record<SortKey, string> = {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function formatCurrency(value: number) {
-  return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+function formatCurrency(value: number | null | undefined) {
+  const n = typeof value === 'number' && Number.isFinite(value) ? value : 0;
+  return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function formatDate(dateString: string) {
@@ -160,6 +261,24 @@ const AVATAR_PALETTE = [
 function avatarStyle(id: string) {
   const sum = id.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
   return AVATAR_PALETTE[sum % AVATAR_PALETTE.length];
+}
+
+const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
+  active: { bg: success.bg, text: success.text },
+  completed: { bg: violet.bg, text: violet.text },
+  pending: { bg: '#FFFBEB', text: '#92400E' },
+  cancelled: { bg: danger.bg, text: danger.text },
+};
+
+function StatusChip({ status }: { status: string }) {
+  const style = STATUS_STYLES[status] ?? { bg: ink[100], text: ink[600] };
+  return (
+    <Chip
+      size="small"
+      label={status.charAt(0).toUpperCase() + status.slice(1)}
+      sx={{ bgcolor: style.bg, color: style.text, fontWeight: 700, fontSize: '0.65rem', height: 20, textTransform: 'capitalize' }}
+    />
+  );
 }
 
 // ─── Stat Card ───────────────────────────────────────────────────────────────
@@ -479,14 +598,366 @@ function UpdateSavingsModal({ open, user, isSubmitting, onClose, onSubmit }: Upd
   );
 }
 
+// ─── Update Investment Balance Modal ────────────────────────────────────────
+
+interface UpdateInvestmentModalProps {
+  open: boolean;
+  user: AdminUser | null;
+  isSubmitting: boolean;
+  onClose: () => void;
+  onSubmit: (payload: {
+    userId: string;
+    action: InvestmentAction;
+    amount: number;
+    reason: string;
+    investmentId?: string;
+  }) => Promise<void>;
+}
+
+function UpdateInvestmentModal({ open, user, isSubmitting, onClose, onSubmit }: UpdateInvestmentModalProps) {
+  const [action, setAction] = useState<InvestmentAction>('add');
+  const [amount, setAmount] = useState('');
+  const [reason, setReason] = useState('');
+  const [investmentId, setInvestmentId] = useState('');
+  const [error, setError] = useState('');
+  const [confirming, setConfirming] = useState(false);
+
+  // Fetch this user's investment plans so the plan picker is always populated,
+  // regardless of whether the modal was opened from the details dialog or the row menu.
+  const { data: balanceDetails, isLoading: plansLoading, isError: plansError } = useGetUserBalanceDetails(
+    open ? user?.userId ?? undefined : undefined
+  ) as { data?: UserBalanceDetails; isLoading: boolean; isError: boolean };
+  const plans = balanceDetails?.investments.details ?? [];
+
+  const resetAndClose = () => {
+    setAction('add');
+    setAmount('');
+    setReason('');
+    setInvestmentId('');
+    setError('');
+    setConfirming(false);
+    onClose();
+  };
+
+  const numAmount = parseFloat(amount);
+  const isValidAmount =
+    amount !== '' && !isNaN(numAmount) && numAmount >= 0 && (action === 'set' ? true : numAmount > 0);
+  const selectedPlan = investmentId ? plans.find((p) => p.investmentId === investmentId) : undefined;
+  const currentValue = selectedPlan ? selectedPlan.currentValue : user?.investmentBalance.portfolioValue ?? 0;
+
+  const projectedBalance = !isValidAmount
+    ? currentValue
+    : action === 'add'
+    ? currentValue + numAmount
+    : action === 'subtract'
+    ? currentValue - numAmount
+    : numAmount;
+
+  const wouldOverdraw = action === 'subtract' && projectedBalance < 0;
+  const needsConfirmation = action === 'subtract' || action === 'set';
+
+  const validate = () => {
+    if (!isValidAmount) {
+      setError(action === 'set' ? 'Enter a valid balance amount' : 'Enter a valid amount greater than 0');
+      return false;
+    }
+    if (!reason.trim()) {
+      setError('A reason is required for the audit log');
+      return false;
+    }
+    if (wouldOverdraw) {
+      setError('Amount exceeds the current portfolio value');
+      return false;
+    }
+    return true;
+  };
+
+  const handlePrimaryAction = async () => {
+    if (!validate() || !user) return;
+    if (needsConfirmation && !confirming) {
+      setConfirming(true);
+      return;
+    }
+    try {
+      await onSubmit({
+        userId: user.userId,
+        action,
+        amount: numAmount,
+        reason: reason.trim(),
+        investmentId: investmentId.trim() || undefined,
+      });
+      resetAndClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      setConfirming(false);
+    }
+  };
+
+  if (!user) return null;
+
+  const actionColor = action === 'add' ? success : action === 'subtract' ? danger : violet;
+  const primaryBg = action === 'add' ? BRAND : confirming ? danger.text : ink[900];
+  const primaryHoverBg = action === 'add' ? BRAND_DARK : confirming ? '#991B1B' : ink[700];
+
+  return (
+    <Dialog
+      open={open}
+      onClose={isSubmitting ? undefined : resetAndClose}
+      maxWidth="sm"
+      fullWidth
+      slotProps={{ paper: { sx: { borderRadius: radius.xl, bgcolor: '#fff', m: { xs: 1.5, sm: 3 } } } }}
+    >
+      <DialogContent sx={{ p: { xs: 2.25, sm: 3 } }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2.5 }}>
+          <Box sx={{ display: 'flex', gap: 1.4, alignItems: 'center' }}>
+            <Box sx={{ width: 38, height: 38, borderRadius: radius.sm, bgcolor: violet.bg, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+              <TrendingUpIcon sx={{ fontSize: '1.1rem', color: violet.text }} />
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: '1.05rem', fontWeight: 800, color: ink[900] }}>
+                Update investment balance
+              </Typography>
+              <Typography sx={{ fontSize: '0.8rem', color: ink[400], mt: 0.2 }}>
+                {fullName(user)} · @{user.username}
+              </Typography>
+            </Box>
+          </Box>
+          <IconButton onClick={resetAndClose} size="small" aria-label="Close dialog" disabled={isSubmitting}>
+            <CloseIcon sx={{ fontSize: '1.2rem' }} />
+          </IconButton>
+        </Box>
+
+        <Box sx={{ mb: 2.5, p: 1.5, borderRadius: radius.md, bgcolor: ink[50], border: `1px solid ${ink[100]}` }}>
+          <Typography sx={{ fontSize: '0.68rem', color: ink[400], mb: 0.4, textTransform: 'uppercase', letterSpacing: '0.4px', fontWeight: 700 }}>
+            {selectedPlan ? `Current value · ${selectedPlan.planName}` : 'Current portfolio value'}
+          </Typography>
+          <Typography sx={{ fontSize: '1.15rem', fontWeight: 800, color: ink[900] }}>
+            {formatCurrency(currentValue)}
+          </Typography>
+        </Box>
+
+        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: ink[600], mb: 1, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          Target
+        </Typography>
+        <FormControl fullWidth disabled={isSubmitting || plansLoading} sx={{ mb: 0.6 }}>
+          <InputLabel id="investment-plan-select-label">Plan</InputLabel>
+          <Select
+            labelId="investment-plan-select-label"
+            label="Plan"
+            value={investmentId}
+            onChange={(e) => {
+              setInvestmentId(e.target.value as string);
+              setError('');
+              setConfirming(false);
+            }}
+            sx={{ borderRadius: radius.md }}
+          >
+            <MenuItem value="">
+              <em>Overall portfolio value</em>
+            </MenuItem>
+            {plans.map((p) => (
+              <MenuItem key={p.investmentId} value={p.investmentId}>
+                {p.planName} — {formatCurrency(p.currentValue)}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <Typography sx={{ fontSize: '0.72rem', color: ink[400], mb: 2, ml: 0.2 }}>
+          {plansLoading
+            ? 'Loading this user\u2019s plans…'
+            : plansError
+            ? "Couldn't load plans — you can still apply the update to the overall portfolio."
+            : plans.length === 0
+            ? 'This user has no investment plans yet — the update will apply to the overall portfolio.'
+            : 'Pick a specific plan, or leave it on the overall portfolio.'}
+        </Typography>
+
+        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: ink[600], mb: 1, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          Action
+        </Typography>
+        <ToggleButtonGroup
+          exclusive
+          fullWidth
+          value={action}
+          disabled={isSubmitting}
+          onChange={(_, val) => {
+            if (!val) return;
+            setAction(val);
+            setConfirming(false);
+            setError('');
+          }}
+          sx={{ mb: 2.5 }}
+        >
+          <ToggleButton
+            value="add"
+            sx={{
+              textTransform: 'none',
+              fontWeight: 700,
+              borderRadius: `${radius.md} !important`,
+              gap: 0.7,
+              py: 1.2,
+              color: ink[600],
+              borderColor: ink[200],
+              '&.Mui-selected': { bgcolor: success.bg, color: success.text, borderColor: success.border },
+            }}
+          >
+            <AddIcon sx={{ fontSize: '1rem' }} /> Add
+          </ToggleButton>
+          <ToggleButton
+            value="subtract"
+            sx={{
+              textTransform: 'none',
+              fontWeight: 700,
+              borderRadius: `${radius.md} !important`,
+              gap: 0.7,
+              py: 1.2,
+              color: ink[600],
+              borderColor: ink[200],
+              '&.Mui-selected': { bgcolor: danger.bg, color: danger.text, borderColor: danger.border },
+            }}
+          >
+            <RemoveIcon sx={{ fontSize: '1rem' }} /> Subtract
+          </ToggleButton>
+          <ToggleButton
+            value="set"
+            sx={{
+              textTransform: 'none',
+              fontWeight: 700,
+              borderRadius: `${radius.md} !important`,
+              gap: 0.7,
+              py: 1.2,
+              color: ink[600],
+              borderColor: ink[200],
+              '&.Mui-selected': { bgcolor: violet.bg, color: violet.text, borderColor: violet.border },
+            }}
+          >
+            <TuneIcon sx={{ fontSize: '1rem' }} /> Set
+          </ToggleButton>
+        </ToggleButtonGroup>
+
+        <TextField
+          fullWidth
+          label={action === 'set' ? 'New balance (USD)' : 'Amount (USD)'}
+          type="number"
+          value={amount}
+          disabled={isSubmitting}
+          onChange={(e) => {
+            setAmount(e.target.value);
+            setError('');
+            setConfirming(false);
+          }}
+          sx={{ mb: 2 }}
+          slotProps={{
+            htmlInput: { min: 0, step: '0.01' },
+            input: { startAdornment: <InputAdornment position="start">$</InputAdornment> },
+          }}
+        />
+
+        <TextField
+          fullWidth
+          label="Reason"
+          placeholder="e.g. Correction, manual adjustment, bonus"
+          value={reason}
+          disabled={isSubmitting}
+          onChange={(e) => { setReason(e.target.value); setError(''); setConfirming(false); }}
+          helperText="Recorded on this user's account history."
+          sx={{ mb: 1 }}
+        />
+
+        {error && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7, mb: 1.5 }}>
+            <ErrorOutlineIcon sx={{ fontSize: '1rem', color: danger.text }} />
+            <Typography sx={{ fontSize: '0.78rem', color: danger.text }}>{error}</Typography>
+          </Box>
+        )}
+
+        {isValidAmount && (
+          <Box
+            sx={{
+              mb: 2.5,
+              p: 1.5,
+              borderRadius: radius.md,
+              bgcolor: actionColor.bg,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <Typography sx={{ fontSize: '0.78rem', color: actionColor.text, fontWeight: 600 }}>
+              {action === 'set' ? 'Balance will be set to' : 'New balance'}
+            </Typography>
+            <Typography sx={{ fontSize: '0.95rem', fontWeight: 800, color: actionColor.text }}>
+              {formatCurrency(Math.max(projectedBalance, 0))}
+            </Typography>
+          </Box>
+        )}
+
+        {confirming && (
+          <Box sx={{ mb: 2, p: 1.5, borderRadius: radius.md, bgcolor: '#FFFBEB', border: '1px solid #FDE68A' }}>
+            <Typography sx={{ fontSize: '0.8rem', color: '#92400E', fontWeight: 600 }}>
+              {action === 'subtract'
+                ? `Confirm: subtract ${isValidAmount ? formatCurrency(numAmount) : '$0.00'} from ${user.firstName}'s ${selectedPlan ? `"${selectedPlan.planName}" plan` : 'investment balance'}?`
+                : `Confirm: set ${user.firstName}'s ${selectedPlan ? `"${selectedPlan.planName}" plan` : 'investment balance'} to ${isValidAmount ? formatCurrency(numAmount) : '$0.00'}?`}
+            </Typography>
+          </Box>
+        )}
+
+        <Box sx={{ display: 'flex', gap: 1.2 }}>
+          {confirming && (
+            <Button
+              variant="outlined"
+              onClick={() => setConfirming(false)}
+              disabled={isSubmitting}
+              sx={{ borderRadius: radius.md, textTransform: 'none', fontWeight: 700, borderColor: ink[200], color: ink[600] }}
+            >
+              Back
+            </Button>
+          )}
+          <Button
+            variant="contained"
+            fullWidth
+            onClick={handlePrimaryAction}
+            disableElevation
+            disabled={isSubmitting}
+            startIcon={isSubmitting ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : undefined}
+            sx={{
+              bgcolor: primaryBg,
+              color: '#fff',
+              py: 1.5,
+              borderRadius: radius.md,
+              fontWeight: 700,
+              textTransform: 'none',
+              fontSize: '0.9rem',
+              '&:hover': { bgcolor: primaryHoverBg },
+              '&.Mui-disabled': { bgcolor: ink[300], color: '#fff' },
+            }}
+          >
+            {isSubmitting
+              ? 'Saving…'
+              : confirming
+              ? action === 'subtract'
+                ? 'Confirm subtraction'
+                : 'Confirm new balance'
+              : action === 'add'
+              ? 'Add funds'
+              : 'Continue'}
+          </Button>
+        </Box>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Row action menu ─────────────────────────────────────────────────────────
 
 function RowActionsMenu({
   onUpdateSavings,
+  onUpdateInvestment,
   onViewDetails,
   onCopyId,
 }: {
   onUpdateSavings: () => void;
+  onUpdateInvestment: () => void;
   onViewDetails: () => void;
   onCopyId: () => void;
 }) {
@@ -512,6 +983,10 @@ function RowActionsMenu({
           <SavingsIcon sx={{ fontSize: '1.05rem', color: ink[600] }} />
           Update savings balance
         </MenuItem>
+        <MenuItem onClick={() => { setAnchorEl(null); onUpdateInvestment(); }} sx={{ fontSize: '0.85rem', gap: 1.2, py: 1 }}>
+          <TrendingUpIcon sx={{ fontSize: '1.05rem', color: ink[600] }} />
+          Update investment balance
+        </MenuItem>
         <Divider sx={{ my: 0.5 }} />
         <MenuItem onClick={() => { setAnchorEl(null); onCopyId(); }} sx={{ fontSize: '0.85rem', gap: 1.2, py: 1 }}>
           <CopyIcon sx={{ fontSize: '1.05rem', color: ink[600] }} />
@@ -533,19 +1008,165 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function InvestmentPlanRow({ item }: { item: InvestmentDetailItem }) {
+  return (
+    <Box sx={{ p: 1.4, borderRadius: radius.md, border: `1px solid ${ink[100]}`, bgcolor: ink[50], display: 'flex', flexDirection: 'column', gap: 0.8 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+        <Typography sx={{ fontSize: '0.82rem', fontWeight: 700, color: ink[900] }}>{item.planName}</Typography>
+        <StatusChip status={item.status} />
+      </Box>
+      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+        <Box>
+          <Typography sx={{ fontSize: '0.65rem', color: ink[400] }}>Invested</Typography>
+          <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: ink[900] }}>{formatCurrency(item.amountInvested)}</Typography>
+        </Box>
+        <Box>
+          <Typography sx={{ fontSize: '0.65rem', color: ink[400] }}>Current value</Typography>
+          <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: ink[900] }}>{formatCurrency(item.currentValue)}</Typography>
+        </Box>
+      </Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}>
+        <Typography sx={{ fontSize: '0.72rem', color: item.totalGain >= 0 ? success.text : danger.text, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.2 }}>
+          {item.totalGain >= 0 && <ArrowUpIcon sx={{ fontSize: '0.7rem' }} />}
+          {formatCurrency(item.totalGain)} gain
+        </Typography>
+        <Typography sx={{ fontSize: '0.68rem', color: ink[400] }}>Matures {formatDate(item.maturityDate)}</Typography>
+      </Box>
+    </Box>
+  );
+}
+
+function SavingsPlanRow({ plan }: { plan: SavingsPlanItem }) {
+  return (
+    <Box sx={{ p: 1.4, borderRadius: radius.md, border: `1px solid ${ink[100]}`, bgcolor: ink[50], display: 'flex', flexDirection: 'column', gap: 0.8 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+        <Typography sx={{ fontSize: '0.82rem', fontWeight: 700, color: ink[900] }}>{plan.planName}</Typography>
+        <StatusChip status={plan.status} />
+      </Box>
+      <Box sx={{ display: 'grid', gridTemplateColumns: plan.targetAmount > 0 ? '1fr 1fr' : '1fr', gap: 1 }}>
+        <Box>
+          <Typography sx={{ fontSize: '0.65rem', color: ink[400] }}>Current amount</Typography>
+          <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: ink[900] }}>{formatCurrency(plan.currentAmount)}</Typography>
+        </Box>
+        {plan.targetAmount > 0 && (
+          <Box>
+            <Typography sx={{ fontSize: '0.65rem', color: ink[400] }}>Target</Typography>
+            <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: ink[900] }}>{formatCurrency(plan.targetAmount)}</Typography>
+          </Box>
+        )}
+      </Box>
+      {plan.targetAmount > 0 && (
+        <Box sx={{ height: 6, borderRadius: 999, bgcolor: ink[200], overflow: 'hidden' }}>
+          <Box sx={{ height: '100%', width: `${Math.min(plan.progressPercentage, 100)}%`, bgcolor: BRAND, borderRadius: 999 }} />
+        </Box>
+      )}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}>
+        <Typography sx={{ fontSize: '0.68rem', color: ink[400] }}>
+          {plan.earnInterest ? `${plan.interestRate}% APY · ${formatCurrency(plan.totalInterestEarned)} earned` : 'No interest'}
+        </Typography>
+        {plan.nextDepositDueDate && (
+          <Typography sx={{ fontSize: '0.68rem', color: ink[400] }}>Next due {formatDate(plan.nextDepositDueDate)}</Typography>
+        )}
+      </Box>
+    </Box>
+  );
+}
+
 function UserDetailsDialog({
   open,
-  user,
+  userId,
+  fallbackUser,
   onClose,
   onUpdateSavings,
+  onUpdateInvestment,
 }: {
   open: boolean;
-  user: AdminUser | null;
+  userId: string | null;
+  fallbackUser: AdminUser | null;
   onClose: () => void;
   onUpdateSavings: (u: AdminUser) => void;
+  onUpdateInvestment: (u: AdminUser) => void;
 }) {
-  if (!user) return null;
-  const avatar = avatarStyle(user.userId);
+  // Only fetch while the dialog is actually open.
+  const { data, isLoading, isError } = useGetUserBalanceDetails(
+    open ? userId ?? undefined : undefined
+  ) as { data?: UserBalanceDetails; isLoading: boolean; isError: boolean };
+
+  if (!fallbackUser && !data) return null;
+
+  const person = data?.user ?? fallbackUser!;
+  const avatar = avatarStyle(person.userId);
+
+  const portfolioValue = data?.investments.summary.portfolioValue ?? fallbackUser?.investmentBalance.portfolioValue ?? 0;
+  const savingsBalance = data?.savings.summary.balance ?? fallbackUser?.savingsBalance.balance ?? 0;
+  const totalBalance = data ? portfolioValue + savingsBalance : fallbackUser?.totalBalance ?? 0;
+
+  const buildBase = (): AdminUser =>
+    fallbackUser ?? {
+      userId: person.userId,
+      firstName: person.firstName,
+      lastName: person.lastName,
+      email: person.email,
+      username: person.username,
+      createdAt: person.createdAt,
+      investmentBalance: {
+        totalInvested: data?.investments.summary.totalInvested ?? 0,
+        portfolioValue: data?.investments.summary.portfolioValue ?? 0,
+        totalGains: data?.investments.summary.totalGains ?? 0,
+        avgReturn: data?.investments.summary.avgReturn ?? 0,
+        activePlans: data?.investments.summary.activePlans ?? 0,
+      },
+      savingsBalance: {
+        balance: data?.savings.summary.balance ?? 0,
+        targetAmount: data?.savings.summary.targetAmount ?? 0,
+        totalInterestEarned: data?.savings.summary.totalInterestEarned ?? 0,
+        monthlyInterest: data?.savings.summary.monthlyInterest ?? 0,
+        activePlans: data?.savings.summary.activePlans ?? 0,
+        completedPlans: data?.savings.summary.completedPlans ?? 0,
+      },
+      totalBalance,
+    };
+
+  const handleUpdateSavingsClick = () => {
+    const base = buildBase();
+
+    // Prefer the freshest savings numbers from the details endpoint when we have them.
+    const merged: AdminUser = data
+      ? {
+          ...base,
+          savingsBalance: {
+            balance: data.savings.summary.balance,
+            targetAmount: data.savings.summary.targetAmount,
+            totalInterestEarned: data.savings.summary.totalInterestEarned,
+            monthlyInterest: data.savings.summary.monthlyInterest,
+            activePlans: data.savings.summary.activePlans,
+            completedPlans: data.savings.summary.completedPlans,
+          },
+        }
+      : base;
+
+    onUpdateSavings(merged);
+  };
+
+  const handleUpdateInvestmentClick = () => {
+    const base = buildBase();
+
+    // Prefer the freshest investment numbers from the details endpoint when we have them.
+    const merged: AdminUser = data
+      ? {
+          ...base,
+          investmentBalance: {
+            totalInvested: data.investments.summary.totalInvested,
+            portfolioValue: data.investments.summary.portfolioValue,
+            totalGains: data.investments.summary.totalGains,
+            avgReturn: data.investments.summary.avgReturn,
+            activePlans: data.investments.summary.activePlans,
+          },
+        }
+      : base;
+
+    onUpdateInvestment(merged);
+  };
 
   return (
     <Dialog
@@ -559,14 +1180,14 @@ function UserDetailsDialog({
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
             <Avatar sx={{ bgcolor: avatar.bg, color: avatar.fg, width: 46, height: 46, fontWeight: 800, flexShrink: 0 }}>
-              {initials(user.firstName, user.lastName)}
+              {initials(person.firstName, person.lastName)}
             </Avatar>
             <Box sx={{ minWidth: 0 }}>
               <Typography sx={{ fontSize: '1.05rem', fontWeight: 800, color: ink[900] }}>
-                {fullName(user)}
+                {person.firstName} {person.lastName}
               </Typography>
               <Typography sx={{ fontSize: '0.78rem', color: ink[400], overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                @{user.username} · {user.email}
+                @{person.username} · {person.email}
               </Typography>
             </Box>
           </Box>
@@ -575,36 +1196,72 @@ function UserDetailsDialog({
           </IconButton>
         </Box>
 
+        {isError && (
+          <Alert severity="warning" sx={{ borderRadius: radius.md, mb: 2 }}>
+            Couldn&apos;t load full plan-level details. Showing summary data instead.
+          </Alert>
+        )}
+
         <Box sx={{ mb: 1, p: 1.5, borderRadius: radius.md, bgcolor: ink[50], border: `1px solid ${ink[100]}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
           <Box sx={{ minWidth: 0 }}>
             <Typography sx={{ fontSize: '0.68rem', color: ink[400] }}>User ID</Typography>
             <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: ink[700], fontFamily: 'monospace', wordBreak: 'break-all' }}>
-              {user.userId}
+              {person.userId}
             </Typography>
           </Box>
           <Box sx={{ textAlign: 'right' }}>
             <Typography sx={{ fontSize: '0.68rem', color: ink[400] }}>Joined</Typography>
-            <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: ink[700] }}>{formatDate(user.createdAt)}</Typography>
+            <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: ink[700] }}>{formatDate(person.createdAt)}</Typography>
           </Box>
         </Box>
 
         <Box sx={{ mb: 2.5, p: 1.5, borderRadius: radius.md, bgcolor: BRAND_SOFT, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography sx={{ fontSize: '0.8rem', color: BRAND_DARK, fontWeight: 700 }}>Total balance</Typography>
-          <Typography sx={{ fontSize: '0.95rem', fontWeight: 800, color: BRAND_DARK }}>
-            {formatCurrency(user.totalBalance)}
-          </Typography>
+          {isLoading && !fallbackUser ? (
+            <Skeleton variant="text" width={90} height={26} />
+          ) : (
+            <Typography sx={{ fontSize: '0.95rem', fontWeight: 800, color: BRAND_DARK }}>{formatCurrency(totalBalance)}</Typography>
+          )}
         </Box>
 
-        <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: ink[900], mb: 1, display: 'flex', alignItems: 'center', gap: 0.8 }}>
-          <TrendingUpIcon sx={{ fontSize: '1rem', color: violet.text }} /> Investments
-        </Typography>
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: '1fr 1fr' }, gap: 1.2, mb: 2.5 }}>
-          <DetailRow label="Total invested" value={formatCurrency(user.investmentBalance.totalInvested)} />
-          <DetailRow label="Portfolio value" value={formatCurrency(user.investmentBalance.portfolioValue)} />
-          <DetailRow label="Total gains" value={formatCurrency(user.investmentBalance.totalGains)} />
-          <DetailRow label="Avg. return" value={`${user.investmentBalance.avgReturn}%`} />
-          <DetailRow label="Active plans" value={String(user.investmentBalance.activePlans)} />
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+          <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: ink[900], display: 'flex', alignItems: 'center', gap: 0.8 }}>
+            <TrendingUpIcon sx={{ fontSize: '1rem', color: violet.text }} /> Investments
+          </Typography>
+          <Button
+            size="small"
+            onClick={handleUpdateInvestmentClick}
+            sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.75rem', color: BRAND }}
+          >
+            Update balance
+          </Button>
         </Box>
+
+        {isLoading ? (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2.5 }}>
+            <Skeleton variant="rounded" height={78} />
+            <Skeleton variant="rounded" height={78} />
+          </Box>
+        ) : data ? (
+          data.investments.details.length > 0 ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2.5 }}>
+              {data.investments.details.map((item) => (
+                <InvestmentPlanRow key={item.investmentId} item={item} />
+              ))}
+            </Box>
+          ) : (
+            <Typography sx={{ fontSize: '0.8rem', color: ink[400], mb: 2.5 }}>No investment plans yet.</Typography>
+          )
+        ) : (
+          fallbackUser && (
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: '1fr 1fr' }, gap: 1.2, mb: 2.5 }}>
+              <DetailRow label="Total invested" value={formatCurrency(fallbackUser.investmentBalance.totalInvested)} />
+              <DetailRow label="Portfolio value" value={formatCurrency(fallbackUser.investmentBalance.portfolioValue)} />
+              <DetailRow label="Total gains" value={formatCurrency(fallbackUser.investmentBalance.totalGains)} />
+              <DetailRow label="Avg. return" value={`${fallbackUser.investmentBalance.avgReturn}%`} />
+            </Box>
+          )
+        )}
 
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
           <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: ink[900], display: 'flex', alignItems: 'center', gap: 0.8 }}>
@@ -612,20 +1269,38 @@ function UserDetailsDialog({
           </Typography>
           <Button
             size="small"
-            onClick={() => onUpdateSavings(user)}
+            onClick={handleUpdateSavingsClick}
             sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.75rem', color: BRAND }}
           >
             Update balance
           </Button>
         </Box>
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.2 }}>
-          <DetailRow label="Balance" value={formatCurrency(user.savingsBalance.balance)} />
-          <DetailRow label="Target amount" value={formatCurrency(user.savingsBalance.targetAmount)} />
-          <DetailRow label="Interest earned" value={formatCurrency(user.savingsBalance.totalInterestEarned)} />
-          <DetailRow label="Monthly interest" value={formatCurrency(user.savingsBalance.monthlyInterest)} />
-          <DetailRow label="Active plans" value={String(user.savingsBalance.activePlans)} />
-          <DetailRow label="Completed plans" value={String(user.savingsBalance.completedPlans)} />
-        </Box>
+
+        {isLoading ? (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Skeleton variant="rounded" height={90} />
+            <Skeleton variant="rounded" height={90} />
+          </Box>
+        ) : data ? (
+          data.savings.summary.plans.length > 0 ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {data.savings.summary.plans.map((plan) => (
+                <SavingsPlanRow key={plan._id} plan={plan} />
+              ))}
+            </Box>
+          ) : (
+            <Typography sx={{ fontSize: '0.8rem', color: ink[400] }}>No savings plans yet.</Typography>
+          )
+        ) : (
+          fallbackUser && (
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.2 }}>
+              <DetailRow label="Balance" value={formatCurrency(fallbackUser.savingsBalance.balance)} />
+              <DetailRow label="Target amount" value={formatCurrency(fallbackUser.savingsBalance.targetAmount)} />
+              <DetailRow label="Interest earned" value={formatCurrency(fallbackUser.savingsBalance.totalInterestEarned)} />
+              <DetailRow label="Active plans" value={String(fallbackUser.savingsBalance.activePlans)} />
+            </Box>
+          )
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -637,11 +1312,13 @@ function UserCard({
   user,
   onOpenDetails,
   onUpdateSavings,
+  onUpdateInvestment,
   onCopyId,
 }: {
   user: AdminUser;
   onOpenDetails: () => void;
   onUpdateSavings: () => void;
+  onUpdateInvestment: () => void;
   onCopyId: () => void;
 }) {
   const avatar = avatarStyle(user.userId);
@@ -679,7 +1356,12 @@ function UserCard({
           </Box>
         </Box>
         <Box onClick={(e) => e.stopPropagation()} sx={{ flexShrink: 0, mt: -0.5, mr: -0.5 }}>
-          <RowActionsMenu onViewDetails={onOpenDetails} onUpdateSavings={onUpdateSavings} onCopyId={onCopyId} />
+          <RowActionsMenu
+            onViewDetails={onOpenDetails}
+            onUpdateSavings={onUpdateSavings}
+            onUpdateInvestment={onUpdateInvestment}
+            onCopyId={onCopyId}
+          />
         </Box>
       </Box>
 
@@ -780,6 +1462,7 @@ function UserCardSkeleton() {
 export default function AdminUsers() {
   const { data, isLoading, isError } = useAdminUsersBalances();
   const updateSavingsBalance = useUpdateSavingsBalance();
+  const updateInvestmentBalance = useUpdateUserInvestmentBalance();
   const users = (data ?? []) as unknown as AdminUser[];
 
   const [search, setSearch] = useState('');
@@ -792,6 +1475,9 @@ export default function AdminUsers() {
 
   const [savingsUser, setSavingsUser] = useState<AdminUser | null>(null);
   const [savingsModalOpen, setSavingsModalOpen] = useState(false);
+
+  const [investmentUser, setInvestmentUser] = useState<AdminUser | null>(null);
+  const [investmentModalOpen, setInvestmentModalOpen] = useState(false);
 
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false,
@@ -847,9 +1533,9 @@ export default function AdminUsers() {
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const totalUsers = users.length;
-  const totalAUM = users.reduce((sum, u) => sum + u.totalBalance, 0);
-  const totalInvested = users.reduce((sum, u) => sum + u.investmentBalance.totalInvested, 0);
-  const totalSavings = users.reduce((sum, u) => sum + u.savingsBalance.balance, 0);
+  const totalAUM = users.reduce((sum, u) => sum + (u.totalBalance ?? 0), 0);
+  const totalInvested = users.reduce((sum, u) => sum + (u.investmentBalance?.totalInvested ?? 0), 0);
+  const totalSavings = users.reduce((sum, u) => sum + (u.savingsBalance?.balance ?? 0), 0);
 
   const handleOpenDetails = (u: AdminUser) => {
     setDetailsUser(u);
@@ -859,6 +1545,11 @@ export default function AdminUsers() {
   const handleOpenSavingsModal = (u: AdminUser) => {
     setSavingsUser(u);
     setSavingsModalOpen(true);
+  };
+
+  const handleOpenInvestmentModal = (u: AdminUser) => {
+    setInvestmentUser(u);
+    setInvestmentModalOpen(true);
   };
 
   const handleCopyId = async (id: string) => {
@@ -879,7 +1570,36 @@ export default function AdminUsers() {
     const result = await updateSavingsBalance.mutateAsync(payload);
     setSnackbar({
       open: true,
-      message: `${payload.action === 'add' ? 'Added' : 'Subtracted'} ${formatCurrency(payload.amount)} — new balance ${formatCurrency(result.balanceAfter)}`,
+      message: `${payload.action === 'add' ? 'Added' : 'Subtracted'} ${formatCurrency(payload.amount)} — new balance ${formatCurrency(result?.balanceAfter)}`,
+      severity: 'success',
+    });
+  };
+
+  const handleInvestmentUpdate = async (payload: {
+    userId: string;
+    action: InvestmentAction;
+    amount: number;
+    reason: string;
+    investmentId?: string;
+  }) => {
+    const result = await updateInvestmentBalance.mutateAsync(payload);
+    // TEMP DEBUG — inspect the real response shape, then remove this line.
+    // eslint-disable-next-line no-console
+    console.log('[update-investment-balance] raw result', result);
+
+    const verb = payload.action === 'add' ? 'Added' : payload.action === 'subtract' ? 'Subtracted' : 'Set';
+    const resolvedBalance =
+      (result as any)?.newBalance ??
+      (result as any)?.balanceAfter ??
+      (result as any)?.newInvestmentBalance ??
+      (result as any)?.currentValue;
+
+    setSnackbar({
+      open: true,
+      message:
+        resolvedBalance !== undefined
+          ? `${verb} investment balance — new balance ${formatCurrency(resolvedBalance)}`
+          : `${verb} investment balance.`,
       severity: 'success',
     });
   };
@@ -1017,6 +1737,7 @@ export default function AdminUsers() {
             user={u}
             onOpenDetails={() => handleOpenDetails(u)}
             onUpdateSavings={() => handleOpenSavingsModal(u)}
+            onUpdateInvestment={() => handleOpenInvestmentModal(u)}
             onCopyId={() => handleCopyId(u.userId)}
           />
         ))}
@@ -1047,11 +1768,21 @@ export default function AdminUsers() {
         onSubmit={handleSavingsUpdate}
       />
 
+      <UpdateInvestmentModal
+        open={investmentModalOpen}
+        user={investmentUser}
+        isSubmitting={updateInvestmentBalance.isPending}
+        onClose={() => setInvestmentModalOpen(false)}
+        onSubmit={handleInvestmentUpdate}
+      />
+
       <UserDetailsDialog
         open={detailsOpen}
-        user={detailsUser}
+        userId={detailsUser?.userId ?? null}
+        fallbackUser={detailsUser}
         onClose={() => setDetailsOpen(false)}
         onUpdateSavings={(u) => { setDetailsOpen(false); handleOpenSavingsModal(u); }}
+        onUpdateInvestment={(u) => { setDetailsOpen(false); handleOpenInvestmentModal(u); }}
       />
 
       <Snackbar
