@@ -401,17 +401,25 @@ function PlanDialog({
   onInvest: (plan: any, amount: number) => void;
 }) {
   const minimumInvestment = 50;
-  const [amount, setAmount] = useState('50');
+  const [amount, setAmount] = useState('');
+  const [submitAttempted, setSubmitAttempted] = useState(false);
 
   useEffect(() => {
-    if (plan) setAmount(String(Math.max(minimumInvestment, Number(plan.minInvestment) || 0)));
+    if (plan) {
+      setAmount('');
+      setSubmitAttempted(false);
+    }
   }, [plan]);
 
   if (!plan) return null;
 
   const planColor = colorMap[plan.name] || '#FA510F';
   const numericAmount = Number(amount);
-  const amountIsValid = Number.isFinite(numericAmount) && numericAmount >= minimumInvestment;
+  const amountIsValid = amount.trim() !== '' && Number.isFinite(numericAmount) && numericAmount >= minimumInvestment;
+  const amountError = amount.trim() === ''
+    ? 'Please enter an amount to invest.'
+    : `Enter an amount of at least $${minimumInvestment}`;
+
 
   return (
     <Dialog
@@ -510,11 +518,11 @@ function PlanDialog({
       ),
     },
   }}
-  error={amount.length > 0 && !amountIsValid}
+  error={submitAttempted && !amountIsValid}
   helperText={
-    !amountIsValid
-      ? `Enter an amount of at least $${minimumInvestment}`
-      : `You can invest any amount from $${minimumInvestment} upward.`
+    submitAttempted && !amountIsValid
+      ? amountError
+      : `Minimum investment is $${minimumInvestment}.`
   }
 />
         </Box>
@@ -542,8 +550,10 @@ function PlanDialog({
         <Button
           variant="contained"
           fullWidth
-          onClick={() => amountIsValid && onInvest(plan, numericAmount)}
-          disabled={!amountIsValid}
+          onClick={() => {
+            setSubmitAttempted(true);
+            if (amountIsValid) onInvest(plan, numericAmount);
+          }}
           sx={{
             bgcolor: planColor,
             color: '#fff',

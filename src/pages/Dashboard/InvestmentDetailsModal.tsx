@@ -5,6 +5,7 @@ import {
   Dialog,
   DialogContent,
   IconButton,
+  Button,
   CircularProgress,
 } from '@mui/material';
 import {
@@ -20,12 +21,14 @@ interface InvestmentDetailsModalProps {
   open: boolean;
   investmentId?: string;
   onClose: () => void;
+  onWithdraw?: (investmentId: string) => void;
 }
 
 const InvestmentDetailsModal: React.FC<InvestmentDetailsModalProps> = ({
   open,
   investmentId,
   onClose,
+  onWithdraw,
 }) => {
   const { data: investmentData, isLoading } = useInvestmentDetails(investmentId);
 
@@ -151,6 +154,8 @@ const InvestmentDetailsModal: React.FC<InvestmentDetailsModalProps> = ({
                 </Box>
               ))}
             </Box>
+
+            <Button fullWidth variant="outlined" onClick={() => investmentId && onWithdraw?.(investmentId)} startIcon={<WalletIcon />} sx={{ borderColor: '#FA510F', color: '#FA510F', borderRadius: '12px', textTransform: 'none', fontWeight: 700, '&:hover': { borderColor: '#D94309', bgcolor: '#FFF4F0' } }}>Withdraw Funds</Button>
 
             {/* Monthly Performance Table */}
             {investmentData.monthlyPerformance && investmentData.monthlyPerformance.length > 0 && (

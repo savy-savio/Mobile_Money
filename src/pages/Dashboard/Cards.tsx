@@ -331,6 +331,22 @@ const emptyFunding = (): FundingState => ({
 // mock BTC/USD rate so the simulated payment details look plausible
 const MOCK_BTC_RATE = 64230.5;
 
+interface WithdrawalState {
+  open: boolean;
+  planId: string | null;
+  amount: string;
+  error: string;
+  success: boolean;
+}
+
+const emptyWithdrawal = (): WithdrawalState => ({
+  open: false,
+  planId: null,
+  amount: '',
+  error: '',
+  success: false,
+});
+
 // ─── Main component ─────────────────────────────────────────────────────────
 export default function Cards() {
   // Get current user
@@ -376,6 +392,8 @@ export default function Cards() {
 
   // funding flow (shared between "fund a brand new plan" and "add funds to an existing plan")
   const [funding, setFunding] = useState<FundingState>(emptyFunding());
+  const [withdrawal, setWithdrawal] = useState<WithdrawalState>(emptyWithdrawal());
+
 
   // plan action confirmation (pause / resume / cancel)
   const [actionConfirm, setActionConfirm] = useState<{ open: boolean; kind: 'pause' | 'resume' | 'cancel' | null; planId: string | null }>({
@@ -682,6 +700,35 @@ export default function Cards() {
     setFunding({ ...emptyFunding(), open: true, mode: 'topup', step: 'amount', planId });
   };
 
+  const openWithdrawal = (planId: string) => {
+    setWithdrawal({ ...emptyWithdrawal(), open: true, planId });
+  };
+
+  const submitWithdrawal = () => {
+    const amount = Number.parseFloat(withdrawal.amount);
+    const plan = plans.find((item) => item.planId === withdrawal.planId);
+
+    if (!plan) return;
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setWithdrawal((state) => ({ ...state, error: 'Enter a valid withdrawal amount.' }));
+      return;
+    }
+    if (amount > plan.currentAmount) {
+      setWithdrawal((state) => ({ ...state, error: `You can withdraw up to ${currency(plan.currentAmount)}.` }));
+      return;
+    }
+
+    const nowIso = new Date().toISOString();
+    setPlans((previous) => previous.map((item) => item.planId === plan.planId ? {
+      ...item,
+      currentAmount: item.currentAmount - amount,
+      transactions: [{ id: uid(), type: 'withdrawal', amount, date: nowIso, description: 'Local demo withdrawal' }, ...item.transactions],
+    } : item));
+    setWithdrawal((state) => ({ ...state, success: true, error: '' }));
+  };
+
+  const closeWithdrawal = () => setWithdrawal(emptyWithdrawal());
+
   // ── Plan lifecycle actions ──
   const requestAction = (kind: 'pause' | 'resume' | 'cancel', planId: string) => setActionConfirm({ open: true, kind, planId });
   const closeActionConfirm = () => setActionConfirm({ open: false, kind: null, planId: null });
@@ -744,6 +791,7 @@ export default function Cards() {
           onOpenPlan={openPlan}
           defaultPlans={defaultPlans}
           defaultPlansLoading={defaultPlansLoading}
+          onWithdraw={openWithdrawal}
         />
       )}
 
@@ -752,6 +800,7 @@ export default function Cards() {
           plan={selectedPlan}
           onBack={backToDashboard}
           onAddFunds={() => openTopUp(selectedPlan.planId)}
+          onWithdraw={() => openWithdrawal(selectedPlan.planId)}
           onPause={() => requestAction('pause', selectedPlan.planId)}
           onResume={() => requestAction('resume', selectedPlan.planId)}
           onCancel={() => requestAction('cancel', selectedPlan.planId)}
@@ -788,6 +837,13 @@ export default function Cards() {
 
       {/* ── Pause / Resume / Cancel confirmation ─�� */}
       <PlanActionDialog state={actionConfirm} onClose={closeActionConfirm} onConfirm={applyAction} />
+      <WithdrawalDialog
+        state={withdrawal}
+        plan={plans.find((plan) => plan.planId === withdrawal.planId) || null}
+        onChangeAmount={(amount) => setWithdrawal((state) => ({ ...state, amount, error: '' }))}
+        onSubmit={submitWithdrawal}
+        onClose={closeWithdrawal}
+      />
     </Box>
   );
 }
@@ -801,6 +857,7 @@ function DashboardView({
   onOpenPlan,
   defaultPlans,
   defaultPlansLoading,
+  onWithdraw,
 }: {
   plans: SavingsPlan[];
   totalSavings: number;
@@ -809,6 +866,7 @@ function DashboardView({
   onOpenPlan: (planId: string) => void;
   defaultPlans?: any[];
   defaultPlansLoading?: boolean;
+  onWithdraw: (planId: string) => void;
 }) {
   return (
     <Box>
@@ -967,9 +1025,20 @@ function DashboardView({
                       />
                     </Box>
                   </Box>
-                  <Typography sx={{ fontWeight: 800, fontSize: '0.85rem', color: ink, whiteSpace: 'nowrap', flexShrink: 0, ml: 2 }}>
-                    {progress.toFixed(0)}%
-                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.7, flexShrink: 0, ml: 2 }}>
+                    <Typography sx={{ fontWeight: 800, fontSize: '0.85rem', color: ink, whiteSpace: 'nowrap' }}>
+                      {progress.toFixed(0)}%
+                    </Typography>
+                    <Button
+                      size="small"
+                      startIcon={<WithdrawIcon sx={{ fontSize: '0.9rem !important' }} />}
+                      disabled={plan.currentAmount <= 0 || plan.status === 'cancelled'}
+                      onClick={(event: React.MouseEvent) => { event.stopPropagation(); onWithdraw(plan.planId); }}
+                      sx={{ color: brand, bgcolor: orangeBg, borderRadius: '9px', textTransform: 'none', fontWeight: 700, fontSize: '0.68rem', minWidth: 0, px: 1, py: 0.35, '&:hover': { bgcolor: '#FFE5DA' } }}
+                    >
+                      Withdraw
+                    </Button>
+                  </Box>
                 </Box>
               );
             })
@@ -985,6 +1054,7 @@ function PlanDetailView({
   plan,
   onBack,
   onAddFunds,
+  onWithdraw,
   onPause,
   onResume,
   onCancel,
@@ -992,6 +1062,7 @@ function PlanDetailView({
   plan: SavingsPlan;
   onBack: () => void;
   onAddFunds: () => void;
+  onWithdraw: () => void;
   onPause: () => void;
   onResume: () => void;
   onCancel: () => void;
@@ -1074,6 +1145,17 @@ function PlanDetailView({
         </Box>
 
         <Box sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: '16px', bgcolor: '#fff', border: `1px solid ${border}`, boxShadow: shadow, display: 'flex', flexDirection: 'column', gap: 1, justifyContent: 'center' }}>
+          {!isLocked && (
+            <Button
+              variant="outlined"
+              onClick={onWithdraw}
+              disabled={plan.currentAmount <= 0}
+              startIcon={<WithdrawIcon sx={{ fontSize: '1rem !important' }} />}
+              sx={{ borderColor: brand, color: brand, borderRadius: '12px', textTransform: 'none', fontWeight: 700, fontSize: '0.78rem', py: 1, '&:hover': { borderColor: brandDark, bgcolor: orangeBg } }}
+            >
+              Withdraw Funds
+            </Button>
+          )}
           {!isLocked && (
             <Button
               variant="contained"
@@ -1856,6 +1938,57 @@ function FundingFlow({
               Done
             </Button>
           </Box>
+        )}
+      </Box>
+    </Dialog>
+  );
+}
+
+function WithdrawalDialog({
+  state,
+  plan,
+  onChangeAmount,
+  onSubmit,
+  onClose,
+}: {
+  state: WithdrawalState;
+  plan: SavingsPlan | null;
+  onChangeAmount: (amount: string) => void;
+  onSubmit: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog open={state.open} onClose={onClose} maxWidth="xs" fullWidth slotProps={{ paper: { sx: { borderRadius: '24px', m: { xs: 1.5, sm: 3 } } } }}>
+      <Box sx={{ p: 3 }}>
+        {state.success ? (
+          <Box sx={{ textAlign: 'center' }}>
+            <Box sx={{ width: 72, height: 72, borderRadius: '20px', bgcolor: greenBg, display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 }}>
+              <SuccessIcon sx={{ color: green, fontSize: '2.2rem' }} />
+            </Box>
+            <Typography sx={{ fontWeight: 800, fontSize: '1.1rem', color: ink, mb: 1 }}>Withdrawal successful</Typography>Your withdrawal request is submitted to the administrator successfully.
+            <Typography sx={{ color: grey, fontSize: '0.85rem', lineHeight: 1.6, mb: 3 }}></Typography>
+            <Button onClick={onClose} fullWidth variant="contained" sx={{ bgcolor: brand, borderRadius: '12px', textTransform: 'none', fontWeight: 700, '&:hover': { bgcolor: brandDark } }}>Done</Button>
+          </Box>
+        ) : (
+          <>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
+              <Box>
+                <Typography sx={{ fontWeight: 800, fontSize: '1.05rem', color: ink }}>Withdraw funds</Typography>
+                <Typography sx={{ color: faint, fontSize: '0.75rem', mt: 0.3 }}>{plan?.planName || 'Savings plan'}</Typography>
+              </Box>
+              <IconButton size="small" onClick={onClose} sx={{ bgcolor: '#F5F6FA' }} aria-label="Close withdrawal dialog"><CloseIcon fontSize="small" /></IconButton>
+            </Box>
+            <Typography sx={{ color: grey, fontSize: '0.82rem', mb: 1 }}>Available balance: <strong>{currency(plan?.currentAmount || 0)}</strong></Typography>
+            <TextField
+              autoFocus fullWidth type="number" label="Withdrawal amount" value={state.amount} onChange={(event: React.ChangeEvent<HTMLInputElement>) => onChangeAmount(event.target.value)} error={!!state.error} helperText={state.error || ''}
+              slotProps={{ htmlInput: { min: 0.01, max: plan?.currentAmount || 0, step: 0.01 }, input: { startAdornment: <InputAdornment position="start">$</InputAdornment> } }}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+            />
+            <Box sx={{ display: 'flex', gap: 1.5, mt: 3 }}>
+              <Button onClick={onClose} fullWidth sx={{ color: grey, bgcolor: '#F5F6FA', borderRadius: '12px', textTransform: 'none', fontWeight: 700 }}>Cancel</Button>
+              <Button onClick={onSubmit} fullWidth variant="contained" startIcon={<WithdrawIcon />} sx={{ bgcolor: brand, borderRadius: '12px', textTransform: 'none', fontWeight: 700, '&:hover': { bgcolor: brandDark } }}>Withdraw</Button>
+            </Box>
+          </>
         )}
       </Box>
     </Dialog>

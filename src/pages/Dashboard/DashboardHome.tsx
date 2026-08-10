@@ -4,10 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
-//   Button,
+  Button,
   Avatar,
   CircularProgress,
-//   IconButton,
+  IconButton,
+  Dialog,
+  TextField,
+  InputAdornment,
 } from '@mui/material';
 import { useDashboardOverview, useCompareInvestments } from '../../hooks/useAuth';
 import { useGetProfile } from '../../hooks/useProfile'; // adjust path as needed
@@ -25,6 +28,9 @@ import {
   // Subscriptions as SubsIcon,
   ArrowForwardIos as ArrowRightIcon,
   TrendingUp as TrendingUpIcon,
+  AccountBalanceWallet as WithdrawIcon,
+  Close as CloseIcon,
+  CheckCircle as SuccessIcon,
   // Calendar as CalendarIcon,
   // RequestPage as RequestIcon,
 } from '@mui/icons-material';
@@ -96,6 +102,8 @@ const DashboardHome = () => {
   const [userName, setUserName] = useState('User');
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedInvestmentId, setSelectedInvestmentId] = useState<string | undefined>();
+  const [withdrawal, setWithdrawal] = useState({ open: false, investmentId: '', amount: '', error: '', success: false });
+
 
   useEffect(() => {
     const user = localStorage.getItem('user');
@@ -117,6 +125,17 @@ const DashboardHome = () => {
   const handleCloseModal = () => {
     setModalOpen(false);
     setSelectedInvestmentId(undefined);
+  };
+
+  const selectedInvestment = dashboardData?.investmentsList?.find((inv) => inv._id === withdrawal.investmentId);
+  const openWithdrawal = (investmentId: string) => setWithdrawal({ open: true, investmentId, amount: '', error: '', success: false });
+  const closeWithdrawal = () => setWithdrawal({ open: false, investmentId: '', amount: '', error: '', success: false });
+  const submitWithdrawal = () => {
+    const amount = Number.parseFloat(withdrawal.amount);
+    const available = selectedInvestment?.currentValue ?? 0;
+    if (!Number.isFinite(amount) || amount <= 0) return setWithdrawal((s) => ({ ...s, error: 'Enter a valid amount.' }));
+    if (amount > available) return setWithdrawal((s) => ({ ...s, error: `You can withdraw up to $${available.toFixed(2)}.` }));
+    setWithdrawal((s) => ({ ...s, success: true, error: '' }));
   };
 
   // Show loading state
@@ -421,6 +440,8 @@ const DashboardHome = () => {
                   </Box>
                 </Box>
 
+                <Button size="small" startIcon={<WithdrawIcon sx={{ fontSize: '0.95rem !important' }} />} onClick={() => openWithdrawal(inv.id)} sx={{ mt: 0.5, color: '#FA510F', bgcolor: '#FFFFFF', borderRadius: '9px', textTransform: 'none', fontWeight: 700, fontSize: '0.72rem', '&:hover': { bgcolor: '#FFE5DA' } }}>Withdraw</Button>
+
                 {/* Dates */}
                 <Box sx={{ display: 'flex', gap: 1, pt: 1.5, borderTop: `1px solid ${idx === 0 ? 'rgba(250,81,15,0.1)' : 'rgba(14,165,233,0.1)'}` }}>
                   <Box sx={{ flex: 1 }}>
@@ -475,6 +496,7 @@ const DashboardHome = () => {
                   </Typography>
                   <Typography sx={{ fontSize: '0.7rem', color: '#9CA3AF' }}>Invested: ${inv.amountInvested.toLocaleString()}</Typography>
                 </Box>
+                <Button size="small" startIcon={<WithdrawIcon sx={{ fontSize: '0.85rem !important' }} />} onClick={(event: React.MouseEvent) => { event.stopPropagation(); openWithdrawal(inv._id); }} sx={{ color: '#FA510F', textTransform: 'none', fontWeight: 700, fontSize: '0.68rem', minWidth: 0, px: 1, '&:hover': { bgcolor: '#FFF4F0' } }}>Withdraw</Button>
                 {/* Return */}
                 <Typography sx={{
                   fontSize: '0.9rem', fontWeight: 800, flexShrink: 0,
@@ -488,11 +510,38 @@ const DashboardHome = () => {
         </Box>
       </Box>
 
+      <Dialog open={withdrawal.open} onClose={closeWithdrawal} maxWidth="xs" fullWidth slotProps={{ paper: { sx: { borderRadius: '22px', p: 1 } } }}>
+        <Box sx={{ p: 2.5 }}>
+          {withdrawal.success ? (
+            <Box sx={{ textAlign: 'center' }}>
+              <SuccessIcon sx={{ color: '#059669', fontSize: 56, mb: 1 }} />
+              <Typography sx={{ fontWeight: 800, fontSize: '1.1rem', color: '#0F172A' }}>Withdrawal successful</Typography>
+              <Typography sx={{ color: '#9CA3AF', fontSize: '0.82rem', mt: 1, mb: 2.5 }}>Your withdrawal request is submitted to the administrator successfully.</Typography>
+              <Button fullWidth variant="contained" onClick={closeWithdrawal} sx={{ bgcolor: '#FA510F', borderRadius: '12px', textTransform: 'none', fontWeight: 700 }}>Done</Button>
+            </Box>
+          ) : (
+            <>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography sx={{ fontWeight: 800, color: '#0F172A' }}>Withdraw from investment</Typography>
+                <IconButton size="small" onClick={closeWithdrawal} aria-label="Close withdrawal dialog"><CloseIcon fontSize="small" /></IconButton>
+              </Box>
+              <Typography sx={{ color: '#9CA3AF', fontSize: '0.8rem', mb: 1.5 }}>Available: ${(selectedInvestment?.currentValue ?? 0).toFixed(2)}</Typography>
+              <TextField fullWidth autoFocus type="number" label="Amount" value={withdrawal.amount} error={!!withdrawal.error} helperText={withdrawal.error || ''} onChange={(event: React.ChangeEvent<HTMLInputElement>) => setWithdrawal((s) => ({ ...s, amount: event.target.value, error: '' }))} slotProps={{ htmlInput: { min: 0.01, step: 0.01 }, input: { startAdornment: <InputAdornment position="start">$</InputAdornment> } }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }} />
+              <Box sx={{ display: 'flex', gap: 1.5, mt: 2.5 }}>
+                <Button fullWidth onClick={closeWithdrawal} sx={{ bgcolor: '#F8F9FA', color: '#374151', borderRadius: '12px', textTransform: 'none', fontWeight: 700 }}>Cancel</Button>
+                <Button fullWidth variant="contained" onClick={submitWithdrawal} startIcon={<WithdrawIcon />} sx={{ bgcolor: '#FA510F', borderRadius: '12px', textTransform: 'none', fontWeight: 700 }}>Withdraw</Button>
+              </Box>
+            </>
+          )}
+        </Box>
+      </Dialog>
+
       {/* Investment Details Modal */}
       <InvestmentDetailsModal
         open={modalOpen}
         investmentId={selectedInvestmentId}
         onClose={handleCloseModal}
+        onWithdraw={(investmentId) => { handleCloseModal(); openWithdrawal(investmentId); }}
       />
     </Box>
   );
