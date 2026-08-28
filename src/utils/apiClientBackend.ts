@@ -53,7 +53,7 @@ const refreshAccessToken = async (): Promise<string | null> => {
       throw new Error('No refresh token available');
     }
 
-    console.log('[TOKEN] Attempting to refresh access token...');
+    // console.log('[TOKEN] Attempting to refresh access token...');
 
     const response = await fetch(`${baseURL}/api/auth/refresh-token`, {
       method: 'POST',
@@ -86,13 +86,13 @@ const refreshAccessToken = async (): Promise<string | null> => {
     if (newAccessToken && newRefreshToken) {
       localStorage.setItem('accessToken', newAccessToken);
       localStorage.setItem('refreshToken', newRefreshToken);
-      console.log('[TOKEN] Access token refreshed successfully');
+      // console.log('[TOKEN] Access token refreshed successfully');
       return newAccessToken;
     }
 
     throw new Error('No tokens in refresh response');
   } catch (error) {
-    console.error('[TOKEN] Refresh failed:', error);
+    // console.error('[TOKEN] Refresh failed:', error);
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
@@ -104,7 +104,7 @@ const refreshAccessToken = async (): Promise<string | null> => {
 const apiClient = async (endpoint: string, options: ApiClientOptions = {}): Promise<any> => {
   const method = options.method || 'GET';
 
-  console.log(`${method} ${baseURL}/api/${endpoint}`);
+  // console.log(`${method} ${baseURL}/api/${endpoint}`);
 
   // Check if there's a body in the request
   const hasBody = options.body !== undefined;
@@ -128,7 +128,7 @@ const apiClient = async (endpoint: string, options: ApiClientOptions = {}): Prom
   const newAccessTokenFromHeader = response.headers.get('x-new-access-token');
   if (newAccessTokenFromHeader) {
     localStorage.setItem('accessToken', newAccessTokenFromHeader);
-    console.log('[TOKEN] Access token auto-refreshed from response header');
+    // console.log('[TOKEN] Access token auto-refreshed from response header');
   }
 
   // Handle 401 - token expired
@@ -187,7 +187,7 @@ const apiClient = async (endpoint: string, options: ApiClientOptions = {}): Prom
   }
 
   if (!response.ok) {
-    console.error('API Error Response:', data);
+    // console.error('API Error Response:', data);
     throw new Error(data?.message || 'Something went wrong');
   }
 

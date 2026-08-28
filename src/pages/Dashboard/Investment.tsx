@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
@@ -1113,7 +1114,7 @@ export default function Investments() {
   // Handle invest click
   const handleInvest = (plan: any, amount: number) => {
     if (!currentUser) {
-      console.error('User not found');
+      // console.error('User not found');
       return;
     }
 
@@ -1136,8 +1137,8 @@ export default function Investments() {
           setPaymentModalOpen(true);
           setDialogOpen(false); // Close plan details modal
         },
-        onError: (error) => {
-          console.error('Payment initialization failed:', error);
+        onError: () => {
+          // console.error('Payment initialization failed:', error);
           alert('Failed to initialize payment. Please try again.');
         },
       }
@@ -1156,7 +1157,7 @@ export default function Investments() {
       },
       {
         onSuccess: () => {
-          console.log('[v0] Payment verified successfully, completing payment');
+          // console.log('[v0] Payment verified successfully, completing payment');
           // Call complete payment API
           completePayment(
             {
@@ -1164,7 +1165,7 @@ export default function Investments() {
             },
             {
               onSuccess: (completionData) => {
-                console.log('[v0] Payment completed successfully:', completionData);
+                // console.log('[v0] Payment completed successfully:', completionData);
                 setSuccessData({
                   message: completionData.message,
                   data: completionData.data,
@@ -1173,15 +1174,15 @@ export default function Investments() {
                 setVerifyModalOpen(false);
                 setPaymentModalOpen(false);
               },
-              onError: (error) => {
-                console.error('[v0] Payment completion failed:', error);
+              onError: () => {
+                // console.error('[v0] Payment completion failed:', error);
                 alert('Payment completion failed. Please try again.');
               },
             }
           );
         },
-        onError: (error) => {
-          console.error('[v0] Payment verification failed:', error);
+        onError: () => {
+          // console.error('[v0] Payment verification failed:', error);
           alert('Payment verification failed. Please check your transaction hash and try again.');
         },
       }

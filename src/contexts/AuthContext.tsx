@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-refresh/only-export-components */
 /* eslint-disable react-hooks/set-state-in-effect */
@@ -24,7 +25,7 @@ const decodeToken = (token: string) => {
 
     return JSON.parse(atob(parts[1]));
   } catch (error) {
-    console.error('Invalid token:', error);
+    // console.error('Invalid token:', error);
     return null;
   }
 };

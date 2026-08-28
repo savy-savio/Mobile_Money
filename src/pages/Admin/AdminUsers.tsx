@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
@@ -1584,8 +1585,7 @@ export default function AdminUsers() {
   }) => {
     const result = await updateInvestmentBalance.mutateAsync(payload);
     // TEMP DEBUG — inspect the real response shape, then remove this line.
-    // eslint-disable-next-line no-console
-    console.log('[update-investment-balance] raw result', result);
+    // console.log('[update-investment-balance] raw result', result);
 
     const verb = payload.action === 'add' ? 'Added' : payload.action === 'subtract' ? 'Subtracted' : 'Set';
     const resolvedBalance =

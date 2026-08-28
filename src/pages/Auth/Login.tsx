@@ -193,9 +193,9 @@ const handleSubmit = (ev: React.FormEvent) => {
   login(
     { email, password, rememberMe: remember },
     {
-      onSuccess: (data) => {
-        console.log("🔥 Login response:", data);
-        console.log("🔄 Remember Me enabled:", remember);
+      onSuccess: () => {
+        // console.log("🔥 Login response:", data);
+        // console.log("🔄 Remember Me enabled:", remember);
 
         navigate("/dashboard");
       },
@@ -210,7 +210,7 @@ const handleSubmit = (ev: React.FormEvent) => {
           err?.message ||
           "Invalid email or password. Please try again.";
 
-        console.log("❌ Login error:", err);
+        // console.log("❌ Login error:", err);
 
         setErrors({ api: message });
       },

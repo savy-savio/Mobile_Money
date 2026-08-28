@@ -87,17 +87,17 @@ export default function ForgotPassword() {
 const handleSubmit = (e: React.FormEvent) => {
   e.preventDefault();
 
-  console.log("Submitting forgot password", email);
+  // console.log("Submitting forgot password", email);
 
   if (!validate()) return;
 
   forgotPassword(email, {
     onSuccess: () => {
-      console.log("Success");
+      // console.log("Success");
       setStep(2);
     },
-    onError: (err) => {
-      console.log("Error", err);
+    onError: () => {
+      // console.log("Error", err);
     },
   });
 };

@@ -98,9 +98,9 @@ export default function VerifyEmail() {
         },
         onError: (err: any) => {
           // Log for debugging — remove once stable
-          console.error("[VerifyEmail] raw error:", err);
-          console.error("[VerifyEmail] err.response:", err?.response);
-          console.error("[VerifyEmail] err.data:", err?.data);
+          // console.error("[VerifyEmail] raw error:", err);
+          // console.error("[VerifyEmail] err.response:", err?.response);
+          // console.error("[VerifyEmail] err.data:", err?.data);
 
           // "Already verified" → treat as success, not failure
           if (isAlreadyVerifiedError(err)) {

@@ -1702,17 +1702,17 @@ interface UpdateSavingsBalanceResponse {
 // console, and so we log the same shape whether the failure came from
 // apiClient throwing (network error / non-2xx / route not found) or from
 // a 200 response with `success: false`.
-function logApiError(label: string, endpoint: string, method: string, err: unknown) {
-  const status = (err as any)?.status ?? (err as any)?.response?.status;
-  const body = (err as any)?.body ?? (err as any)?.response?.data;
-  console.error(`[${label}] request failed`, {
-    method,
-    endpoint,
-    status,
-    message: err instanceof Error ? err.message : err,
-    body,
-    raw: err,
-  });
+function logApiError() {
+  // const status = (err as any)?.status ?? (err as any)?.response?.status;
+  // const body = (err as any)?.body ?? (err as any)?.response?.data;
+  // console.error(`[${label}] request failed`, {
+  //   method,
+  //   endpoint,
+  //   status,
+  //   message: err instanceof Error ? err.message : err,
+  //   body,
+  //   raw: err,
+  // });
 }
 
 export const useAdminUsersBalances = () => {
@@ -1720,7 +1720,7 @@ export const useAdminUsersBalances = () => {
     queryKey: ['admin-users-balances'],
     queryFn: async () => {
       const endpoint = 'admin/users-balances';
-      console.log('[AdminUsersBalances] GET', endpoint);
+      // console.log('[AdminUsersBalances] GET', endpoint);
 
       let response: AdminUsersBalancesResponse;
       try {
@@ -1730,14 +1730,14 @@ export const useAdminUsersBalances = () => {
       } catch (err) {
         // This is where a "route not found" / 404 typically surfaces —
         // apiClient throws before we ever get a `.success` field to check.
-        logApiError('AdminUsersBalances', endpoint, 'GET', err);
+        logApiError();
         throw err;
       }
 
-      console.log('[AdminUsersBalances] response', response);
+      // console.log('[AdminUsersBalances] response', response);
 
       if (!response.success) {
-        console.error('[AdminUsersBalances] API returned success: false', response);
+        // console.error('[AdminUsersBalances] API returned success: false', response);
         throw new Error(response.message || 'Failed to fetch user balances');
       }
 
@@ -1755,7 +1755,7 @@ export const useUpdateSavingsBalance = () => {
       ...payload
     }: UpdateSavingsBalanceRequest & { userId: string }) => {
       const endpoint = `admin/user/${userId}/update-savings-balance`;
-      console.log('[UpdateSavingsBalance] PUT', endpoint, payload);
+      // console.log('[UpdateSavingsBalance] PUT', endpoint, payload);
 
       let response: UpdateSavingsBalanceResponse;
       try {
@@ -1764,28 +1764,28 @@ export const useUpdateSavingsBalance = () => {
           body: JSON.stringify(payload),
         })) as UpdateSavingsBalanceResponse;
       } catch (err) {
-        logApiError('UpdateSavingsBalance', endpoint, 'PUT', err);
+        logApiError();
         throw err;
       }
 
-      console.log('[UpdateSavingsBalance] response', response);
+      // console.log('[UpdateSavingsBalance] response', response);
 
       if (!response.success) {
-        console.error('[UpdateSavingsBalance] API returned success: false', response);
+        // console.error('[UpdateSavingsBalance] API returned success: false', response);
         throw new Error(response.message || 'Failed to update savings balance');
       }
 
       return response.data;
     },
     onSuccess: (data) => {
-      console.log('[UpdateSavingsBalance] success, invalidating queries for', data.userId);
+      // console.log('[UpdateSavingsBalance] success, invalidating queries for', data.userId);
       queryClient.invalidateQueries({ queryKey: ['admin-users-balances'] });
       queryClient.invalidateQueries({ queryKey: ['savings-balance', data.userId] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-overview', data.userId] });
       queryClient.invalidateQueries({ queryKey: ['savings-transactions', data.userId] });
     },
-    onError: (err) => {
-      console.error('[UpdateSavingsBalance] mutation error', err);
-    },
+    // onError: (err) => {
+    //   console.error('[UpdateSavingsBalance] mutation error', err);
+    // },
   });
 };

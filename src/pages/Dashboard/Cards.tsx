@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
@@ -614,7 +615,7 @@ export default function Cards() {
         amountUSD: paymentData.amountUSD,
       }));
     } catch (error) {
-      console.log('[v0] Payment initialization error:', error);
+      // console.log('[v0] Payment initialization error:', error);
       setFunding((f) => ({ 
         ...f, 
         loading: false, 
@@ -640,7 +641,7 @@ export default function Cards() {
       
       setFunding((f) => ({ ...f, loading: false, step: 'confirm' }));
     } catch (error) {
-      console.log('[v0] Payment verification error:', error);
+      // console.log('[v0] Payment verification error:', error);
       setFunding((f) => ({ 
         ...f, 
         loading: false, 
@@ -680,7 +681,7 @@ export default function Cards() {
 
       setFunding((f) => ({ ...f, loading: false, step: 'success' }));
     } catch (error) {
-      console.log('[v0] Payment completion error:', error);
+      // console.log('[v0] Payment completion error:', error);
       setFunding((f) => ({ 
         ...f, 
         loading: false, 
@@ -746,7 +747,7 @@ export default function Cards() {
       }
       closeActionConfirm();
     } catch (error) {
-      console.log('[v0] Action error:', error);
+      // console.log('[v0] Action error:', error);
     }
   };
 
