@@ -87,7 +87,7 @@ export async function manualTokenRefresh(): Promise<boolean> {
 
     if (response.data?.accessToken && response.data?.refreshToken) {
       localStorage.setItem('accessToken', response.data.accessToken);
-      localStorage.setItem('refreshToken', response.data.refreshToken);
+      localStorage.setItem('refreshToken', response.data.refreshToken)
       // console.log('[TOKEN] Manual token refresh successful');
       return true;
     }
@@ -95,6 +95,6 @@ export async function manualTokenRefresh(): Promise<boolean> {
     return false;
   } catch (error) {
     // console.error('[TOKEN] Manual refresh failed:', error);
-    return error;
+    return false;
   }
 }
