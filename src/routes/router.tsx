@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { Homelayout } from "../components";
 import Homepage from "../pages/Homepage";
 import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
@@ -13,6 +14,7 @@ import ForgotPassword from "../pages/Auth/ForgotPassword";
 import ResetPassword from "../pages/Auth/ResetPassword";
 import VerifyEmail from "../pages/Auth/Verifyemail";
 import AdminUsers from "../pages/Admin/AdminUsers";
+import AdminWallets from "../pages/Admin/AdminWallets";
 
 const hasSession = () =>
     typeof window !== "undefined" && Boolean(localStorage.getItem("accessToken"));
@@ -76,7 +78,10 @@ export const Router = createBrowserRouter([
                     {
                         path: "/admin",
                         element: <DashboardLayout />,
-                        children: [{ index: true, element: <AdminUsers /> }],
+                        children: [
+                            { index: true, element: <AdminUsers /> },
+                            {path: "/admin/wallets", element: <AdminWallets />}
+                        ],
                     },
                 ],
             },

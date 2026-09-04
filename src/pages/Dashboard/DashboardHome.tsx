@@ -1,4 +1,4 @@
-/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -11,8 +11,16 @@ import {
   Dialog,
   TextField,
   InputAdornment,
+  Chip,
+  Tooltip,
 } from '@mui/material';
-import { useDashboardOverview, useCompareInvestments } from '../../hooks/useAuth';
+import {
+  useDashboardOverview,
+  useCompareInvestments,
+  useMyWallet,
+  useRequestWithdrawal,
+  useMyWithdrawals,
+} from '../../hooks/useAuth';
 import { useGetProfile } from '../../hooks/useProfile'; // adjust path as needed
 import InvestmentDetailsModal from './InvestmentDetailsModal';
 import {
@@ -21,38 +29,16 @@ import {
   Add as AddIcon,
   AccountBalanceWallet as WalletIcon,
   SavingsOutlined as SavingsIcon,
-  // NorthEast as NorthEastIcon,
-  // ShoppingBag as ShoppingIcon,
-  // Restaurant as FoodIcon,
-  // LocalGasStation as FuelIcon,
-  // Subscriptions as SubsIcon,
   ArrowForwardIos as ArrowRightIcon,
   TrendingUp as TrendingUpIcon,
   AccountBalanceWallet as WithdrawIcon,
   Close as CloseIcon,
   CheckCircle as SuccessIcon,
-  // Calendar as CalendarIcon,
-  // RequestPage as RequestIcon,
+  ContentCopy as CopyIcon,
+  CurrencyBitcoin as BitcoinIcon,
+  HourglassEmpty as PendingIcon,
+  Cancel as RejectedIcon,
 } from '@mui/icons-material';
-
-
-
-// ─── Category Icon Mapping ────────────────────────────────────────────────────
-// const categoryIconMap: Record<string, React.ComponentType<any>> = {
-//   Shopping: ShoppingIcon,
-//   'Food & Drink': FoodIcon,
-//   Transport: FuelIcon,
-//   Subscriptions: SubsIcon,
-//   Income: ArrowDownIcon,
-// };
-
-// const categoryColorMap: Record<string, { color: string; bg: string }> = {
-//   Shopping: { color: '#FA510F', bg: '#FFF4F0' },
-//   'Food & Drink': { color: '#D97706', bg: '#FFFBEB' },
-//   Transport: { color: '#0EA5E9', bg: '#F0F9FF' },
-//   Subscriptions: { color: '#DC2626', bg: '#FEF2F2' },
-//   Income: { color: '#059669', bg: '#ECFDF5' },
-// };
 
 // ─── Animated Counter ──────────────────────────────────────────────────────────
 
@@ -91,6 +77,30 @@ function AnimatedNumber({
   );
 }
 
+// ─── Withdrawal status chip ─────────────────────────────────────────────────────
+
+const WITHDRAWAL_STATUS_STYLES: Record<string, { bg: string; text: string; icon: any }> = {
+  pending: { bg: '#FFFBEB', text: '#92400E', icon: PendingIcon },
+  approved: { bg: '#ECFDF5', text: '#047857', icon: SuccessIcon },
+  rejected: { bg: '#FEF2F2', text: '#B91C1C', icon: RejectedIcon },
+};
+
+function WithdrawalStatusChip({ status }: { status: string }) {
+  const style = WITHDRAWAL_STATUS_STYLES[status] ?? WITHDRAWAL_STATUS_STYLES.pending;
+  const Icon = style.icon;
+  return (
+    <Chip
+      size="small"
+      icon={<Icon sx={{ fontSize: '0.85rem !important', color: `${style.text} !important` }} />}
+      label={status.charAt(0).toUpperCase() + status.slice(1)}
+      sx={{ bgcolor: style.bg, color: style.text, fontWeight: 700, fontSize: '0.65rem', height: 22 }}
+    />
+  );
+}
+
+const BTC_ADDRESS_REGEX =
+  /^(1[a-km-zA-HJ-NP-Z1-9]{25,34}|3[a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-z0-9]{25,90})$/;
+
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 const DashboardHome = () => {
@@ -104,6 +114,18 @@ const DashboardHome = () => {
   const [selectedInvestmentId, setSelectedInvestmentId] = useState<string | undefined>();
   const [withdrawal, setWithdrawal] = useState({ open: false, investmentId: '', amount: '', error: '', success: false });
 
+  // ── Wallet ──
+  const { data: myWallet, isLoading: walletLoading } = useMyWallet();
+  const { data: myWithdrawals, isLoading: withdrawalsLoading } = useMyWithdrawals();
+  const requestWithdrawal = useRequestWithdrawal();
+  const [walletWithdrawal, setWalletWithdrawal] = useState({
+    open: false,
+    amount: '',
+    bitcoinAddress: '',
+    error: '',
+    success: false,
+  });
+  const [copiedAccountNumber, setCopiedAccountNumber] = useState(false);
 
   useEffect(() => {
     const user = localStorage.getItem('user');
@@ -138,6 +160,55 @@ const DashboardHome = () => {
     setWithdrawal((s) => ({ ...s, success: true, error: '' }));
   };
 
+  // ── Wallet withdrawal handlers ──
+  const openWalletWithdrawal = () =>
+    setWalletWithdrawal({ open: true, amount: '', bitcoinAddress: '', error: '', success: false });
+  const closeWalletWithdrawal = () =>
+    setWalletWithdrawal({ open: false, amount: '', bitcoinAddress: '', error: '', success: false });
+
+  const submitWalletWithdrawal = async () => {
+    const amount = Number.parseFloat(walletWithdrawal.amount);
+    const available = myWallet?.availableBalance ?? 0;
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setWalletWithdrawal((s) => ({ ...s, error: 'Enter a valid amount.' }));
+      return;
+    }
+    if (amount > available) {
+      setWalletWithdrawal((s) => ({
+        ...s,
+        error: `You can withdraw up to ${myWallet?.currency ?? ''} ${available.toLocaleString('en-US', { minimumFractionDigits: 2 })}.`,
+      }));
+      return;
+    }
+    const trimmedAddress = walletWithdrawal.bitcoinAddress.trim();
+    if (!trimmedAddress || !BTC_ADDRESS_REGEX.test(trimmedAddress)) {
+      setWalletWithdrawal((s) => ({ ...s, error: 'Enter a valid Bitcoin wallet address.' }));
+      return;
+    }
+
+    try {
+      await requestWithdrawal.mutateAsync({ amount, bitcoinAddress: trimmedAddress });
+      setWalletWithdrawal((s) => ({ ...s, success: true, error: '' }));
+    } catch (err) {
+      setWalletWithdrawal((s) => ({
+        ...s,
+        error: err instanceof Error ? err.message : 'Something went wrong. Please try again.',
+      }));
+    }
+  };
+
+  const handleCopyAccountNumber = async () => {
+    if (!myWallet?.accountNumber) return;
+    try {
+      await navigator.clipboard.writeText(myWallet.accountNumber);
+      setCopiedAccountNumber(true);
+      setTimeout(() => setCopiedAccountNumber(false), 2000);
+    } catch {
+      // clipboard not available — silently ignore
+    }
+  };
+
   // Show loading state
   if (isLoading || isCompareLoading) {
     return (
@@ -153,9 +224,9 @@ const DashboardHome = () => {
 
   // Transform API data to match UI structure - Map only balances
   const balanceStats = [
-    { 
-      label: 'Total Balance', 
-      value: dashboardData.balances.totalBalance, 
+    {
+      label: 'Total Balance',
+      value: dashboardData.balances.totalBalance,
       change: '',
       icon: WalletIcon,
       gradient: 'linear-gradient(135deg, #FA510F 0%, #D94309 100%)',
@@ -166,9 +237,9 @@ const DashboardHome = () => {
       iconBg: 'rgba(255,255,255,0.2)',
       iconColor: '#fff',
     },
-    { 
-      label: 'Investments Balance', 
-      value: dashboardData.balances.investmentsBalance, 
+    {
+      label: 'Investments Balance',
+      value: dashboardData.balances.investmentsBalance,
       change: '',
       icon: ArrowDownIcon,
       gradient: null,
@@ -179,9 +250,9 @@ const DashboardHome = () => {
       iconBg: '#ECFDF5',
       iconColor: '#059669',
     },
-    { 
-      label: 'Savings Balance', 
-      value: dashboardData.balances.savingsBalance, 
+    {
+      label: 'Savings Balance',
+      value: dashboardData.balances.savingsBalance,
       change: '',
       icon: SavingsIcon,
       gradient: null,
@@ -192,9 +263,9 @@ const DashboardHome = () => {
       iconBg: '#F0F9FF',
       iconColor: '#0EA5E9',
     },
-    { 
-      label: 'Total Gain', 
-      value: dashboardData.investments.totalGain, 
+    {
+      label: 'Total Gain',
+      value: dashboardData.investments.totalGain,
       change: `${dashboardData.investments.gainPercentage.toFixed(2)}% return`,
       icon: TrendingUpIcon,
       gradient: null,
@@ -286,6 +357,156 @@ const DashboardHome = () => {
         ))}
       </Box>
 
+      {/* ── Wallet ── */}
+      <Box
+        sx={{
+          p: 3,
+          borderRadius: '20px',
+          bgcolor: '#FFFFFF',
+          border: '1px solid rgba(0,0,0,0.06)',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
+          mb: 2.5,
+        }}
+      >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2, mb: 2.5 }}>
+          <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+            <Box
+              sx={{
+                width: 40, height: 40, borderRadius: '12px',
+                bgcolor: '#FFF4F0', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <WalletIcon sx={{ color: '#FA510F', fontSize: '1.15rem' }} />
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: '1rem', fontWeight: 800, color: '#0F172A' }}>Wallet</Typography>
+              {walletLoading ? (
+                <Typography sx={{ fontSize: '0.72rem', color: '#9CA3AF' }}>Loading account…</Typography>
+              ) : myWallet ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Typography sx={{ fontSize: '0.72rem', color: '#9CA3AF' }}>
+                    Account: {myWallet.accountNumber}
+                  </Typography>
+                  <Tooltip title={copiedAccountNumber ? 'Copied!' : 'Copy account number'}>
+                    <IconButton size="small" onClick={handleCopyAccountNumber} sx={{ p: 0.3 }}>
+                      <CopyIcon sx={{ fontSize: '0.8rem', color: '#9CA3AF' }} />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              ) : (
+                <Typography sx={{ fontSize: '0.72rem', color: '#9CA3AF' }}>No wallet found</Typography>
+              )}
+            </Box>
+          </Box>
+
+          <Button
+            variant="contained"
+            disabled={!myWallet || myWallet.availableBalance <= 0}
+            startIcon={<BitcoinIcon sx={{ fontSize: '1rem !important' }} />}
+            onClick={openWalletWithdrawal}
+            sx={{
+              bgcolor: '#FA510F',
+              borderRadius: '12px',
+              textTransform: 'none',
+              fontWeight: 700,
+              px: 2.5,
+              '&:hover': { bgcolor: '#D94309' },
+              '&.Mui-disabled': { bgcolor: '#E2E8F0', color: '#94A3B8' },
+            }}
+          >
+            Withdraw to Bitcoin
+          </Button>
+        </Box>
+
+        {walletLoading ? (
+          <Box sx={{ display: 'flex', gap: 1.5 }}>
+            <CircularProgress size={20} />
+          </Box>
+        ) : myWallet ? (
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: '1fr 1fr' }, gap: 2 }}>
+            <Box sx={{ p: 2, borderRadius: '14px', bgcolor: '#F8F9FA' }}>
+              <Typography sx={{ fontSize: '0.7rem', color: '#9CA3AF', fontWeight: 600, mb: 0.4 }}>
+                Wallet Balance
+              </Typography>
+              <Typography sx={{ fontSize: '1.15rem', fontWeight: 800, color: '#0F172A' }}>
+                {myWallet.currency}{' '}
+                {myWallet.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </Typography>
+            </Box>
+            <Box sx={{ p: 2, borderRadius: '14px', bgcolor: '#F8F9FA' }}>
+              <Typography sx={{ fontSize: '0.7rem', color: '#9CA3AF', fontWeight: 600, mb: 0.4 }}>
+                Available to Withdraw
+              </Typography>
+              <Typography sx={{ fontSize: '1.15rem', fontWeight: 800, color: '#0F172A' }}>
+                {myWallet.currency}{' '}
+                {myWallet.availableBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </Typography>
+            </Box>
+          </Box>
+        ) : (
+          <Typography sx={{ fontSize: '0.8rem', color: '#9CA3AF' }}>
+            We couldn&apos;t find a wallet on your account. Please contact support.
+          </Typography>
+        )}
+
+        {/* Withdrawal history */}
+        {myWithdrawals && myWithdrawals.length > 0 && (
+          <Box sx={{ mt: 2.5, pt: 2.5, borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+            <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: '#0F172A', mb: 1.5 }}>
+              Recent Withdrawal Requests
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {myWithdrawals.slice(0, 5).map((w) => (
+                <Box
+                  key={w._id}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 1.5,
+                    p: 1.4,
+                    borderRadius: '12px',
+                    bgcolor: '#F8F9FA',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A' }}>
+                      {myWallet?.currency ?? ''} {w.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontSize: '0.68rem',
+                        color: '#9CA3AF',
+                        fontFamily: 'monospace',
+                        maxWidth: 220,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {w.bitcoinAddress}
+                    </Typography>
+                    {w.reviewNote && (
+                      <Typography sx={{ fontSize: '0.68rem', color: '#9CA3AF', mt: 0.2 }}>
+                        Note: {w.reviewNote}
+                      </Typography>
+                    )}
+                  </Box>
+                  <WithdrawalStatusChip status={w.status} />
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        )}
+
+        {!withdrawalsLoading && myWithdrawals && myWithdrawals.length === 0 && (
+          <Typography sx={{ fontSize: '0.78rem', color: '#9CA3AF', mt: 2 }}>
+            No withdrawal requests yet.
+          </Typography>
+        )}
+      </Box>
+
       {/* ── Quick actions + Allocation ── */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5, mb: 2.5 }}>
 
@@ -296,7 +517,6 @@ const DashboardHome = () => {
             {[
               { label: 'Invest Money',     icon: SendIcon,    gradient: 'linear-gradient(135deg,#FA510F,#D94309)', shadow: '0 4px 14px rgba(250,81,15,0.3)', text: '#fff', path: '/dashboard/investments' },
               { label: 'Save Money',       icon: AddIcon,     gradient: null, border: '1.5px solid rgba(250,81,15,0.3)', bg: '#FFF4F0', text: '#FA510F', path: '/dashboard/savings' },
-              // { label: 'Request Money',  icon: RequestIcon, gradient: null, border: '1.5px solid rgba(0,0,0,0.08)', bg: '#F8F9FA', text: '#374151' },
             ].map((action) => (
               <Box
                 key={action.label}
@@ -510,6 +730,7 @@ const DashboardHome = () => {
         </Box>
       </Box>
 
+      {/* ── Investment Withdrawal Dialog (existing, unchanged) ── */}
       <Dialog open={withdrawal.open} onClose={closeWithdrawal} maxWidth="xs" fullWidth slotProps={{ paper: { sx: { borderRadius: '22px', p: 1 } } }}>
         <Box sx={{ p: 2.5 }}>
           {withdrawal.success ? (
@@ -530,6 +751,111 @@ const DashboardHome = () => {
               <Box sx={{ display: 'flex', gap: 1.5, mt: 2.5 }}>
                 <Button fullWidth onClick={closeWithdrawal} sx={{ bgcolor: '#F8F9FA', color: '#374151', borderRadius: '12px', textTransform: 'none', fontWeight: 700 }}>Cancel</Button>
                 <Button fullWidth variant="contained" onClick={submitWithdrawal} startIcon={<WithdrawIcon />} sx={{ bgcolor: '#FA510F', borderRadius: '12px', textTransform: 'none', fontWeight: 700 }}>Withdraw</Button>
+              </Box>
+            </>
+          )}
+        </Box>
+      </Dialog>
+
+      {/* ── Wallet BTC Withdrawal Dialog ── */}
+      <Dialog
+        open={walletWithdrawal.open}
+        onClose={requestWithdrawal.isPending ? undefined : closeWalletWithdrawal}
+        maxWidth="xs"
+        fullWidth
+        slotProps={{ paper: { sx: { borderRadius: '22px', p: 1 } } }}
+      >
+        <Box sx={{ p: 2.5 }}>
+          {walletWithdrawal.success ? (
+            <Box sx={{ textAlign: 'center' }}>
+              <SuccessIcon sx={{ color: '#059669', fontSize: 56, mb: 1 }} />
+              <Typography sx={{ fontWeight: 800, fontSize: '1.1rem', color: '#0F172A' }}>
+                Withdrawal request submitted
+              </Typography>
+              <Typography sx={{ color: '#9CA3AF', fontSize: '0.82rem', mt: 1, mb: 2.5 }}>
+                Your Bitcoin withdrawal request has been sent to the administrator for review. You&apos;ll be notified once it&apos;s approved.
+              </Typography>
+              <Button fullWidth variant="contained" onClick={closeWalletWithdrawal} sx={{ bgcolor: '#FA510F', borderRadius: '12px', textTransform: 'none', fontWeight: 700 }}>
+                Done
+              </Button>
+            </Box>
+          ) : (
+            <>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography sx={{ fontWeight: 800, color: '#0F172A' }}>Withdraw to Bitcoin</Typography>
+                <IconButton size="small" onClick={closeWalletWithdrawal} aria-label="Close withdrawal dialog" disabled={requestWithdrawal.isPending}>
+                  <CloseIcon fontSize="small" />
+                </IconButton>
+              </Box>
+              <Typography sx={{ color: '#9CA3AF', fontSize: '0.8rem', mb: 1.5 }}>
+                Available: {myWallet?.currency ?? ''}{' '}
+                {(myWallet?.availableBalance ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </Typography>
+              <TextField
+                fullWidth
+                autoFocus
+                type="number"
+                label="Amount"
+                value={walletWithdrawal.amount}
+                disabled={requestWithdrawal.isPending}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                  setWalletWithdrawal((s) => ({ ...s, amount: event.target.value, error: '' }))
+                }
+                slotProps={{
+                  htmlInput: { min: 0.00000001, step: 'any' },
+                  input: {
+                    startAdornment: <InputAdornment position="start">{myWallet?.currency ?? '$'}</InputAdornment>,
+                  },
+                }}
+                sx={{ mb: 2, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+              />
+              <TextField
+                fullWidth
+                label="Bitcoin Wallet Address"
+                placeholder="bc1… or 1… or 3…"
+                value={walletWithdrawal.bitcoinAddress}
+                disabled={requestWithdrawal.isPending}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                  setWalletWithdrawal((s) => ({ ...s, bitcoinAddress: event.target.value, error: '' }))
+                }
+                error={!!walletWithdrawal.error}
+                helperText={walletWithdrawal.error || 'Funds will be sent to this address once approved.'}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <BitcoinIcon sx={{ fontSize: '1.05rem', color: '#9CA3AF' }} />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', fontFamily: 'monospace', fontSize: '0.85rem' } }}
+              />
+              <Box sx={{ display: 'flex', gap: 1.5, mt: 2.5 }}>
+                <Button
+                  fullWidth
+                  onClick={closeWalletWithdrawal}
+                  disabled={requestWithdrawal.isPending}
+                  sx={{ bgcolor: '#F8F9FA', color: '#374151', borderRadius: '12px', textTransform: 'none', fontWeight: 700 }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  onClick={submitWalletWithdrawal}
+                  disabled={requestWithdrawal.isPending}
+                  startIcon={
+                    requestWithdrawal.isPending ? (
+                      <CircularProgress size={16} sx={{ color: '#fff' }} />
+                    ) : (
+                      <WithdrawIcon />
+                    )
+                  }
+                  sx={{ bgcolor: '#FA510F', borderRadius: '12px', textTransform: 'none', fontWeight: 700, '&:hover': { bgcolor: '#D94309' } }}
+                >
+                  {requestWithdrawal.isPending ? 'Submitting…' : 'Request Withdrawal'}
+                </Button>
               </Box>
             </>
           )}

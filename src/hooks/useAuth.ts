@@ -163,6 +163,197 @@ interface InvestmentPlansResponse {
   data: InvestmentPlan[];
 }
 
+export interface WalletLookupResult {
+  accountNumber: string;
+  balance: number;
+  currency: string;
+  status: string;
+  user: {
+    userId: string;
+    firstName: string;
+    lastName: string;
+    fullName: string;
+    username: string;
+    email: string;
+  };
+}
+
+interface WalletLookupResponse {
+  success: boolean;
+  message?: string;
+  data: WalletLookupResult;
+}
+
+export interface CreditWalletRequest {
+  accountNumber: string;
+  amount: number;
+  reason?: string;
+}
+
+export interface CreditWalletData {
+  accountNumber: string;
+  amountChanged: number;
+  balanceBefore: number;
+  balanceAfter: number;
+}
+
+interface CreditWalletResponse {
+  success: boolean;
+  message: string;
+  data: CreditWalletData;
+}
+
+export type WithdrawalStatus = 'pending' | 'approved' | 'rejected';
+
+export interface AdminWithdrawalRequest {
+  _id: string;
+  userId: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    username: string;
+  };
+  walletId: {
+    _id: string;
+    accountNumber: string;
+    balance: number;
+    currency: string;
+  };
+  amount: number;
+  bitcoinAddress: string;
+  status: WithdrawalStatus;
+  reviewedBy?: string;
+  reviewNote?: string;
+  reviewedAt?: string;
+  balanceBefore?: number;
+  balanceAfter?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface AdminWithdrawalsResponse {
+  success: boolean;
+  message?: string;
+  data: AdminWithdrawalRequest[];
+  pagination: { page: number; limit: number; total: number; pages: number };
+}
+
+export const useAdminWithdrawals = (
+  status: WithdrawalStatus | '' = '',
+  page = 1,
+  limit = 20
+) => {
+  return useQuery({
+    queryKey: ['admin-withdrawals', status, page, limit],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (status) params.set('status', status);
+      params.set('page', String(page));
+      params.set('limit', String(limit));
+
+      let response: AdminWithdrawalsResponse;
+      try {
+        response = (await apiClient(`admin/withdrawals?${params.toString()}`, {
+          method: 'GET',
+        })) as AdminWithdrawalsResponse;
+      } catch (err) {
+        throw err instanceof Error ? err : new Error('Failed to fetch withdrawal requests');
+      }
+
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to fetch withdrawal requests');
+      }
+
+      return response;
+    },
+  });
+};
+
+// ─── Review Withdrawal Hook (Admin) ────────────────────────────────────────────
+export interface ReviewWithdrawalRequest {
+  withdrawalId: string;
+  decision: 'approve' | 'reject';
+  note?: string;
+}
+
+interface ReviewWithdrawalResponse {
+  success: boolean;
+  message: string;
+  data: AdminWithdrawalRequest;
+}
+
+export const useReviewWithdrawal = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ withdrawalId, ...payload }: ReviewWithdrawalRequest) => {
+      const response = (await apiClient(`admin/withdrawals/${withdrawalId}/review`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      })) as ReviewWithdrawalResponse;
+
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to review withdrawal request');
+      }
+
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-withdrawals'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-users-balances'] });
+    },
+  });
+};
+
+export const useWalletLookup = (accountNumber: string) => {
+  return useQuery({
+    queryKey: ['wallet-lookup', accountNumber],
+    queryFn: async () => {
+      let response: WalletLookupResponse;
+      try {
+        response = (await apiClient(`admin/wallet/lookup/${accountNumber}`, {
+          method: 'GET',
+        })) as WalletLookupResponse;
+      } catch (err) {
+        throw err instanceof Error ? err : new Error('Account not found');
+      }
+
+      if (!response.success) {
+        throw new Error(response.message || 'Account not found');
+      }
+
+      return response.data;
+    },
+    enabled: accountNumber.trim().length >= 10,
+    retry: false,
+    staleTime: 30_000,
+  });
+};
+
+export const useCreditWallet = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: CreditWalletRequest) => {
+      const response = (await apiClient('admin/wallet/credit', {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      })) as CreditWalletResponse;
+
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to credit wallet');
+      }
+
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['wallet-lookup', data.accountNumber] });
+      queryClient.invalidateQueries({ queryKey: ['admin-withdrawals'] });
+    },
+  });
+};
+
 // ─── Signup Hook ──────────────────────────────────────────────────────────────
 export const useSignup = () => {
   return useMutation({
@@ -1787,5 +1978,102 @@ export const useUpdateSavingsBalance = () => {
     // onError: (err) => {
     //   console.error('[UpdateSavingsBalance] mutation error', err);
     // },
+  });
+};
+
+
+// ─── My Wallet Hook (User) ─────────────────────────────────────────────────────
+export interface MyWallet {
+  walletId: string;
+  accountNumber: string;
+  balance: number;
+  availableBalance: number;
+  currency: string;
+  status: 'active' | 'frozen';
+}
+
+interface MyWalletResponse {
+  success: boolean;
+  message?: string;
+  data: MyWallet;
+}
+
+export const useMyWallet = () => {
+  return useQuery({
+    queryKey: ['my-wallet'],
+    queryFn: async () => {
+      const response = (await apiClient('wallet/me', { method: 'GET' })) as MyWalletResponse;
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to fetch wallet');
+      }
+      return response.data;
+    },
+  });
+};
+
+// ─── Request Withdrawal Hook (User) ────────────────────────────────────────────
+export interface RequestWithdrawalPayload {
+  amount: number;
+  bitcoinAddress: string;
+}
+
+export interface WithdrawalRequestData {
+  _id: string;
+  userId: string;
+  walletId: string;
+  amount: number;
+  bitcoinAddress: string;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewNote?: string;
+  reviewedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface RequestWithdrawalResponse {
+  success: boolean;
+  message: string;
+  data: WithdrawalRequestData;
+}
+
+export const useRequestWithdrawal = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: RequestWithdrawalPayload) => {
+      const response = (await apiClient('wallet/withdraw', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      })) as RequestWithdrawalResponse;
+
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to submit withdrawal request');
+      }
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-wallet'] });
+      queryClient.invalidateQueries({ queryKey: ['my-withdrawals'] });
+    },
+  });
+};
+
+// ─── My Withdrawal History Hook (User) ─────────────────────────────────────────
+interface MyWithdrawalsResponse {
+  success: boolean;
+  message?: string;
+  data: WithdrawalRequestData[];
+}
+
+export const useMyWithdrawals = () => {
+  return useQuery({
+    queryKey: ['my-withdrawals'],
+    queryFn: async () => {
+      const response = (await apiClient('wallet/withdrawals', { method: 'GET' })) as MyWithdrawalsResponse;
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to fetch withdrawal history');
+      }
+      return response.data;
+    },
   });
 };

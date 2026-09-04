@@ -53,6 +53,7 @@ import {
   useGetUserBalanceDetails,
   useUpdateUserInvestmentBalance,
 } from '../../hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
 // ─── Design tokens ───────────────────────────────────────────────────────────
 
@@ -1463,6 +1464,7 @@ function UserCardSkeleton() {
 export default function AdminUsers() {
   const { data, isLoading, isError } = useAdminUsersBalances();
   const updateSavingsBalance = useUpdateSavingsBalance();
+  const navigate = useNavigate();
   const updateInvestmentBalance = useUpdateUserInvestmentBalance();
   const users = (data ?? []) as unknown as AdminUser[];
 
@@ -1607,6 +1609,7 @@ export default function AdminUsers() {
   return (
     <Box sx={{ p: 0, fontFamily: 'inherit' }}>
       {/* Header */}
+            {/* Header */}
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: ink[400], textTransform: 'uppercase', letterSpacing: '0.6px', mb: 0.6 }}>
@@ -1619,6 +1622,26 @@ export default function AdminUsers() {
             View balances and manage user savings accounts.
           </Typography>
         </Box>
+
+        <Button
+          variant="contained"
+          disableElevation
+          startIcon={<WalletIcon sx={{ fontSize: '1.05rem' }} />}
+          onClick={() => navigate('/admin/wallets')}
+          sx={{
+            bgcolor: BRAND,
+            color: '#fff',
+            px: 2.5,
+            py: 1.2,
+            borderRadius: radius.md,
+            fontWeight: 700,
+            textTransform: 'none',
+            fontSize: '0.85rem',
+            '&:hover': { bgcolor: BRAND_DARK },
+          }}
+        >
+          Wallets
+        </Button>
       </Box>
 
       {isError && (
