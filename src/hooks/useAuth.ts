@@ -2077,3 +2077,32 @@ export const useMyWithdrawals = () => {
     },
   });
 };
+
+// ─── Send Custom Email Hook (Admin) ────────────────────────────────────────────
+export interface SendCustomEmailPayload {
+  userId: string;
+  subject: string;
+  message: string;
+}
+
+interface SendCustomEmailResponse {
+  success: boolean;
+  message: string;
+  data: { userId: string; email: string; subject: string; ticketId: string };
+}
+
+export const useSendCustomEmail = () => {
+  return useMutation({
+    mutationFn: async ({ userId, ...payload }: SendCustomEmailPayload) => {
+      const response = (await apiClient(`admin/user/${userId}/send-email`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      })) as SendCustomEmailResponse;
+
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to send email');
+      }
+      return response.data;
+    },
+  });
+};
